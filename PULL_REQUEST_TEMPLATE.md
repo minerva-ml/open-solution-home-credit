@@ -10,4 +10,4 @@ Thanks!
 
 Jakub & Kamil,
 
-core contributors to the minerva.ml
+_core contributors to the minerva.ml_
