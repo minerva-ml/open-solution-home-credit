@@ -1,6 +1,9 @@
 from functools import partial
 
+from sklearn.metrics import roc_auc_score
+
 import feature_extraction as fe
+from hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, SaveResults
 from models import LightGBMLowMemory as LightGBM
 from steps.adapters import to_numpy_label_inputs, identity_inputs
 from steps.base import Step, Dummy
@@ -141,8 +144,20 @@ def _join_features(numerical_features, numerical_features_valid,
 def classifier_lgbm(features, config, train_mode, **kwargs):
     if train_mode:
         features_train, features_valid = features
-
-        transformer = LightGBM(**config.light_gbm)
+        if config.random_search.light_gbm.n_runs:
+            transformer = RandomSearchOptimizer(LightGBM, config.light_gbm,
+                                                train_input_keys=[],
+                                                valid_input_keys=['X_valid', 'y_valid'],
+                                                score_func=roc_auc_score,
+                                                maximize=True,
+                                                n_runs=config.random_search.light_gbm.n_runs,
+                                                callbacks=[NeptuneMonitor(
+                                                    **config.random_search.light_gbm.callbacks.neptune_monitor),
+                                                    SaveResults(
+                                                        **config.random_search.light_gbm.callbacks.save_results)
+                                                ])
+        else:
+            transformer = LightGBM(**config.light_gbm)
 
         light_gbm = Step(name='light_gbm',
                          transformer=transformer,
