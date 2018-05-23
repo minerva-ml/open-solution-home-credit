@@ -1,5 +1,8 @@
+import category_encoders as ce
 import numpy as np
 import pandas as pd
+from sklearn.externals import joblib
+from sklearn.model_selection import KFold
 
 from steps.base import BaseTransformer
 from steps.utils import get_logger
@@ -49,3 +52,26 @@ class FeatureJoiner(BaseTransformer):
                 feature_names.append(dataframe.name)
 
         return feature_names
+
+
+class TargetEncoder(BaseTransformer):
+    def __init__(self, **kwargs):
+        self.params = kwargs
+        self.encoder_class = ce.TargetEncoder
+
+    def fit(self, X, y, **kwargs):
+        categorical_columns = list(X.columns)
+        self.target_encoder = self.encoder_class(cols=categorical_columns, **self.params)
+        self.target_encoder.fit(X, y)
+        return self
+
+    def transform(self, X, y=None, **kwargs):
+        X_ = self.target_encoder.transform(X)
+        return {'categorical_features': X_}
+
+    def load(self, filepath):
+        self.target_encoder = joblib.load(filepath)
+        return self
+
+    def save(self, filepath):
+        joblib.dump(self.target_encoder, filepath)

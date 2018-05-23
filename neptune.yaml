@@ -31,21 +31,24 @@ parameters:
   num_workers: 10
   verbose: 1
 
+  # Preprocessing
+  target_encoder__n_splits: 10
+
 # Light GBM
   lgbm_random_search_runs: 0
   lgbm__boosting_type: 'gbdt'
-  lgbm__objective: regression
+  lgbm__objective: binary
   lgbm__metric: auc
   lgbm__number_boosting_rounds: 300
   lgbm__early_stopping_rounds: 30
   lgbm__learning_rate: 0.05
-  lgbm__num_leaves: 77
-  lgbm__max_depth: 11
+  lgbm__num_leaves: 31
+  lgbm__max_depth: 18
   lgbm__min_child_samples: 44
   lgbm__max_bin: 379
-  lgbm__subsample: 0.82
-  lgbm__subsample_freq: 1
-  lgbm__colsample_bytree: 0.27
+  lgbm__subsample: 0.8
+  lgbm__subsample_freq: 5
+  lgbm__colsample_bytree: 0.8
   lgbm__min_child_weight: 4
   lgbm__reg_lambda: 0.0
   lgbm__reg_alpha: 0.1

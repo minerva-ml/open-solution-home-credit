@@ -36,19 +36,24 @@ def feature_extraction(config, train_mode, **kwargs):
     if train_mode:
         feature_by_type_split, feature_by_type_split_valid = _feature_by_type_splits(config, train_mode)
 
+        target_encoder, target_encoder_valid = _target_encoders((feature_by_type_split, feature_by_type_split_valid),
+                                                                config, train_mode, **kwargs)
+
         feature_combiner, feature_combiner_valid = _join_features(numerical_features=[feature_by_type_split],
                                                                   numerical_features_valid=[feature_by_type_split_valid],
-                                                                  categorical_features=[],
-                                                                  categorical_features_valid=[],
+                                                                  categorical_features=[target_encoder],
+                                                                  categorical_features_valid=[target_encoder_valid],
                                                                   config=config, train_mode=train_mode, **kwargs)
 
         return feature_combiner, feature_combiner_valid
     else:
         feature_by_type_split = _feature_by_type_splits(config, train_mode)
 
+        target_encoder = _target_encoders(feature_by_type_split, config, train_mode, **kwargs)
+
         feature_combiner = _join_features(numerical_features=[feature_by_type_split],
                                           numerical_features_valid=[],
-                                          categorical_features=[],
+                                          categorical_features=[target_encoder],
                                           categorical_features_valid=[],
                                           config=config, train_mode=train_mode, **kwargs)
 
@@ -161,6 +166,47 @@ def classifier_lgbm(features, config, train_mode, **kwargs):
                          cache_dirpath=config.env.cache_dirpath,
                          **kwargs)
     return light_gbm
+
+
+def _target_encoders(dispatchers, config, train_mode, **kwargs):
+    if train_mode:
+        feature_by_type_split, feature_by_type_split_valid = dispatchers
+
+        target_encoder = Step(name='target_encoder',
+                              transformer=fe.TargetEncoder(),
+                              input_data=['input'],
+                              input_steps=[feature_by_type_split],
+                              adapter={'X': ([(feature_by_type_split.name, 'categorical_features')]),
+                                       'y': ([('input', 'y')], to_numpy_label_inputs),
+                                       },
+                              cache_dirpath=config.env.cache_dirpath,
+                              **kwargs)
+
+        target_encoder_valid = Step(name='target_encoder_valid',
+                                    transformer=target_encoder,
+                                    input_data=['input'],
+                                    input_steps=[feature_by_type_split_valid],
+                                    adapter={'X': ([(feature_by_type_split_valid.name, 'categorical_features')]),
+                                             'y': ([('input', 'y_valid')], to_numpy_label_inputs),
+                                             },
+                                    cache_dirpath=config.env.cache_dirpath,
+                                    **kwargs)
+
+        return target_encoder, target_encoder_valid
+
+    else:
+        feature_by_type_split = dispatchers
+
+        target_encoder = Step(name='target_encoder',
+                              transformer=fe.TargetEncoder(),
+                              input_data=['input'],
+                              input_steps=[feature_by_type_split],
+                              adapter={'X': ([(feature_by_type_split.name, 'categorical_features')]),
+                                       },
+                              cache_dirpath=config.env.cache_dirpath,
+                              **kwargs)
+
+        return target_encoder
 
 
 PIPELINES = {'main': {'train': partial(main, train_mode=True),
