@@ -1,0 +1,52 @@
+project: HC
+
+name: home-credit
+tags: [solution]
+
+metric:
+  channel: 'ROC_AUC'
+  goal: maximize
+
+exclude:
+  - output
+  - imgs
+  - neptune.log
+  - offline_job.log
+  - .git
+  - .idea
+  - .ipynb_checkpoints
+
+parameters:
+# Data
+  train_filepath: YOUR/PATH
+  test_filepath:  YOUR/PATH
+  experiment_dir:  YOUR/PATH
+
+# Validation
+  target_bins: 100
+  validation_size: 0.2
+
+# Execution
+  overwrite: 0
+  num_workers: 10
+  verbose: 1
+
+# Light GBM
+  lgbm_random_search_runs: 0
+  lgbm__boosting_type: 'gbdt'
+  lgbm__objective: regression
+  lgbm__metric: auc
+  lgbm__number_boosting_rounds: 300
+  lgbm__early_stopping_rounds: 30
+  lgbm__learning_rate: 0.05
+  lgbm__num_leaves: 77
+  lgbm__max_depth: 11
+  lgbm__min_child_samples: 44
+  lgbm__max_bin: 379
+  lgbm__subsample: 0.82
+  lgbm__subsample_freq: 1
+  lgbm__colsample_bytree: 0.27
+  lgbm__min_child_weight: 4
+  lgbm__reg_lambda: 0.0
+  lgbm__reg_alpha: 0.1
+  lgbm__scale_pos_weight: 1
