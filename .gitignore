@@ -13,6 +13,7 @@ tests/.cache
 .cache/
 .idea/
 .idea_modules/
+*_local.yaml
 out/
 output
 output/
