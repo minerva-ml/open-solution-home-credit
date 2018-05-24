@@ -36,7 +36,7 @@ parameters:
 
 # Light GBM
   lgbm_random_search_runs: 0
-  lgbm__boosting_type: 'gbdt'
+  lgbm__boosting_type: gbdt
   lgbm__objective: binary
   lgbm__metric: auc
   lgbm__number_boosting_rounds: 300
