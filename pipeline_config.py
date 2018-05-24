@@ -1,3 +1,5 @@
+import os
+
 from attrdict import AttrDict
 from deepsense import neptune
 
@@ -73,6 +75,16 @@ SOLUTION_CONFIG = AttrDict({
                   'early_stopping_rounds': params.lgbm__early_stopping_rounds,
                   'verbose': params.verbose
                   },
+
+    'random_search': {'light_gbm': {'n_runs': safe_eval(params.lgbm_random_search_runs),
+                                    'callbacks': {'neptune_monitor': {'name': 'light_gbm'
+                                                                      },
+                                                  'save_results': {'filepath': os.path.join(params.experiment_dir,
+                                                                                            'random_search_light_gbm.pkl')
+                                                                   }
+                                                  }
+                                    }
+},
 
     'clipper': {'min_val': 0,
                 'max_val': 1
