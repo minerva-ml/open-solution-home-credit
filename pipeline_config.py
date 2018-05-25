@@ -76,7 +76,7 @@ SOLUTION_CONFIG = AttrDict({
                   'verbose': params.verbose
                   },
 
-    'random_search': {'light_gbm': {'n_runs': safe_eval(params.lgbm_random_search_runs),
+    'random_search': {'light_gbm': {'n_runs': params.lgbm_random_search_runs,
                                     'callbacks': {'neptune_monitor': {'name': 'light_gbm'
                                                                       },
                                                   'save_results': {'filepath': os.path.join(params.experiment_dir,

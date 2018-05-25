@@ -1,6 +1,6 @@
 import numpy as np
 
-from steps.base import BaseTransformer
+from steppy.base import BaseTransformer
 
 
 class Clipper(BaseTransformer):

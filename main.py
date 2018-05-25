@@ -45,9 +45,6 @@ def _train(pipeline_name, dev_mode):
                                                                       valid_size=params.validation_size,
                                                                       random_state=1234)
 
-    # data_hash_channel_send(ctx, 'Training Data Hash', meta_train_split)
-    # data_hash_channel_send(ctx, 'Validation Data Hash', meta_valid_split)
-
     logger.info('Target distribution in train: {}'.format(meta_train_split[cfg.TARGET_COLUMNS].mean()))
     logger.info('Target distribution in valid: {}'.format(meta_valid_split[cfg.TARGET_COLUMNS].mean()))
 
@@ -88,8 +85,6 @@ def _evaluate(pipeline_name, dev_mode):
                                                        valid_size=params.validation_size,
                                                        random_state=1234)
 
-    # data_hash_channel_send(ctx, 'Evaluation Data Hash', meta_valid_split)
-
     logger.info('Target distribution in valid: {}'.format(meta_valid_split[cfg.TARGET_COLUMNS].mean()))
 
     data = {'input': {'X': meta_valid_split,
@@ -100,7 +95,7 @@ def _evaluate(pipeline_name, dev_mode):
     pipeline.clean_cache()
     output = pipeline.transform(data)
     pipeline.clean_cache()
-    y_pred = output['y_pred']
+    y_pred = output['clipped_prediction']
     y_true = meta_valid_split[cfg.TARGET_COLUMNS].values.reshape(-1)
 
     logger.info('Saving evaluation predictions')
@@ -126,8 +121,6 @@ def _predict(pipeline_name, dev_mode):
     else:
         meta_test = pd.read_csv(params.test_filepath)
 
-    # data_hash_channel_send(ctx, 'Test Data Hash', meta_test)
-
     data = {'input': {'X': meta_test,
                       'y': None,
                       },
@@ -137,7 +130,7 @@ def _predict(pipeline_name, dev_mode):
     pipeline.clean_cache()
     output = pipeline.transform(data)
     pipeline.clean_cache()
-    y_pred = output['y_pred']
+    y_pred = output['clipped_prediction']
 
     logger.info('creating submission test')
     submission = create_submission(meta_test, y_pred)

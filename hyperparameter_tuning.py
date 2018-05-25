@@ -4,7 +4,7 @@ import numpy as np
 from deepsense import neptune
 from sklearn.externals import joblib
 
-from steps.base import BaseTransformer
+from steppy.base import BaseTransformer
 from utils import set_seed
 
 
