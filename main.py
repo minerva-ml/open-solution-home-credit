@@ -131,13 +131,16 @@ def _predict(pipeline_name, dev_mode):
     output = pipeline.transform(data)
     pipeline.clean_cache()
     y_pred = output['clipped_prediction']
-
     logger.info('creating submission test')
     submission = create_submission(meta_test, y_pred)
-    submission_filepath = os.path.join(params.experiment_dir, 'submission.csv')
-    submission.to_csv(submission_filepath, index=None, encoding='utf-8')
-    logger.info('submission saved to {}'.format(submission_filepath))
-    logger.info('submission head \n\n{}'.format(submission.head()))
+
+    if dev_mode:
+        logger.info('submittion cant be saved in dev mode')
+    else:
+        submission_filepath = os.path.join(params.experiment_dir, 'submission.csv')
+        submission.to_csv(submission_filepath, index=None, encoding='utf-8')
+        logger.info('submission saved to {}'.format(submission_filepath))
+        logger.info('submission head \n\n{}'.format(submission.head()))
 
 
 @action.command()

@@ -6,7 +6,7 @@ import feature_extraction as fe
 from hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, SaveResults
 from models import LightGBMLowMemory as LightGBM
 from steppy.adapter import Adapter, E
-from steppy.base import Step#, Dummy
+from steppy.base import Step
 from postprocessing import Clipper
 
 
