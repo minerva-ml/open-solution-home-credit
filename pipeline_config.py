@@ -45,7 +45,7 @@ TIMESTAMP_COLUMNS = []
 ID_COLUMNS = ['SK_ID_CURR']
 TARGET_COLUMNS = ['TARGET']
 
-DEV_SAMPLE_SIZE = int(20e4)
+DEV_SAMPLE_SIZE = int(10e4)
 
 SOLUTION_CONFIG = AttrDict({
     'env': {'cache_dirpath': params.experiment_dir

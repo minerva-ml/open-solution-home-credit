@@ -9,7 +9,7 @@ from sklearn.metrics import roc_auc_score
 import pipeline_config as cfg
 from pipelines import PIPELINES
 from utils import create_submission, init_logger, read_params, save_evaluation_predictions, \
-    set_seed, stratified_train_valid_split
+    set_seed, stratified_train_valid_split, verify_submission
 
 set_seed(1234)
 logger = init_logger()
@@ -131,11 +131,15 @@ def _predict(pipeline_name, dev_mode):
     output = pipeline.transform(data)
     pipeline.clean_cache()
     y_pred = output['clipped_prediction']
-    logger.info('creating submission test')
+    logger.info('creating submission')
     submission = create_submission(meta_test, y_pred)
 
+    logger.info('verifying submittion')
+    sample_submission = pd.read_csv(params.sample_submission_filepath)
+    verify_submission(submission, sample_submission)
+
     if dev_mode:
-        logger.info('submittion cant be saved in dev mode')
+        logger.info('submittion can\'t be saved in dev mode')
     else:
         submission_filepath = os.path.join(params.experiment_dir, 'submission.csv')
         submission.to_csv(submission_filepath, index=None, encoding='utf-8')
