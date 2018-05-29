@@ -84,10 +84,16 @@ SOLUTION_CONFIG = AttrDict({
                                                                    }
                                                   }
                                     }
-},
+                      },
 
     'clipper': {'min_val': 0,
                 'max_val': 1
-                }
+                },
+
+    'groupby_aggregation': {'groupby_aggregations': [
+            {'groupby': ['NAME_FAMILY_STATUS'], 'select': 'FLAG_MOBIL', 'agg': 'count'},
+            {'groupby': ['CODE_GENDER'], 'select': 'FLAG_MOBIL', 'agg': 'mean'},
+            {'groupby': ['EMERGENCYSTATE_MODE', 'ORGANIZATION_TYPE'], 'select': 'FLAG_MOBIL', 'agg': 'count'},
+    ]},
 })
 
