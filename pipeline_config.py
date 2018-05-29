@@ -92,6 +92,7 @@ SOLUTION_CONFIG = AttrDict({
 
     'groupby_aggregation': {'groupby_aggregations': [
             {'groupby': ['NAME_FAMILY_STATUS'], 'select': 'FLAG_MOBIL', 'agg': 'count'},
+            {'groupby': ['NAME_HOUSING_TYPE', 'HOUSETYPE_MODE'], 'select': 'DAYS_EMPLOYED', 'agg': 'var'},
             {'groupby': ['CODE_GENDER'], 'select': 'FLAG_MOBIL', 'agg': 'mean'},
             {'groupby': ['EMERGENCYSTATE_MODE', 'ORGANIZATION_TYPE'], 'select': 'FLAG_MOBIL', 'agg': 'count'},
     ]},

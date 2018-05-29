@@ -223,7 +223,10 @@ def _groupby_aggregations(dispatchers, config, train_mode, **kwargs):
                                     input_data=['input'],
                                     input_steps=[feature_by_type_split],
                                     adapter=Adapter({'categorical_features': E(feature_by_type_split.name,
-                                                                               'categorical_features')}),
+                                                                               'categorical_features'),
+                                                     'numerical_features': E(feature_by_type_split.name,
+                                                                             'numerical_features')
+                                                     }),
                                     cache_dirpath=config.env.cache_dirpath,
                                     **kwargs)
 
@@ -232,7 +235,10 @@ def _groupby_aggregations(dispatchers, config, train_mode, **kwargs):
                                           input_data=['input'],
                                           input_steps=[feature_by_type_split_valid],
                                           adapter=Adapter({'categorical_features': E(feature_by_type_split_valid.name,
-                                                                                     'categorical_features')}),
+                                                                                     'categorical_features'),
+                                                           'numerical_features': E(feature_by_type_split_valid.name,
+                                                                                   'numerical_features')
+                                                           }),
                                           cache_dirpath=config.env.cache_dirpath,
                                           **kwargs)
 
@@ -245,7 +251,10 @@ def _groupby_aggregations(dispatchers, config, train_mode, **kwargs):
                                     input_data=['input'],
                                     input_steps=[feature_by_type_split],
                                     adapter=Adapter({'categorical_features': E(feature_by_type_split.name,
-                                                                               'categorical_features')}),
+                                                                               'categorical_features'),
+                                                     'numerical_features': E(feature_by_type_split.name,
+                                                                             'numerical_features')
+                                                     }),
                                     cache_dirpath=config.env.cache_dirpath,
                                     **kwargs)
 

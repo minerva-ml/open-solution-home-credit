@@ -88,14 +88,15 @@ class GroupbyAggregations(BaseTransformer):
                                       for spec in self.groupby_aggregations]
         return groupby_aggregations_names
 
-    def transform(self, categorical_features):
-        for spec, groupby_aggregations_name in zip(self.groupby_aggregations, self.groupby_aggregations_names):
-            group_object = categorical_features.groupby(spec['groupby'])
+    def transform(self, categorical_features, numerical_features):
 
-            categorical_features = categorical_features.merge(
-                group_object[spec['select']].agg(spec['agg']).reset_index().rename(index=str, columns={
+        X = pd.concat([categorical_features, numerical_features], axis=1)
+        for spec, groupby_aggregations_name in zip(self.groupby_aggregations, self.groupby_aggregations_names):
+            group_object = X.groupby(spec['groupby'])
+
+            X = X.merge(group_object[spec['select']].agg(spec['agg']).reset_index().rename(index=str, columns={
                     spec['select']: groupby_aggregations_name})[spec['groupby'] + [groupby_aggregations_name]],
                 on=spec['groupby'], how='left')
 
-        return {'numerical_features': categorical_features[self.groupby_aggregations_names].astype(np.float32)}
+        return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}
 
