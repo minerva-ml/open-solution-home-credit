@@ -146,6 +146,12 @@ def _predict(pipeline_name, dev_mode):
         logger.info('submission saved to {}'.format(submission_filepath))
         logger.info('submission head \n\n{}'.format(submission.head()))
 
+        if params.kaggle_api:
+            os.system('kaggle competitions submit -c home-credit-default-risk -f {} -m {}'.format(
+                submission_filepath, params.kaggle_message)
+            )
+            logger.info('kaggle submit')
+
 
 @action.command()
 @click.option('-p', '--pipeline_name', help='pipeline to be trained', required=True)

@@ -23,6 +23,10 @@ parameters:
   sample_submission_filepath: YOUR/PATH
   experiment_dir: YOUR/PATH
 
+# Kaggle
+  kaggle_api: 1
+  kaggle_message: 'solution-1'
+
 # Validation
   target_bins: 100
   validation_size: 0.2
