@@ -42,6 +42,18 @@ NUMERICAL_COLUMNS = ['AMT_ANNUITY',
                      'REGION_RATING_CLIENT',
                      'REGION_RATING_CLIENT_W_CITY']
 TIMESTAMP_COLUMNS = []
+USELESS_COLUMNS = ['FLAG_DOCUMENT_10',
+                   'FLAG_DOCUMENT_12',
+                   'FLAG_DOCUMENT_13',
+                   'FLAG_DOCUMENT_14',
+                   'FLAG_DOCUMENT_15',
+                   'FLAG_DOCUMENT_16',
+                   'FLAG_DOCUMENT_17',
+                   'FLAG_DOCUMENT_19',
+                   'FLAG_DOCUMENT_2',
+                   'FLAG_DOCUMENT_20',
+                   'FLAG_DOCUMENT_21']
+
 ID_COLUMNS = ['SK_ID_CURR']
 TARGET_COLUMNS = ['TARGET']
 
@@ -84,10 +96,9 @@ SOLUTION_CONFIG = AttrDict({
                                                                    }
                                                   }
                                     }
-},
+                      },
 
     'clipper': {'min_val': 0,
                 'max_val': 1
                 }
 })
-
