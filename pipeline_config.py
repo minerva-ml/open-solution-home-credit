@@ -3,7 +3,7 @@ import os
 from attrdict import AttrDict
 from deepsense import neptune
 
-from utils import read_params
+from utils import read_params, safe_eval
 
 ctx = neptune.Context()
 params = read_params(ctx)
@@ -144,24 +144,24 @@ SOLUTION_CONFIG = AttrDict({
                                    'timestamp_columns': TIMESTAMP_COLUMNS,
                                    },
 
-    'light_gbm': {'boosting_type': params.lgbm__boosting_type,
-                  'objective': params.lgbm__objective,
-                  'metric': params.lgbm__metric,
-                  'learning_rate': params.lgbm__learning_rate,
-                  'max_depth': params.lgbm__max_depth,
-                  'subsample': params.lgbm__subsample,
-                  'colsample_bytree': params.lgbm__colsample_bytree,
-                  'min_child_weight': params.lgbm__min_child_weight,
-                  'reg_lambda': params.lgbm__reg_lambda,
-                  'reg_alpha': params.lgbm__reg_alpha,
-                  'subsample_freq': params.lgbm__subsample_freq,
-                  'max_bin': params.lgbm__max_bin,
-                  'min_child_samples': params.lgbm__min_child_samples,
-                  'num_leaves': params.lgbm__num_leaves,
-                  'nthread': params.num_workers,
-                  'number_boosting_rounds': params.lgbm__number_boosting_rounds,
-                  'early_stopping_rounds': params.lgbm__early_stopping_rounds,
-                  'verbose': params.verbose
+    'light_gbm': {'boosting_type': safe_eval(params.lgbm__boosting_type),
+                  'objective': safe_eval(params.lgbm__objective),
+                  'metric': safe_eval(params.lgbm__metric),
+                  'learning_rate': safe_eval(params.lgbm__learning_rate),
+                  'max_depth': safe_eval(params.lgbm__max_depth),
+                  'subsample': safe_eval(params.lgbm__subsample),
+                  'colsample_bytree': safe_eval(params.lgbm__colsample_bytree),
+                  'min_child_weight': safe_eval(params.lgbm__min_child_weight),
+                  'reg_lambda': safe_eval(params.lgbm__reg_lambda),
+                  'reg_alpha': safe_eval(params.lgbm__reg_alpha),
+                  'subsample_freq': safe_eval(params.lgbm__subsample_freq),
+                  'max_bin': safe_eval(params.lgbm__max_bin),
+                  'min_child_samples': safe_eval(params.lgbm__min_child_samples),
+                  'num_leaves': safe_eval(params.lgbm__num_leaves),
+                  'nthread': safe_eval(params.num_workers),
+                  'number_boosting_rounds': safe_eval(params.lgbm__number_boosting_rounds),
+                  'early_stopping_rounds': safe_eval(params.lgbm__early_stopping_rounds),
+                  'verbose': safe_eval(params.verbose)
                   },
 
     'random_search': {'light_gbm': {'n_runs': params.lgbm_random_search_runs,

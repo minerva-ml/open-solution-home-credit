@@ -73,6 +73,13 @@ def read_yaml(filepath):
     return AttrDict(config)
 
 
+def safe_eval(obj):
+    try:
+        return eval(obj)
+    except Exception:
+        return obj
+
+
 def save_evaluation_predictions(experiment_dir, y_true, y_pred, raw_data):
     raw_data['y_pred'] = y_pred
     raw_data['score'] = log_loss_row(y_true, y_pred)
