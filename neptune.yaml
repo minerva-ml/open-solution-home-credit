@@ -1,7 +1,7 @@
 project: HC
 
-name: home-credit
-tags: [solution]
+name: home-credit-default-risk
+tags: [solution-1]
 
 metric:
   channel: 'ROC_AUC'
@@ -19,8 +19,13 @@ exclude:
 parameters:
 # Data
   train_filepath: YOUR/PATH
-  test_filepath:  YOUR/PATH
-  experiment_dir:  YOUR/PATH
+  test_filepath: YOUR/PATH
+  sample_submission_filepath: YOUR/PATH
+  experiment_dir: YOUR/PATH
+
+# Kaggle
+  kaggle_api: 1
+  kaggle_message: 'solution-1'
 
 # Validation
   target_bins: 100
@@ -31,7 +36,7 @@ parameters:
   num_workers: 10
   verbose: 1
 
-  # Preprocessing
+# Preprocessing
   target_encoder__n_splits: 10
 
 # Light GBM

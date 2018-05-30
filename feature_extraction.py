@@ -2,10 +2,10 @@ import category_encoders as ce
 import numpy as np
 import pandas as pd
 from sklearn.externals import joblib
-from sklearn.model_selection import KFold
 
-from steps.base import BaseTransformer
-from steps.utils import get_logger
+from steppy.base import BaseTransformer
+from steppy.utils import get_logger
+from steppy.adapters import to_numpy_label_inputs, identity_inputs
 
 logger = get_logger()
 
@@ -60,6 +60,7 @@ class TargetEncoder(BaseTransformer):
         self.encoder_class = ce.TargetEncoder
 
     def fit(self, X, y, **kwargs):
+        y = to_numpy_label_inputs([y])
         categorical_columns = list(X.columns)
         self.target_encoder = self.encoder_class(cols=categorical_columns, **self.params)
         self.target_encoder.fit(X, y)

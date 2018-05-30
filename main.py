@@ -9,7 +9,7 @@ from sklearn.metrics import roc_auc_score
 import pipeline_config as cfg
 from pipelines import PIPELINES
 from utils import create_submission, init_logger, read_params, save_evaluation_predictions, \
-    set_seed, stratified_train_valid_split
+    set_seed, stratified_train_valid_split, verify_submission
 
 set_seed(1234)
 logger = init_logger()
@@ -44,9 +44,6 @@ def _train(pipeline_name, dev_mode):
                                                                       target_bins=params.target_bins,
                                                                       valid_size=params.validation_size,
                                                                       random_state=1234)
-
-    # data_hash_channel_send(ctx, 'Training Data Hash', meta_train_split)
-    # data_hash_channel_send(ctx, 'Validation Data Hash', meta_valid_split)
 
     logger.info('Target distribution in train: {}'.format(meta_train_split[cfg.TARGET_COLUMNS].mean()))
     logger.info('Target distribution in valid: {}'.format(meta_valid_split[cfg.TARGET_COLUMNS].mean()))
@@ -88,8 +85,6 @@ def _evaluate(pipeline_name, dev_mode):
                                                        valid_size=params.validation_size,
                                                        random_state=1234)
 
-    # data_hash_channel_send(ctx, 'Evaluation Data Hash', meta_valid_split)
-
     logger.info('Target distribution in valid: {}'.format(meta_valid_split[cfg.TARGET_COLUMNS].mean()))
 
     data = {'input': {'X': meta_valid_split,
@@ -100,7 +95,7 @@ def _evaluate(pipeline_name, dev_mode):
     pipeline.clean_cache()
     output = pipeline.transform(data)
     pipeline.clean_cache()
-    y_pred = output['y_pred']
+    y_pred = output['clipped_prediction']
     y_true = meta_valid_split[cfg.TARGET_COLUMNS].values.reshape(-1)
 
     logger.info('Saving evaluation predictions')
@@ -126,8 +121,6 @@ def _predict(pipeline_name, dev_mode):
     else:
         meta_test = pd.read_csv(params.test_filepath)
 
-    # data_hash_channel_send(ctx, 'Test Data Hash', meta_test)
-
     data = {'input': {'X': meta_test,
                       'y': None,
                       },
@@ -137,14 +130,27 @@ def _predict(pipeline_name, dev_mode):
     pipeline.clean_cache()
     output = pipeline.transform(data)
     pipeline.clean_cache()
-    y_pred = output['y_pred']
-
-    logger.info('creating submission test')
+    y_pred = output['clipped_prediction']
+    logger.info('creating submission')
     submission = create_submission(meta_test, y_pred)
-    submission_filepath = os.path.join(params.experiment_dir, 'submission.csv')
-    submission.to_csv(submission_filepath, index=None, encoding='utf-8')
-    logger.info('submission saved to {}'.format(submission_filepath))
-    logger.info('submission head \n\n{}'.format(submission.head()))
+
+    logger.info('verifying submittion')
+    sample_submission = pd.read_csv(params.sample_submission_filepath)
+    verify_submission(submission, sample_submission)
+
+    if dev_mode:
+        logger.info('submittion can\'t be saved in dev mode')
+    else:
+        submission_filepath = os.path.join(params.experiment_dir, 'submission.csv')
+        submission.to_csv(submission_filepath, index=None, encoding='utf-8')
+        logger.info('submission saved to {}'.format(submission_filepath))
+        logger.info('submission head \n\n{}'.format(submission.head()))
+
+        if params.kaggle_api:
+            os.system('kaggle competitions submit -c home-credit-default-risk -f {} -m {}'.format(
+                submission_filepath, params.kaggle_message)
+            )
+            logger.info('kaggle submit')
 
 
 @action.command()
