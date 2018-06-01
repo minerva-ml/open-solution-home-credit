@@ -60,7 +60,6 @@ class TargetEncoder(BaseTransformer):
         self.encoder_class = ce.TargetEncoder
 
     def fit(self, X, y, **kwargs):
-        y = to_numpy_label_inputs([y])
         categorical_columns = list(X.columns)
         self.target_encoder = self.encoder_class(cols=categorical_columns, **self.params)
         self.target_encoder.fit(X, y)
@@ -76,3 +75,17 @@ class TargetEncoder(BaseTransformer):
 
     def save(self, filepath):
         joblib.dump(self.target_encoder, filepath)
+
+
+class ToNumpyLabel(BaseTransformer):
+    def __init__(self, **kwargs):
+        self.y = None
+
+    def fit(self, y, **kwargs):
+        self.y = to_numpy_label_inputs(y)
+        return self
+
+    def transform(self, **kwargs):
+        if self.y.any():
+            return {'y': self.y}
+        return {}

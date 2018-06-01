@@ -1,13 +1,12 @@
 from functools import partial
 
-from sklearn.metrics import roc_auc_score
-
 import feature_extraction as fe
 from hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, SaveResults
 from models import LightGBMLowMemory as LightGBM
-from steppy.adapter import Adapter, E
-from steppy.base import Step#, Dummy
 from postprocessing import Clipper
+from sklearn.metrics import roc_auc_score
+from steppy.adapter import Adapter, E
+from steppy.base import Step
 
 
 def main(config, train_mode):
@@ -171,13 +170,14 @@ def classifier_lgbm(features, config, train_mode, **kwargs):
 def _target_encoders(dispatchers, config, train_mode, **kwargs):
     if train_mode:
         feature_by_type_split, feature_by_type_split_valid = dispatchers
+        numpy_label, numpy_label_valid = _to_numpy_label(config, **kwargs)
 
         target_encoder = Step(name='target_encoder',
                               transformer=fe.TargetEncoder(),
                               input_data=['input'],
-                              input_steps=[feature_by_type_split],
+                              input_steps=[feature_by_type_split, numpy_label],
                               adapter=Adapter({'X': E(feature_by_type_split.name, 'categorical_features'),
-                                               'y': E('input', 'y'),
+                                               'y': E(numpy_label.name, 'y'),
                                                }),
                               cache_dirpath=config.env.cache_dirpath,
                               **kwargs)
@@ -185,9 +185,9 @@ def _target_encoders(dispatchers, config, train_mode, **kwargs):
         target_encoder_valid = Step(name='target_encoder_valid',
                                     transformer=target_encoder,
                                     input_data=['input'],
-                                    input_steps=[feature_by_type_split_valid],
+                                    input_steps=[feature_by_type_split_valid, numpy_label_valid],
                                     adapter=Adapter({'X': E(feature_by_type_split_valid.name, 'categorical_features'),
-                                                     'y': E('input', 'y_valid'),
+                                                     'y': E(numpy_label_valid.name, 'y'),
                                                      }),
                                     cache_dirpath=config.env.cache_dirpath,
                                     **kwargs)
@@ -206,6 +206,25 @@ def _target_encoders(dispatchers, config, train_mode, **kwargs):
                               **kwargs)
 
         return target_encoder
+
+
+def _to_numpy_label(config, **kwargs):
+
+    to_numpy_label = Step(name='to_numpy_label',
+                          transformer=fe.ToNumpyLabel(),
+                          input_data=['input'],
+                          adapter=Adapter({'y': [E('input', 'y')]}),
+                          cache_dirpath=config.env.cache_dirpath,
+                          **kwargs)
+
+    to_numpy_label_valid = Step(name='to_numpy_label_valid',
+                                transformer=to_numpy_label,
+                                input_data=['input'],
+                                adapter=Adapter({'y': [E('input', 'y_valid')]}),
+                                cache_dirpath=config.env.cache_dirpath,
+                                **kwargs)
+
+    return to_numpy_label, to_numpy_label_valid
 
 
 PIPELINES = {'main': {'train': partial(main, train_mode=True),
