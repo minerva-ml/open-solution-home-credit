@@ -102,10 +102,10 @@ class GroupbyAggregations(BaseTransformer):
 
 
 class ImprovedGroupbyAgg(BaseTransformer):
-    def __init__(self, filename, filepath, id_column, groupby_aggregations):
+    def __init__(self, filename, filepath, id_columns, groupby_aggregations):
         self.filename = filename
         self.file = pd.read_csv(filepath)
-        self.id_column = id_column
+        self.id_columns = id_columns
         self.groupby_aggregations = groupby_aggregations
 
     @property
@@ -121,6 +121,6 @@ class ImprovedGroupbyAgg(BaseTransformer):
 
             X = X.merge(group_object[spec['select']].agg(spec['agg']).reset_index().rename(index=str, columns={
                     spec['select']: groupby_aggregations_name})[spec['groupby'] + [groupby_aggregations_name]],
-                on=self.id_column, how='left')
+                left_on=self.id_columns[0], right_on=self.id_columns[1], how='left')
 
         return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}

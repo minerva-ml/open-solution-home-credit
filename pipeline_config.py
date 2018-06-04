@@ -112,16 +112,19 @@ SOLUTION_CONFIG = AttrDict({
                 'max_val': 1
                 },
 
-    'groupby_aggregation': {'groupby_aggregations': []  # AGGREGATION_RECIPIES
+    'groupby_aggregation': {'groupby_aggregations': AGGREGATION_RECIPIES
                             },
 
     'bureau': {'filename': 'bureau',
                'filepath': BUREAU,
-               'id_column': 'SK_ID_CURR',
+               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                'groupby_aggregations': [
-                   {'groupby': ['SK_ID_CURR'], 'select': 'DAYS_CREDIT', 'agg': 'size'},  # 1
-                   {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_TYPE', 'agg': 'nunique'},  # 2
-                   {'groupby': ['SK_ID_CURR'], 'select': 'CNT_CREDIT_PROLONG', 'agg': 'mean'}  # 10
+                   {'groupby': ['SK_ID_CURR'], 'select': 'DAYS_CREDIT', 'agg': 'count'},        # 1
+                   {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_TYPE', 'agg': 'nunique'},      # 2
+                   {'groupby': ['SK_ID_CURR'], 'select': 'CNT_CREDIT_PROLONG', 'agg': 'mean'},  # 10
+                   {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_DAY_OVERDUE', 'agg': 'count'},
+                   {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_ACTIVE', 'agg': 'size'},
+                   {'groupby': ['SK_ID_CURR'], 'select': 'AMT_CREDIT_SUM', 'agg': 'count'},
                ]},
 })
 
