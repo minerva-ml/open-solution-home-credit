@@ -100,3 +100,27 @@ class GroupbyAggregations(BaseTransformer):
 
         return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}
 
+
+class ImprovedGroupbyAgg(BaseTransformer):
+    def __init__(self, filename, filepath, id_column, groupby_aggregations):
+        self.filename = filename
+        self.file = pd.read_csv(filepath)
+        self.id_column = id_column
+        self.groupby_aggregations = groupby_aggregations
+
+    @property
+    def groupby_aggregations_names(self):
+        groupby_aggregations_names = ['{}_{}_{}_{}'.format(self.filename, '_'.join(spec['groupby']),
+                                                           spec['agg'], spec['select'])
+                                      for spec in self.groupby_aggregations]
+        return groupby_aggregations_names
+
+    def transform(self, X):
+        for spec, groupby_aggregations_name in zip(self.groupby_aggregations, self.groupby_aggregations_names):
+            group_object = self.file.groupby(spec['groupby'])
+
+            X = X.merge(group_object[spec['select']].agg(spec['agg']).reset_index().rename(index=str, columns={
+                    spec['select']: groupby_aggregations_name})[spec['groupby'] + [groupby_aggregations_name]],
+                on=self.id_column, how='left')
+
+        return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}
