@@ -19,8 +19,15 @@ exclude:
 parameters:
 # Data
   train_filepath: YOUR/PATH
-  test_filepath:  YOUR/PATH
-  experiment_dir:  YOUR/PATH
+  test_filepath: YOUR/PATH
+  bureau_balance_filepath: YOUR/PATH
+  bureau_filepath: YOUR/PATH
+  credit_card_balance_filepath: YOUR/PATH
+  installments_payments_filepath: YOUR/PATH
+  POS_CASH_balance_filepath: YOUR/PATH
+  previous_application_filepath: YOUR/PATH
+  sample_submission_filepath: YOUR/PATH
+  experiment_dir: YOUR/PATH
 
 # Validation
   target_bins: 100
