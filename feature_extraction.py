@@ -2,10 +2,9 @@ import category_encoders as ce
 import numpy as np
 import pandas as pd
 from sklearn.externals import joblib
-
+from steppy.adapters import to_numpy_label_inputs
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
-from steppy.adapters import to_numpy_label_inputs, identity_inputs
 
 logger = get_logger()
 
