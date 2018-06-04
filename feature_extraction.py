@@ -76,3 +76,17 @@ class TargetEncoder(BaseTransformer):
 
     def save(self, filepath):
         joblib.dump(self.target_encoder, filepath)
+
+
+class ToNumpyLabel(BaseTransformer):
+    def __init__(self, **kwargs):
+        self.y = None
+
+    def fit(self, y, **kwargs):
+        self.y = to_numpy_label_inputs(y)
+        return self
+
+    def transform(self, **kwargs):
+        if self.y.any():
+            return {'y': self.y}
+        return {}
