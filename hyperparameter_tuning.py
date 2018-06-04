@@ -3,8 +3,12 @@ import gc
 import numpy as np
 from deepsense import neptune
 from sklearn.externals import joblib
-
 from steppy.base import BaseTransformer
+
+<<<<<<< HEAD
+from steppy.base import BaseTransformer
+=======
+>>>>>>> 90f69d6972122ab1d5b194306cd3a38c7d89fa39
 from utils import set_seed
 
 

@@ -1,7 +1,8 @@
-import numpy as np
 import lightgbm as lgb
+
+import numpy as np
 from steppy.adapters import to_numpy_label_inputs
-from steppy_toolkit.misc import LightGBM
+from toolkit.misc import LightGBM
 
 
 class LightGBMLowMemory(LightGBM):
