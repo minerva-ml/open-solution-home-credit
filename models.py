@@ -1,11 +1,14 @@
 import numpy as np
 import lightgbm as lgb
-
-from steps.misc import LightGBM
+from steppy.adapters import to_numpy_label_inputs
+from toolkit.misc import LightGBM
 
 
 class LightGBMLowMemory(LightGBM):
     def fit(self, X, y, X_valid, y_valid, feature_names=None, categorical_features=None, **kwargs):
+        y = to_numpy_label_inputs([y])
+        y_valid = to_numpy_label_inputs([y_valid])
+
         X = X[feature_names].values.astype(np.float32)
         y = y.astype(np.float32)
 
