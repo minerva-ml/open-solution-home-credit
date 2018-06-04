@@ -12,12 +12,21 @@ from postprocessing import Clipper
 
 def main(config, train_mode):
     if train_mode:
-        features, features_valid = feature_extraction(config, train_mode,
-                                                      save_output=True, cache_output=True, load_saved_output=True)
-        light_gbm = classifier_lgbm((features, features_valid), config, train_mode)
+        features, features_valid = feature_extraction(config,
+                                                      train_mode,
+                                                      save_output=True,
+                                                      cache_output=True,
+                                                      load_saved_output=True)
+        light_gbm = classifier_lgbm((features, features_valid),
+                                    config,
+                                    train_mode)
     else:
-        features = feature_extraction(config, train_mode, cache_output=True)
-        light_gbm = classifier_lgbm(features, config, train_mode)
+        features = feature_extraction(config,
+                                      train_mode,
+                                      cache_output=True)
+        light_gbm = classifier_lgbm(features,
+                                    config,
+                                    train_mode)
 
     clipper = Step(name='clipper',
                    transformer=Clipper(**config.clipper),
@@ -33,13 +42,16 @@ def feature_extraction(config, train_mode, **kwargs):
         feature_by_type_split, feature_by_type_split_valid = _feature_by_type_splits(config, train_mode)
 
         target_encoder, target_encoder_valid = _target_encoders((feature_by_type_split, feature_by_type_split_valid),
-                                                                config, train_mode, **kwargs)
+                                                                config, train_mode,
+                                                                **kwargs)
 
         feature_combiner, feature_combiner_valid = _join_features(numerical_features=[feature_by_type_split],
                                                                   numerical_features_valid=[feature_by_type_split_valid],
                                                                   categorical_features=[target_encoder],
                                                                   categorical_features_valid=[target_encoder_valid],
-                                                                  config=config, train_mode=train_mode, **kwargs)
+                                                                  config=config,
+                                                                  train_mode=train_mode,
+                                                                  **kwargs)
 
         return feature_combiner, feature_combiner_valid
     else:
@@ -51,7 +63,9 @@ def feature_extraction(config, train_mode, **kwargs):
                                           numerical_features_valid=[],
                                           categorical_features=[target_encoder],
                                           categorical_features_valid=[],
-                                          config=config, train_mode=train_mode, **kwargs)
+                                          config=config,
+                                          train_mode=train_mode,
+                                          **kwargs)
 
         return feature_combiner
 
@@ -82,9 +96,12 @@ def _feature_by_type_splits(config, train_mode):
     return feature_by_type_split
 
 
-def _join_features(numerical_features, numerical_features_valid,
-                   categorical_features, categorical_features_valid,
-                   config, train_mode, **kwargs):
+def _join_features(numerical_features,
+                   numerical_features_valid,
+                   categorical_features,
+                   categorical_features_valid,
+                   config, train_mode,
+                   **kwargs):
     if train_mode:
         feature_joiner = Step(name='feature_joiner',
                               transformer=fe.FeatureJoiner(),
@@ -172,7 +189,6 @@ def _target_encoders(dispatchers, config, train_mode, **kwargs):
     if train_mode:
         feature_by_type_split, feature_by_type_split_valid = dispatchers
         numpy_label, numpy_label_valid = _to_numpy_label(config, **kwargs)
-
         target_encoder = Step(name='target_encoder',
                               transformer=fe.TargetEncoder(),
                               input_data=['input'],
@@ -210,7 +226,6 @@ def _target_encoders(dispatchers, config, train_mode, **kwargs):
 
 
 def _to_numpy_label(config, **kwargs):
-
     to_numpy_label = Step(name='to_numpy_label',
                           transformer=fe.ToNumpyLabel(),
                           input_data=['input'],
