@@ -2,10 +2,9 @@ import category_encoders as ce
 import numpy as np
 import pandas as pd
 from sklearn.externals import joblib
-
+from steppy.adapters import to_numpy_label_inputs
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
-from steppy.adapters import to_numpy_label_inputs, identity_inputs
 
 logger = get_logger()
 
@@ -100,3 +99,16 @@ class GroupbyAggregations(BaseTransformer):
 
         return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}
 
+
+class ToNumpyLabel(BaseTransformer):
+    def __init__(self, **kwargs):
+        self.y = None
+
+    def fit(self, y, **kwargs):
+        self.y = to_numpy_label_inputs(y)
+        return self
+
+    def transform(self, **kwargs):
+        if self.y.any():
+            return {'y': self.y}
+        return {}
