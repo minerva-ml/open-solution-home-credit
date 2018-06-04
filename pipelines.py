@@ -3,11 +3,9 @@ from functools import partial
 import feature_extraction as fe
 from hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, SaveResults
 from models import LightGBMLowMemory as LightGBM
-<<<<<<< HEAD
 from steppy.adapter import Adapter, E
-from steppy.base import Step#, Dummy
-=======
->>>>>>> 6502f341eef49c209da4624ba5a6bc3ffed0bf0f
+from steppy.base import Step
+
 from postprocessing import Clipper
 from sklearn.metrics import roc_auc_score
 from steppy.adapter import Adapter, E
@@ -180,15 +178,9 @@ def _target_encoders(dispatchers, config, train_mode, **kwargs):
         target_encoder = Step(name='target_encoder',
                               transformer=fe.TargetEncoder(),
                               input_data=['input'],
-<<<<<<< HEAD
-                              input_steps=[feature_by_type_split],
-                              adapter=Adapter({'X': E(feature_by_type_split.name, 'categorical_features'),
-                                               'y': E('input', 'y'),
-=======
                               input_steps=[feature_by_type_split, numpy_label],
                               adapter=Adapter({'X': E(feature_by_type_split.name, 'categorical_features'),
                                                'y': E(numpy_label.name, 'y'),
->>>>>>> 6502f341eef49c209da4624ba5a6bc3ffed0bf0f
                                                }),
                               cache_dirpath=config.env.cache_dirpath,
                               **kwargs)
@@ -196,15 +188,9 @@ def _target_encoders(dispatchers, config, train_mode, **kwargs):
         target_encoder_valid = Step(name='target_encoder_valid',
                                     transformer=target_encoder,
                                     input_data=['input'],
-<<<<<<< HEAD
-                                    input_steps=[feature_by_type_split_valid],
-                                    adapter=Adapter({'X': E(feature_by_type_split_valid.name, 'categorical_features'),
-                                                     'y': E('input', 'y_valid'),
-=======
                                     input_steps=[feature_by_type_split_valid, numpy_label_valid],
                                     adapter=Adapter({'X': E(feature_by_type_split_valid.name, 'categorical_features'),
                                                      'y': E(numpy_label_valid.name, 'y'),
->>>>>>> 6502f341eef49c209da4624ba5a6bc3ffed0bf0f
                                                      }),
                                     cache_dirpath=config.env.cache_dirpath,
                                     **kwargs)
