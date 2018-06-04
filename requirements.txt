@@ -1,3 +1,4 @@
+neptune-cli
 attrdict==2.0.0
 category_encoders==1.2.6
 click==6.7
