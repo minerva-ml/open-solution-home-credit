@@ -54,6 +54,21 @@ TARGET_COLUMNS = ['TARGET']
 
 DEV_SAMPLE_SIZE = int(20e4)
 
+AGGREGATION_RECIPIES = []
+for agg in ['mean', 'size', 'var', 'min', 'max']:
+    for select in NUMERICAL_COLUMNS:
+        for group in [['CODE_GENDER'],
+                      ['CODE_GENDER', 'OCCUPATION_TYPE'],
+                      ['CODE_GENDER', 'FLAG_OWN_REALTY'],
+                      ['CODE_GENDER', 'ORGANIZATION_TYPE'],
+                      ['CODE_GENDER', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
+                      ['FLAG_OWN_REALTY', 'NAME_HOUSING_TYPE'],
+                      ['FLAG_OWN_REALTY', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
+                      ['OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
+                      ]:
+
+            AGGREGATION_RECIPIES.append({'groupby': group, 'select': select, 'agg': agg})
+
 SOLUTION_CONFIG = AttrDict({
     'env': {'cache_dirpath': params.experiment_dir
             },
@@ -95,6 +110,9 @@ SOLUTION_CONFIG = AttrDict({
 
     'clipper': {'min_val': 0,
                 'max_val': 1
-                }
+                },
+
+    'groupby_aggregation': {'groupby_aggregations': AGGREGATION_RECIPIES
+                            },
 })
 
