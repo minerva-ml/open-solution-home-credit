@@ -1,0 +1,57 @@
+project: HC
+
+name: home-credit-default-risk
+tags: [solution-1]
+
+metric:
+  channel: 'ROC_AUC'
+  goal: maximize
+
+exclude:
+  - output
+  - imgs
+  - neptune.log
+  - offline_job.log
+  - .git
+  - .idea
+  - .ipynb_checkpoints
+  - Untitled.ipynb
+
+parameters:
+# Data
+  train_filepath:             YOUR/PATH/TO/application_train.csv
+  test_filepath:              YOUR/PATH/TO/application_test.csv
+  sample_submission_filepath: YOUR/PATH/TO/sample_submission.csv
+  experiment_dir:             YOUR/PATH/WORKDIR
+
+# Validation
+  target_bins: 100
+  validation_size: 0.2
+
+# Execution
+  overwrite: 1
+  num_workers: 10
+  verbose: 1
+
+# Preprocessing
+  target_encoder__n_splits: 10
+
+# Light GBM
+  lgbm_random_search_runs: 10
+  lgbm__boosting_type: gbdt
+  lgbm__objective: binary
+  lgbm__metric: auc
+  lgbm__number_boosting_rounds: 1000
+  lgbm__early_stopping_rounds: 30
+  lgbm__learning_rate: '[0.01, 0.2, "uniform"]'
+  lgbm__num_leaves: '[25, 35]'
+  lgbm__max_depth: '[10, 20]'
+  lgbm__min_child_samples: '[35, 45]'
+  lgbm__max_bin: '[275, 325]'
+  lgbm__subsample: '[0.8, 1., 1.2, "list"]'
+  lgbm__subsample_freq: 5
+  lgbm__colsample_bytree: 0.8
+  lgbm__min_child_weight: 4
+  lgbm__reg_lambda: 0.0
+  lgbm__reg_alpha: 0.1
+  lgbm__scale_pos_weight: 1
