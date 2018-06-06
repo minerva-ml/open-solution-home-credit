@@ -9,6 +9,5 @@ class Clipper(BaseTransformer):
         self.max_val = max_val
 
     def transform(self, prediction):
-        prediction_ = np.where(prediction < self.min_val, self.min_val, prediction)
-        prediction_ = np.where(prediction_ > self.max_val, self.max_val, prediction_)
+        prediction_ = np.clip(prediction, self.min_val, self.max_val)
         return {'clipped_prediction': prediction_}

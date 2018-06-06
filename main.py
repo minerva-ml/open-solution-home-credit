@@ -131,7 +131,8 @@ def _predict(pipeline_name, dev_mode):
     output = pipeline.transform(data)
     pipeline.clean_cache()
     y_pred = output['clipped_prediction']
-    logger.info('creating submission')
+
+    logger.info('creating submission...')
     submission = create_submission(meta_test, y_pred)
 
     logger.info('verifying submittion')

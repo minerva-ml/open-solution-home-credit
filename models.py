@@ -1,5 +1,4 @@
 import lightgbm as lgb
-
 import numpy as np
 from steppy.adapters import to_numpy_label_inputs
 from toolkit.misc import LightGBM

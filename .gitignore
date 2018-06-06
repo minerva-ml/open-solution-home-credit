@@ -112,3 +112,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Working directories
+examples/cache/
