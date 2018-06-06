@@ -54,3 +54,12 @@ parameters:
   lgbm__reg_lambda: 0.0
   lgbm__reg_alpha: 0.1
   lgbm__scale_pos_weight: 1
+
+# Random forest
+  rf_random_search_runs: 0
+  rf__n_estimators: 150
+  rf__max_features: auto
+  rf__max_depth: 12
+  rf__min_samples_split: 27
+  rf__min_samples_leaf: 9
+  rf__min_weight_fraction_leaf: 0.0
