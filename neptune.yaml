@@ -1,7 +1,7 @@
 project: HC
 
 name: home-credit-default-risk
-tags: [solution-1]
+tags: [solution-2]
 
 metric:
   channel: 'ROC_AUC'
@@ -29,6 +29,10 @@ parameters:
   previous_application_filepath:  YOUR/PATH/TO/previous_application.csv
   sample_submission_filepath:     YOUR/PATH/TO/sample_submission.csv
   experiment_dir:                 YOUR/PATH/WORKDIR
+
+# Kaggle
+  kaggle_api: 0
+  kaggle_message: 'solution-2'
 
 # Validation
   target_bins: 100
