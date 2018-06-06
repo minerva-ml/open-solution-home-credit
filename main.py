@@ -152,7 +152,6 @@ def _predict(pipeline_name, dev_mode):
             os.system('kaggle competitions submit -c home-credit-default-risk -f {} -m {}'.format(
                 submission_filepath, params.kaggle_message)
             )
-            logger.info('kaggle submit')
 
 
 @action.command()
