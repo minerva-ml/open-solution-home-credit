@@ -17,6 +17,16 @@ def create_submission(meta, predictions):
     return submission
 
 
+def verify_submission(submission, sample_submission):
+
+    assert submission.shape == sample_submission.shape, \
+        'Expected submission to have shape {} but got {}'.format(sample_submission.shape, submission.shape)
+
+    for submission_id, correct_id in zip(submission['SK_ID_CURR'].values, sample_submission['SK_ID_CURR'].values):
+        assert correct_id == submission_id, \
+            'Wrong id: expected {} but got {}'.format(correct_id, submission_id)
+
+
 def get_logger():
     return logging.getLogger('home-credit')
 
@@ -61,6 +71,13 @@ def read_yaml(filepath):
     with open(filepath) as f:
         config = yaml.load(f)
     return AttrDict(config)
+
+
+def safe_eval(obj):
+    try:
+        return eval(obj)
+    except Exception:
+        return obj
 
 
 def save_evaluation_predictions(experiment_dir, y_true, y_pred, raw_data):
