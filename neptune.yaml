@@ -15,20 +15,21 @@ exclude:
   - .git
   - .idea
   - .ipynb_checkpoints
+  - Untitled.ipynb
 
 parameters:
 # Data
-  train_filepath: YOUR/PATH
-  test_filepath: YOUR/PATH
-  sample_submission_filepath: YOUR/PATH
-  experiment_dir: YOUR/PATH
+  train_filepath:             YOUR/PATH/TO/application_train.csv
+  test_filepath:              YOUR/PATH/TO/application_test.csv
+  sample_submission_filepath: YOUR/PATH/TO/sample_submission.csv
+  experiment_dir:             YOUR/PATH/WORKDIR
 
 # Validation
   target_bins: 100
   validation_size: 0.2
 
 # Execution
-  overwrite: 0
+  overwrite: 1
   num_workers: 10
   verbose: 1
 

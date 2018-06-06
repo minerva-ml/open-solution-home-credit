@@ -10,7 +10,7 @@ from models import LightGBMLowMemory as LightGBM
 from postprocessing import Clipper
 
 
-def main(config, train_mode):
+def lightGBM(config, train_mode):
     if train_mode:
         features, features_valid = feature_extraction(config,
                                                       train_mode,
@@ -296,6 +296,6 @@ def _to_numpy_label(config, **kwargs):
     return to_numpy_label, to_numpy_label_valid
 
 
-PIPELINES = {'main': {'train': partial(main, train_mode=True),
-                      'inference': partial(main, train_mode=False)},
+PIPELINES = {'lightGBM': {'train': partial(lightGBM, train_mode=True),
+                          'inference': partial(lightGBM, train_mode=False)},
              }
