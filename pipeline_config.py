@@ -154,7 +154,6 @@ for agg in ['mean', 'size', 'var', 'min', 'max']:
                       ['FLAG_OWN_REALTY', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
                       ['OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
                       ]:
-
             AGGREGATION_RECIPIES.append({'groupby': group, 'select': select, 'agg': agg})
 
 SOLUTION_CONFIG = AttrDict({
