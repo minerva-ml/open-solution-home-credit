@@ -41,38 +41,41 @@ def feature_extraction(config, train_mode, **kwargs):
     if train_mode:
         feature_by_type_split, feature_by_type_split_valid = _feature_by_type_splits(config, train_mode)
 
+        bureau, bureau_valid = _bureau(config, train_mode, **kwargs)
+
         target_encoder, target_encoder_valid = _target_encoders((feature_by_type_split, feature_by_type_split_valid),
-                                                                config, train_mode,
-                                                                **kwargs)
+                                                                config, train_mode, **kwargs)
 
         groupby_aggregation, groupby_aggregation_valid = _groupby_aggregations(
             (feature_by_type_split, feature_by_type_split_valid), config, train_mode, **kwargs)
 
         feature_combiner, feature_combiner_valid = _join_features(numerical_features=[feature_by_type_split,
+                                                                                      bureau,
                                                                                       groupby_aggregation],
                                                                   numerical_features_valid=[feature_by_type_split_valid,
+                                                                                            bureau_valid,
                                                                                             groupby_aggregation_valid],
                                                                   categorical_features=[target_encoder],
                                                                   categorical_features_valid=[target_encoder_valid],
-                                                                  config=config,
-                                                                  train_mode=train_mode,
-                                                                  **kwargs)
+                                                                  config=config, train_mode=train_mode, **kwargs)
 
         return feature_combiner, feature_combiner_valid
     else:
         feature_by_type_split = _feature_by_type_splits(config, train_mode)
 
+        bureau = _bureau(config, train_mode, **kwargs)
+
         target_encoder = _target_encoders(feature_by_type_split, config, train_mode, **kwargs)
 
         groupby_aggregation = _groupby_aggregations(feature_by_type_split, config, train_mode, **kwargs)
 
-        feature_combiner = _join_features(numerical_features=[feature_by_type_split, groupby_aggregation],
+        feature_combiner = _join_features(numerical_features=[feature_by_type_split,
+                                                              bureau,
+                                                              groupby_aggregation],
                                           numerical_features_valid=[],
                                           categorical_features=[target_encoder],
                                           categorical_features_valid=[],
-                                          config=config,
-                                          train_mode=train_mode,
-                                          **kwargs)
+                                          config=config, train_mode=train_mode, **kwargs)
 
         return feature_combiner
 
@@ -276,6 +279,35 @@ def _groupby_aggregations(dispatchers, config, train_mode, **kwargs):
                                     **kwargs)
 
         return groupby_aggregations
+
+
+def _bureau(config, train_mode, **kwargs):
+    if train_mode:
+        bureau = Step(name='bureau',
+                      transformer=fe.ImprovedGroupbyAgg(**config.bureau),
+                      input_data=['input'],
+                      adapter=Adapter({'X': E('input', 'X')}),
+                      cache_dirpath=config.env.cache_dirpath,
+                      **kwargs)
+
+        bureau_valid = Step(name='bureau_valid',
+                            transformer=bureau,
+                            input_data=['input'],
+                            adapter=Adapter({'X': E('input', 'X_valid')}),
+                            cache_dirpath=config.env.cache_dirpath,
+                            **kwargs)
+
+        return bureau, bureau_valid
+
+    else:
+        bureau = Step(name='bureau',
+                      transformer=fe.ImprovedGroupbyAgg(**config.bureau),
+                      input_data=['input'],
+                      adapter=Adapter({'X': E('input', 'X')}),
+                      cache_dirpath=config.env.cache_dirpath,
+                      **kwargs)
+
+        return bureau
 
 
 def _to_numpy_label(config, **kwargs):
