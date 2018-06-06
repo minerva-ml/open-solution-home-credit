@@ -2,6 +2,8 @@ import lightgbm as lgb
 import numpy as np
 from steppy.adapters import to_numpy_label_inputs
 from toolkit.misc import LightGBM
+from steppy.base import make_transformer
+from toolkit.sklearn_recipes.models import SklearnClassifier
 
 
 class LightGBMLowMemory(LightGBM):
@@ -29,3 +31,21 @@ class LightGBMLowMemory(LightGBM):
                                    verbose_eval=self.model_config.verbose,
                                    feval=self.evaluation_function)
         return self
+
+
+def sklearn_preprocess():
+    def sklearn_preprocessing(X, X_valid=None):
+        if X_valid is None:
+            return {'X': X.fillna(0)}
+        return {'X': X.fillna(0), 'X_valid': X_valid.fillna(0)}
+    return make_transformer(sklearn_preprocessing)
+
+
+class SklearnBinaryClassifier(SklearnClassifier):
+    def transform(self, X, y=None, target=1, **kwargs):
+        prediction = self.estimator.predict_proba(X)[:, target]
+        return {SklearnClassifier.RESULT_KEY: prediction}
+
+
+def get_sklearn_classifier(ClassifierClass, **kwargs):
+    return SklearnBinaryClassifier(ClassifierClass(**kwargs))

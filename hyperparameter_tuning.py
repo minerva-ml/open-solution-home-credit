@@ -28,6 +28,7 @@ class RandomSearchOptimizer(BaseTransformer):
             train_inputs = {input_key: kwargs[input_key] for input_key in self.train_input_keys}
         else:
             train_inputs = kwargs
+        print([key for key in kwargs])
         X_valid, y_valid = kwargs[self.valid_input_keys[0]], kwargs[self.valid_input_keys[1]]
 
         results = []

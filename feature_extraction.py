@@ -56,7 +56,7 @@ class FeatureJoiner(BaseTransformer):
 class TargetEncoder(BaseTransformer):
     def __init__(self, **kwargs):
         self.params = kwargs
-        self.encoder_class = ce.TargetEncoder
+        self.encoder_class = ce.OrdinalEncoder
 
     def fit(self, X, y, **kwargs):
         categorical_columns = list(X.columns)

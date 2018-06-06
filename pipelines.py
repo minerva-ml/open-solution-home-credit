@@ -1,12 +1,15 @@
 from functools import partial
 
 from sklearn.metrics import roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from steppy.adapter import Adapter, E
 from steppy.base import Step
 
 import feature_extraction as fe
 from hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, SaveResults
 from models import LightGBMLowMemory as LightGBM
+from models import sklearn_preprocess, SklearnBinaryClassifier, get_sklearn_classifier
 from postprocessing import Clipper
 
 
@@ -36,6 +39,31 @@ def main(config, train_mode):
 
     return clipper
 
+def sklearn_main(config, train_mode):
+    if train_mode:
+        features, features_valid = feature_extraction(config,
+                                                      train_mode,
+                                                      save_output=True,
+                                                      cache_output=True,
+                                                      load_saved_output=True)
+        rnd_forest = classifier_rndf((features, features_valid),
+                                    config,
+                                    train_mode)
+    else:
+        features = feature_extraction(config,
+                                      train_mode,
+                                      cache_output=True)
+        rnd_forest = classifier_rndf(features,
+                                    config,
+                                    train_mode)
+
+    clipper = Step(name='clipper',
+                   transformer=Clipper(**config.clipper),
+                   input_steps=[rnd_forest],
+                   adapter=Adapter({'prediction': E(rnd_forest.name, 'predicted')}),
+                   cache_dirpath=config.env.cache_dirpath)
+
+    return clipper
 
 def feature_extraction(config, train_mode, **kwargs):
     if train_mode:
@@ -185,6 +213,67 @@ def classifier_lgbm(features, config, train_mode, **kwargs):
     return light_gbm
 
 
+def classifier_rndf(features, config, train_mode, **kwargs):
+    if train_mode:
+        features_train, features_valid = features
+        if config.random_search.random_forest.n_runs:
+
+            transformer = RandomSearchOptimizer(partial(get_sklearn_classifier, ClassifierClass=RandomForestClassifier),
+                                                config.random_forest,
+                                                train_input_keys=[],
+                                                valid_input_keys=['X_valid', 'y_valid'],
+                                                score_func=roc_auc_score,
+                                                maximize=True,
+                                                n_runs=config.random_search.random_forest.n_runs,
+                                                callbacks=[NeptuneMonitor(
+                                                    **config.random_search.random_forest.callbacks.neptune_monitor),
+                                                    SaveResults(
+                                                        **config.random_search.random_forest.callbacks.save_results)
+                                                ])
+        else:
+            transformer = SklearnBinaryClassifier(RandomForestClassifier(**config.random_forest))
+
+        sklearn_preproc = Step(name='sklearn_preprocessing',
+                               transformer=sklearn_preprocess(),
+                               input_data=['input'],
+                               input_steps=[features_train, features_valid],
+                               adapter=Adapter({'X': E(features_train.name, 'features'),
+                                                'X_valid': E(features_valid.name, 'features'),
+                                                }),
+                               cache_dirpath=config.env.cache_dirpath,
+                               **kwargs
+                               )
+
+        rnd_forest = Step(name='random_forest',
+                         transformer=transformer,
+                         input_data=['input'],
+                         input_steps=[sklearn_preproc],
+                         adapter=Adapter({'X': E(sklearn_preproc.name, 'X'),
+                                          'y': E('input', 'y'),
+                                          'X_valid': E(sklearn_preproc.name, 'X_valid'),
+                                          'y_valid': E('input', 'y_valid'),
+                                          }),
+                         cache_dirpath=config.env.cache_dirpath,
+                         **kwargs)
+    else:
+        sklearn_preproc = Step(name='sklearn_preprocessing',
+                               transformer=sklearn_preprocess(),
+                               input_data=['input'],
+                               input_steps=[features],
+                               adapter=Adapter({'X': E(features.name, 'features')}),
+                               cache_dirpath=config.env.cache_dirpath,
+                               **kwargs
+                               )
+
+        rnd_forest = Step(name='random_forest',
+                         transformer = SklearnBinaryClassifier(RandomForestClassifier(**config.random_forest)),
+                         input_steps=[sklearn_preproc],
+                         adapter=Adapter({'X': E(sklearn_preproc.name, 'X')}),
+                         cache_dirpath=config.env.cache_dirpath,
+                         **kwargs)
+    return rnd_forest
+
+
 def _target_encoders(dispatchers, config, train_mode, **kwargs):
     if train_mode:
         feature_by_type_split, feature_by_type_split_valid = dispatchers
@@ -245,4 +334,11 @@ def _to_numpy_label(config, **kwargs):
 
 PIPELINES = {'main': {'train': partial(main, train_mode=True),
                       'inference': partial(main, train_mode=False)},
+             'random_forest': {
+                 'train': partial(sklearn_main, train_mode=True),
+                 'inference': partial(sklearn_main, train_mode=False)},
+                 #'random_forest': {'train': partial(sklearn_main, ClassifierClass=RandomForestClassifier, name='random_forest', train_mode=True),
+             #                  'inference': partial(sklearn_main, ClassifierClass=RandomForestClassifier, name='random_forest', train_mode=False)},
+             #'log_reg': {'train': partial(sklearn_main, ClassifierClass=LogisticRegression, name='logistic_regression', train_mode=True),
+             #            'inference': partial(sklearn_main, ClassifierClass=LogisticRegression, name='logistic_regression', train_mode=False)}
              }
