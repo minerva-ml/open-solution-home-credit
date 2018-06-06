@@ -25,7 +25,7 @@ parameters:
   experiment_dir:             YOUR/PATH/WORKDIR
 
 # Kaggle
-  kaggle_api: 1
+  kaggle_api: 0
   kaggle_message: 'solution-2'
 
 # Validation
