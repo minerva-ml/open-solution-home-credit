@@ -87,7 +87,6 @@ class GroupbyAggregations(BaseTransformer):
         return groupby_aggregations_names
 
     def transform(self, categorical_features, numerical_features):
-
         X = pd.concat([categorical_features, numerical_features], axis=1)
         for spec, groupby_aggregations_name in zip(self.groupby_aggregations, self.groupby_aggregations_names):
             group_object = X.groupby(spec['groupby'])
