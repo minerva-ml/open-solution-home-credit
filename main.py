@@ -148,6 +148,7 @@ def _predict(pipeline_name, dev_mode):
         logger.info('submission head \n\n{}'.format(submission.head()))
 
         if params.kaggle_api:
+            logger.info('making Kaggle submit...')
             os.system('kaggle competitions submit -c home-credit-default-risk -f {} -m {}'.format(
                 submission_filepath, params.kaggle_message)
             )
