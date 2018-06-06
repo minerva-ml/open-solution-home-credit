@@ -8,6 +8,13 @@ from utils import read_params, safe_eval
 ctx = neptune.Context()
 params = read_params(ctx)
 
+BUREAU_BALANCE = params.bureau_balance_filepath
+BUREAU = params.bureau_filepath
+CREDIT_CARD_BALANCE = params.credit_card_balance_filepath
+INSTALLMENTS_PAYMENTS = params.installments_payments_filepath
+POS_CASH_BALANCE = params.POS_CASH_balance_filepath
+PREVIOUS_APPLICATION = params.previous_application_filepath
+
 CATEGORICAL_COLUMNS = ['CODE_GENDER',
                        'EMERGENCYSTATE_MODE',
                        'FLAG_CONT_MOBILE',
