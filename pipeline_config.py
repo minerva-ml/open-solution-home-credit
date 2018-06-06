@@ -144,7 +144,7 @@ DEV_SAMPLE_SIZE = int(10e4)
 
 AGGREGATION_RECIPIES = []
 for agg in ['mean', 'size', 'var', 'min', 'max']:
-    for select in  NUMERICAL_COLUMNS:
+    for select in NUMERICAL_COLUMNS:
         for group in [['CODE_GENDER'],
                       ['CODE_GENDER', 'OCCUPATION_TYPE'],
                       ['CODE_GENDER', 'FLAG_OWN_REALTY'],
@@ -195,8 +195,7 @@ SOLUTION_CONFIG = AttrDict({
                                     }
                       },
 
-    'bureau': {'filename': 'bureau',
-               'filepath': BUREAU,
+    'bureau': {'filepath': BUREAU,
                'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                'groupby_aggregations': [
                    {'groupby': ['SK_ID_CURR'], 'select': 'DAYS_CREDIT', 'agg': 'count'},        # 1

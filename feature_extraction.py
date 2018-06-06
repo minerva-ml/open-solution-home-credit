@@ -1,3 +1,5 @@
+import os
+
 import category_encoders as ce
 import numpy as np
 import pandas as pd
@@ -109,8 +111,8 @@ class GroupbyAggregations(BaseTransformer):
 
 
 class GroupbyAggregationFromFile(BaseTransformer):
-    def __init__(self, filename, filepath, id_columns, groupby_aggregations):
-        self.filename = filename
+    def __init__(self, filepath, id_columns, groupby_aggregations):
+        self.filename = os.path.basename(filepath).split('.')[0]
         self.file = pd.read_csv(filepath)
         self.id_columns = id_columns
         self.groupby_aggregations = groupby_aggregations
