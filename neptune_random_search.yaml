@@ -1,7 +1,7 @@
 project: HC
 
 name: home-credit-default-risk
-tags: [solution-1]
+tags: [solution-2]
 
 metric:
   channel: 'ROC_AUC'
@@ -19,14 +19,16 @@ exclude:
 
 parameters:
 # Data
-  train_filepath:             YOUR/PATH/TO/application_train.csv
-  test_filepath:              YOUR/PATH/TO/application_test.csv
-  sample_submission_filepath: YOUR/PATH/TO/sample_submission.csv
-  experiment_dir:             YOUR/PATH/WORKDIR
-
-# Kaggle
-  kaggle_api: 1
-  kaggle_message: 'solution-2'
+  train_filepath:                 YOUR/PATH/TO/application_train.csv
+  test_filepath:                  YOUR/PATH/TO/application_test.csv
+  bureau_balance_filepath:        YOUR/PATH/TO/bureau_balance_filepath.csv
+  bureau_filepath:                YOUR/PATH/TO/bureau.csv
+  credit_card_balance_filepath:   YOUR/PATH/TO/credit_card_balance.csv
+  installments_payments_filepath: YOUR/PATH/TO/installments_payments.csv
+  POS_CASH_balance_filepath:      YOUR/PATH/TO/POS_CASH_balance.csv
+  previous_application_filepath:  YOUR/PATH/TO/previous_application.csv
+  sample_submission_filepath:     YOUR/PATH/TO/sample_submission.csv
+  experiment_dir:                 YOUR/PATH/WORKDIR
 
 # Validation
   target_bins: 100
