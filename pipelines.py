@@ -45,8 +45,13 @@ def feature_extraction(config, train_mode, **kwargs):
                                                                 config, train_mode,
                                                                 **kwargs)
 
-        feature_combiner, feature_combiner_valid = _join_features(numerical_features=[feature_by_type_split],
-                                                                  numerical_features_valid=[feature_by_type_split_valid],
+        groupby_aggregation, groupby_aggregation_valid = _groupby_aggregations(
+            (feature_by_type_split, feature_by_type_split_valid), config, train_mode, **kwargs)
+
+        feature_combiner, feature_combiner_valid = _join_features(numerical_features=[feature_by_type_split,
+                                                                                      groupby_aggregation],
+                                                                  numerical_features_valid=[feature_by_type_split_valid,
+                                                                                            groupby_aggregation_valid],
                                                                   categorical_features=[target_encoder],
                                                                   categorical_features_valid=[target_encoder_valid],
                                                                   config=config,
@@ -59,7 +64,9 @@ def feature_extraction(config, train_mode, **kwargs):
 
         target_encoder = _target_encoders(feature_by_type_split, config, train_mode, **kwargs)
 
-        feature_combiner = _join_features(numerical_features=[feature_by_type_split],
+        groupby_aggregation = _groupby_aggregations(feature_by_type_split, config, train_mode, **kwargs)
+
+        feature_combiner = _join_features(numerical_features=[feature_by_type_split, groupby_aggregation],
                                           numerical_features_valid=[],
                                           categorical_features=[target_encoder],
                                           categorical_features_valid=[],
@@ -223,6 +230,52 @@ def _target_encoders(dispatchers, config, train_mode, **kwargs):
                               **kwargs)
 
         return target_encoder
+
+
+def _groupby_aggregations(dispatchers, config, train_mode, **kwargs):
+    if train_mode:
+        feature_by_type_split, feature_by_type_split_valid = dispatchers
+        groupby_aggregations = Step(name='groupby_aggregations',
+                                    transformer=fe.GroupbyAggregations(**config.groupby_aggregation),
+                                    input_data=['input'],
+                                    input_steps=[feature_by_type_split],
+                                    adapter=Adapter({'categorical_features': E(feature_by_type_split.name,
+                                                                               'categorical_features'),
+                                                     'numerical_features': E(feature_by_type_split.name,
+                                                                             'numerical_features')
+                                                     }),
+                                    cache_dirpath=config.env.cache_dirpath,
+                                    **kwargs)
+
+        groupby_aggregations_valid = Step(name='groupby_aggregations_valid',
+                                          transformer=groupby_aggregations,
+                                          input_data=['input'],
+                                          input_steps=[feature_by_type_split_valid],
+                                          adapter=Adapter({'categorical_features': E(feature_by_type_split_valid.name,
+                                                                                     'categorical_features'),
+                                                           'numerical_features': E(feature_by_type_split_valid.name,
+                                                                                   'numerical_features')
+                                                           }),
+                                          cache_dirpath=config.env.cache_dirpath,
+                                          **kwargs)
+
+        return groupby_aggregations, groupby_aggregations_valid
+
+    else:
+        feature_by_type_split = dispatchers
+        groupby_aggregations = Step(name='groupby_aggregations',
+                                    transformer=fe.GroupbyAggregations(**config.groupby_aggregation),
+                                    input_data=['input'],
+                                    input_steps=[feature_by_type_split],
+                                    adapter=Adapter({'categorical_features': E(feature_by_type_split.name,
+                                                                               'categorical_features'),
+                                                     'numerical_features': E(feature_by_type_split.name,
+                                                                             'numerical_features')
+                                                     }),
+                                    cache_dirpath=config.env.cache_dirpath,
+                                    **kwargs)
+
+        return groupby_aggregations
 
 
 def _to_numpy_label(config, **kwargs):
