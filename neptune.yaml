@@ -26,7 +26,7 @@ parameters:
 
 # Kaggle
   kaggle_api: 1
-  kaggle_message: 'solution-1'
+  kaggle_message: 'solution-2'
 
 # Validation
   target_bins: 100
