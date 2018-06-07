@@ -174,6 +174,14 @@ SOLUTION_CONFIG = AttrDict({
                       'verbose': safe_eval(params.verbose)
                       },
 
+    'logistic_regression': {'penalty': safe_eval(params.lr__penalty),
+                            'tol': safe_eval(params.lr__tol),
+                            'C': safe_eval(params.lr__C),
+                            'solver': safe_eval(params.lr__solver),
+                            'n_jobs': safe_eval(params.num_workers),
+                            'verbose': safe_eval(params.verbose),
+                            },
+
     'random_search': {'light_gbm': {'n_runs': params.lgbm_random_search_runs,
                                     'callbacks': {'neptune_monitor': {'name': 'light_gbm'
                                                                       },
@@ -188,8 +196,17 @@ SOLUTION_CONFIG = AttrDict({
                                                       'save_results': {'filepath': os.path.join(params.experiment_dir,
                                                                                                 'random_search_random_forest.pkl')
                                                                        }
-                                                  }
-                                       }
+                                                      }
+                                        },
+                      'logistic_regression': {'n_runs': params.lr_random_search_runs,
+                                              'callbacks': {'neptune_monitor': {'name': 'logistic_regression'
+                                                                                },
+                                                            'save_results': {'filepath': os.path.join(params.experiment_dir,
+                                                                                                'random_search_logistic_regression.pkl')
+                                                                            }
+                                                            }
+                                              }
+
                       },
 
     'clipper': {'min_val': 0,

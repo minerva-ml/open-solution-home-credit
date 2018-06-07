@@ -63,3 +63,10 @@ parameters:
   rf__min_samples_split: '[2, 50]'
   rf__min_samples_leaf: '[1, 50]'
   rf__min_weight_fraction_leaf: '[0.0, 0.2, "uniform"]'
+
+#Logistic regression
+  lr_random_search_runs: 100
+  lr__penalty: '["l2", "l1", "list"]'
+  lr__tol: '[0.0001, 0.01, "log-uniform"]'
+  lr__C: '[0.1, 1000, "log-uniform"]'
+  lr__solver: '["liblinear", "saga", "list"]'

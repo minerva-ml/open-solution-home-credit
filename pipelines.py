@@ -9,7 +9,7 @@ from steppy.base import Step
 import feature_extraction as fe
 from hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, SaveResults
 from models import LightGBMLowMemory as LightGBM
-from models import sklearn_preprocess, SklearnBinaryClassifier, get_sklearn_classifier
+from models import sklearn_preprocess, get_sklearn_classifier
 from postprocessing import Clipper
 
 
@@ -39,28 +39,31 @@ def main(config, train_mode):
 
     return clipper
 
-def sklearn_main(config, train_mode):
+def sklearn_main(config, ClassifierClass, clf_name, train_mode):
+    model_params = getattr(config, clf_name)
+    random_search_config = getattr(config.random_search, clf_name)
+    full_config = (config, model_params, random_search_config)
     if train_mode:
         features, features_valid = feature_extraction(config,
                                                       train_mode,
                                                       save_output=True,
                                                       cache_output=True,
                                                       load_saved_output=True)
-        rnd_forest = classifier_rndf((features, features_valid),
-                                    config,
+        sklearn_clf = sklearn_classifier((features, features_valid), ClassifierClass,
+                                    full_config, clf_name,
                                     train_mode)
     else:
         features = feature_extraction(config,
                                       train_mode,
                                       cache_output=True)
-        rnd_forest = classifier_rndf(features,
-                                    config,
+        sklearn_clf = sklearn_classifier(features, ClassifierClass,
+                                    full_config, clf_name,
                                     train_mode)
 
     clipper = Step(name='clipper',
                    transformer=Clipper(**config.clipper),
-                   input_steps=[rnd_forest],
-                   adapter=Adapter({'prediction': E(rnd_forest.name, 'predicted')}),
+                   input_steps=[sklearn_clf],
+                   adapter=Adapter({'prediction': E(sklearn_clf.name, 'predicted')}),
                    cache_dirpath=config.env.cache_dirpath)
 
     return clipper
@@ -213,25 +216,26 @@ def classifier_lgbm(features, config, train_mode, **kwargs):
     return light_gbm
 
 
-def classifier_rndf(features, config, train_mode, **kwargs):
+def sklearn_classifier(features, ClassifierClass, full_config, clf_name, train_mode, **kwargs):
+    config, model_params, rs_config = full_config
     if train_mode:
         features_train, features_valid = features
         if config.random_search.random_forest.n_runs:
 
-            transformer = RandomSearchOptimizer(partial(get_sklearn_classifier, ClassifierClass=RandomForestClassifier),
-                                                config.random_forest,
+            transformer = RandomSearchOptimizer(partial(get_sklearn_classifier, ClassifierClass=ClassifierClass),
+                                                model_params,
                                                 train_input_keys=[],
                                                 valid_input_keys=['X_valid', 'y_valid'],
                                                 score_func=roc_auc_score,
                                                 maximize=True,
-                                                n_runs=config.random_search.random_forest.n_runs,
+                                                n_runs=rs_config.n_runs,
                                                 callbacks=[NeptuneMonitor(
-                                                    **config.random_search.random_forest.callbacks.neptune_monitor),
+                                                    **rs_config.callbacks.neptune_monitor),
                                                     SaveResults(
-                                                        **config.random_search.random_forest.callbacks.save_results)
+                                                        **rs_config.callbacks.save_results)
                                                 ])
         else:
-            transformer = SklearnBinaryClassifier(RandomForestClassifier(**config.random_forest))
+            transformer = get_sklearn_classifier(ClassifierClass, **model_params)
 
         sklearn_preproc = Step(name='sklearn_preprocessing',
                                transformer=sklearn_preprocess(),
@@ -244,7 +248,7 @@ def classifier_rndf(features, config, train_mode, **kwargs):
                                **kwargs
                                )
 
-        rnd_forest = Step(name='random_forest',
+        sklearn_clf = Step(name=clf_name,
                          transformer=transformer,
                          input_data=['input'],
                          input_steps=[sklearn_preproc],
@@ -265,13 +269,17 @@ def classifier_rndf(features, config, train_mode, **kwargs):
                                **kwargs
                                )
 
-        rnd_forest = Step(name='random_forest',
-                         transformer = SklearnBinaryClassifier(RandomForestClassifier(**config.random_forest)),
+        sklearn_clf = Step(name=clf_name,
+                         transformer = get_sklearn_classifier(ClassifierClass, **model_params),
                          input_steps=[sklearn_preproc],
                          adapter=Adapter({'X': E(sklearn_preproc.name, 'X')}),
                          cache_dirpath=config.env.cache_dirpath,
                          **kwargs)
-    return rnd_forest
+
+
+
+
+    return sklearn_clf
 
 
 def _target_encoders(dispatchers, config, train_mode, **kwargs):
@@ -334,11 +342,11 @@ def _to_numpy_label(config, **kwargs):
 
 PIPELINES = {'main': {'train': partial(main, train_mode=True),
                       'inference': partial(main, train_mode=False)},
-             'random_forest': {
-                 'train': partial(sklearn_main, train_mode=True),
-                 'inference': partial(sklearn_main, train_mode=False)},
-                 #'random_forest': {'train': partial(sklearn_main, ClassifierClass=RandomForestClassifier, name='random_forest', train_mode=True),
-             #                  'inference': partial(sklearn_main, ClassifierClass=RandomForestClassifier, name='random_forest', train_mode=False)},
-             #'log_reg': {'train': partial(sklearn_main, ClassifierClass=LogisticRegression, name='logistic_regression', train_mode=True),
-             #            'inference': partial(sklearn_main, ClassifierClass=LogisticRegression, name='logistic_regression', train_mode=False)}
+
+             'random_forest': {'train': partial(sklearn_main, ClassifierClass=RandomForestClassifier, clf_name='random_forest', train_mode=True),
+                               'inference': partial(sklearn_main, ClassifierClass=RandomForestClassifier, clf_name='random_forest', train_mode=False)},
+             'log_reg': {'train': partial(sklearn_main, ClassifierClass=LogisticRegression, clf_name='logistic_regression', train_mode=True),
+                         'inference': partial(sklearn_main, ClassifierClass=LogisticRegression, clf_name='logistic_regression', train_mode=False)},
+             #'SVC': {'train': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=True),
+             #            'inference': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=False)}
              }
