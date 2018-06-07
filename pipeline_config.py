@@ -8,6 +8,13 @@ from utils import read_params, safe_eval
 ctx = neptune.Context()
 params = read_params(ctx)
 
+BUREAU_BALANCE = params.bureau_balance_filepath
+BUREAU = params.bureau_filepath
+CREDIT_CARD_BALANCE = params.credit_card_balance_filepath
+INSTALLMENTS_PAYMENTS = params.installments_payments_filepath
+POS_CASH_BALANCE = params.POS_CASH_balance_filepath
+PREVIOUS_APPLICATION = params.previous_application_filepath
+
 CATEGORICAL_COLUMNS = ['CODE_GENDER',
                        'EMERGENCYSTATE_MODE',
                        'FLAG_CONT_MOBILE',
@@ -135,6 +142,20 @@ TARGET_COLUMNS = ['TARGET']
 
 DEV_SAMPLE_SIZE = int(10e4)
 
+AGGREGATION_RECIPIES = []
+for agg in ['mean', 'size', 'var', 'min', 'max']:
+    for select in NUMERICAL_COLUMNS:
+        for group in [['CODE_GENDER'],
+                      ['CODE_GENDER', 'OCCUPATION_TYPE'],
+                      ['CODE_GENDER', 'FLAG_OWN_REALTY'],
+                      ['CODE_GENDER', 'ORGANIZATION_TYPE'],
+                      ['CODE_GENDER', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
+                      ['FLAG_OWN_REALTY', 'NAME_HOUSING_TYPE'],
+                      ['FLAG_OWN_REALTY', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
+                      ['OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
+                      ]:
+            AGGREGATION_RECIPIES.append({'groupby': group, 'select': select, 'agg': agg})
+
 SOLUTION_CONFIG = AttrDict({
     'env': {'cache_dirpath': params.experiment_dir
             },
@@ -209,7 +230,21 @@ SOLUTION_CONFIG = AttrDict({
 
                       },
 
+    'bureau': {'filepath': BUREAU,
+               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+               'groupby_aggregations': [
+                   {'groupby': ['SK_ID_CURR'], 'select': 'DAYS_CREDIT', 'agg': 'count'},        # 1
+                   {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_TYPE', 'agg': 'nunique'},      # 2
+                   {'groupby': ['SK_ID_CURR'], 'select': 'CNT_CREDIT_PROLONG', 'agg': 'mean'},  # 10
+                   {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_DAY_OVERDUE', 'agg': 'count'},
+                   {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_ACTIVE', 'agg': 'size'},
+                   {'groupby': ['SK_ID_CURR'], 'select': 'AMT_CREDIT_SUM', 'agg': 'count'},
+               ]},
+
     'clipper': {'min_val': 0,
                 'max_val': 1
-                }
+                },
+
+    'groupby_aggregation': {'groupby_aggregations': AGGREGATION_RECIPIES
+                            },
 })

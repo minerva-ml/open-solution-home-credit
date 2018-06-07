@@ -1,8 +1,9 @@
+import os
+
 import category_encoders as ce
 import numpy as np
 import pandas as pd
 from sklearn.externals import joblib
-from steppy.adapters import to_numpy_label_inputs
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
@@ -11,6 +12,7 @@ logger = get_logger()
 
 class DataFrameByTypeSplitter(BaseTransformer):
     def __init__(self, numerical_columns, categorical_columns, timestamp_columns):
+        super().__init__()
         self.numerical_columns = numerical_columns
         self.categorical_columns = categorical_columns
         self.timestamp_columns = timestamp_columns
@@ -55,6 +57,7 @@ class FeatureJoiner(BaseTransformer):
 
 class TargetEncoder(BaseTransformer):
     def __init__(self, **kwargs):
+        super().__init__()
         self.params = kwargs
         self.encoder_class = ce.OrdinalEncoder
 
@@ -76,15 +79,64 @@ class TargetEncoder(BaseTransformer):
         joblib.dump(self.target_encoder, filepath)
 
 
-class ToNumpyLabel(BaseTransformer):
-    def __init__(self, **kwargs):
-        self.y = None
+class GroupbyAggregations(BaseTransformer):
+    def __init__(self, groupby_aggregations):
+        super().__init__()
+        self.groupby_aggregations = groupby_aggregations
 
-    def fit(self, y, **kwargs):
-        self.y = to_numpy_label_inputs(y)
-        return self
+    @property
+    def groupby_aggregations_names(self):
+        groupby_aggregations_names = ['{}_{}_{}'.format('_'.join(spec['groupby']),
+                                                        spec['agg'],
+                                                        spec['select'])
+                                      for spec in self.groupby_aggregations]
+        return groupby_aggregations_names
 
-    def transform(self, **kwargs):
-        if self.y.any():
-            return {'y': self.y}
-        return {}
+    def transform(self, categorical_features, numerical_features):
+        X = pd.concat([categorical_features, numerical_features], axis=1)
+        for spec, groupby_aggregations_name in zip(self.groupby_aggregations, self.groupby_aggregations_names):
+            group_object = X.groupby(spec['groupby'])
+
+            X = X.merge(group_object[spec['select']]
+                        .agg(spec['agg'])
+                        .reset_index()
+                        .rename(index=str,
+                                columns={spec['select']: groupby_aggregations_name})
+                        [spec['groupby'] + [groupby_aggregations_name]],
+                        on=spec['groupby'],
+                        how='left')
+
+        return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}
+
+
+class GroupbyAggregationFromFile(BaseTransformer):
+    def __init__(self, filepath, id_columns, groupby_aggregations):
+        super().__init__()
+        self.filename = os.path.basename(filepath).split('.')[0]
+        self.file = pd.read_csv(filepath)
+        self.id_columns = id_columns
+        self.groupby_aggregations = groupby_aggregations
+
+    @ property
+    def groupby_aggregations_names(self):
+        groupby_aggregations_names = ['{}_{}_{}_{}'.format(self.filename,
+                                                           '_'.join(spec['groupby']),
+                                                           spec['agg'],
+                                                           spec['select'])
+                                      for spec in self.groupby_aggregations]
+        return groupby_aggregations_names
+
+    def transform(self, X):
+        for spec, groupby_aggregations_name in zip(self.groupby_aggregations, self.groupby_aggregations_names):
+            group_object = self.file.groupby(spec['groupby'])
+            X = X.merge(group_object[spec['select']]
+                        .agg(spec['agg'])
+                        .reset_index()
+                        .rename(index=str,
+                                columns={spec['select']: groupby_aggregations_name})
+                        [spec['groupby'] + [groupby_aggregations_name]],
+                        left_on=self.id_columns[0],
+                        right_on=self.id_columns[1],
+                        how='left')
+
+        return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}

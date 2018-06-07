@@ -5,6 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from steppy.adapter import Adapter, E
 from steppy.base import Step, make_transformer
+from utils import ToNumpyLabel
 
 import feature_extraction as fe
 from hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, SaveResults
@@ -13,7 +14,7 @@ from models import get_sklearn_classifier
 from postprocessing import Clipper
 
 
-def main(config, train_mode):
+def lightGBM(config, train_mode):
     if train_mode:
         features, features_valid = feature_extraction(config,
                                                       train_mode,
@@ -73,12 +74,21 @@ def feature_extraction(config, train_mode, **kwargs):
     if train_mode:
         feature_by_type_split, feature_by_type_split_valid = _feature_by_type_splits(config, train_mode)
 
+        bureau, bureau_valid = _bureau(config, train_mode, **kwargs)
+
         target_encoder, target_encoder_valid = _target_encoders((feature_by_type_split, feature_by_type_split_valid),
                                                                 config, train_mode,
                                                                 **kwargs)
 
-        feature_combiner, feature_combiner_valid = _join_features(numerical_features=[feature_by_type_split],
-                                                                  numerical_features_valid=[feature_by_type_split_valid],
+        groupby_aggregation, groupby_aggregation_valid = _groupby_aggregations(
+            (feature_by_type_split, feature_by_type_split_valid), config, train_mode, **kwargs)
+
+        feature_combiner, feature_combiner_valid = _join_features(numerical_features=[feature_by_type_split,
+                                                                                      groupby_aggregation,
+                                                                                      bureau],
+                                                                  numerical_features_valid=[feature_by_type_split_valid,
+                                                                                            groupby_aggregation_valid,
+                                                                                            bureau_valid],
                                                                   categorical_features=[target_encoder],
                                                                   categorical_features_valid=[target_encoder_valid],
                                                                   config=config,
@@ -89,9 +99,13 @@ def feature_extraction(config, train_mode, **kwargs):
     else:
         feature_by_type_split = _feature_by_type_splits(config, train_mode)
 
+        bureau = _bureau(config, train_mode, **kwargs)
+
         target_encoder = _target_encoders(feature_by_type_split, config, train_mode, **kwargs)
 
-        feature_combiner = _join_features(numerical_features=[feature_by_type_split],
+        groupby_aggregation = _groupby_aggregations(feature_by_type_split, config, train_mode, **kwargs)
+
+        feature_combiner = _join_features(numerical_features=[feature_by_type_split, groupby_aggregation, bureau],
                                           numerical_features_valid=[],
                                           categorical_features=[target_encoder],
                                           categorical_features_valid=[],
@@ -330,9 +344,84 @@ def _target_encoders(dispatchers, config, train_mode, **kwargs):
         return target_encoder
 
 
+def _groupby_aggregations(dispatchers, config, train_mode, **kwargs):
+    if train_mode:
+        feature_by_type_split, feature_by_type_split_valid = dispatchers
+        groupby_aggregations = Step(name='groupby_aggregations',
+                                    transformer=fe.GroupbyAggregations(**config.groupby_aggregation),
+                                    input_data=['input'],
+                                    input_steps=[feature_by_type_split],
+                                    adapter=Adapter({'categorical_features': E(feature_by_type_split.name,
+                                                                               'categorical_features'),
+                                                     'numerical_features': E(feature_by_type_split.name,
+                                                                             'numerical_features')
+                                                     }),
+                                    cache_dirpath=config.env.cache_dirpath,
+                                    **kwargs)
+
+        groupby_aggregations_valid = Step(name='groupby_aggregations_valid',
+                                          transformer=groupby_aggregations,
+                                          input_data=['input'],
+                                          input_steps=[feature_by_type_split_valid],
+                                          adapter=Adapter({'categorical_features': E(feature_by_type_split_valid.name,
+                                                                                     'categorical_features'),
+                                                           'numerical_features': E(feature_by_type_split_valid.name,
+                                                                                   'numerical_features')
+                                                           }),
+                                          cache_dirpath=config.env.cache_dirpath,
+                                          **kwargs)
+
+        return groupby_aggregations, groupby_aggregations_valid
+
+    else:
+        feature_by_type_split = dispatchers
+        groupby_aggregations = Step(name='groupby_aggregations',
+                                    transformer=fe.GroupbyAggregations(**config.groupby_aggregation),
+                                    input_data=['input'],
+                                    input_steps=[feature_by_type_split],
+                                    adapter=Adapter({'categorical_features': E(feature_by_type_split.name,
+                                                                               'categorical_features'),
+                                                     'numerical_features': E(feature_by_type_split.name,
+                                                                             'numerical_features')
+                                                     }),
+                                    cache_dirpath=config.env.cache_dirpath,
+                                    **kwargs)
+
+        return groupby_aggregations
+
+
+def _bureau(config, train_mode, **kwargs):
+    if train_mode:
+        bureau = Step(name='bureau',
+                      transformer=fe.GroupbyAggregationFromFile(**config.bureau),
+                      input_data=['input'],
+                      adapter=Adapter({'X': E('input', 'X')}),
+                      cache_dirpath=config.env.cache_dirpath,
+                      **kwargs)
+
+        bureau_valid = Step(name='bureau_valid',
+                            transformer=bureau,
+                            input_data=['input'],
+                            adapter=Adapter({'X': E('input', 'X_valid')}),
+                            cache_dirpath=config.env.cache_dirpath,
+                            **kwargs)
+
+        return bureau, bureau_valid
+
+    else:
+        bureau = Step(name='bureau',
+                      transformer=fe.GroupbyAggregationFromFile(**config.bureau),
+                      input_data=['input'],
+                      adapter=Adapter({'X': E('input', 'X')}),
+                      cache_dirpath=config.env.cache_dirpath,
+                      **kwargs)
+
+        return bureau
+
+
 def _to_numpy_label(config, **kwargs):
     to_numpy_label = Step(name='to_numpy_label',
-                          transformer=fe.ToNumpyLabel(),
+                          transformer=ToNumpyLabel(),
                           input_data=['input'],
                           adapter=Adapter({'y': [E('input', 'y')]}),
                           cache_dirpath=config.env.cache_dirpath,
@@ -348,7 +437,7 @@ def _to_numpy_label(config, **kwargs):
     return to_numpy_label, to_numpy_label_valid
 
 
-PIPELINES = {'main': {'train': partial(main, train_mode=True),
+PIPELINES = {'lightGBM': {'train': partial(main, train_mode=True),
                       'inference': partial(main, train_mode=False)},
 
              'random_forest': {'train': partial(sklearn_main, ClassifierClass=RandomForestClassifier, clf_name='random_forest', train_mode=True),
@@ -357,4 +446,4 @@ PIPELINES = {'main': {'train': partial(main, train_mode=True),
                          'inference': partial(sklearn_main, ClassifierClass=LogisticRegression, clf_name='logistic_regression', train_mode=False, normalize=True)},
              #'SVC': {'train': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=True, normalize=True),
              #            'inference': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=False, normalize=True)}
-             }
+
