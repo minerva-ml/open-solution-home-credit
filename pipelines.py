@@ -4,12 +4,12 @@ from sklearn.metrics import roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from steppy.adapter import Adapter, E
-from steppy.base import Step
+from steppy.base import Step, make_transformer
 
 import feature_extraction as fe
 from hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, SaveResults
 from models import LightGBMLowMemory as LightGBM
-from models import sklearn_preprocess, get_sklearn_classifier
+from models import get_sklearn_classifier
 from postprocessing import Clipper
 
 
@@ -49,14 +49,15 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode):
                                                       save_output=True,
                                                       cache_output=True,
                                                       load_saved_output=True)
-        sklearn_clf = sklearn_classifier((features, features_valid), ClassifierClass,
-                                    full_config, clf_name,
-                                    train_mode)
+
+        sklearn_preproc = sklearn_preprocessing((features, features_valid), config, train_mode)
     else:
         features = feature_extraction(config,
                                       train_mode,
                                       cache_output=True)
-        sklearn_clf = sklearn_classifier(features, ClassifierClass,
+        sklearn_preproc = sklearn_preprocessing(features, config, train_mode)
+
+    sklearn_clf = sklearn_classifier(sklearn_preproc, ClassifierClass,
                                     full_config, clf_name,
                                     train_mode)
 
@@ -175,6 +176,39 @@ def _join_features(numerical_features,
     return feature_joiner
 
 
+def sklearn_preprocessing(features, config, train_mode, **kwargs):
+    if train_mode:
+        features_train, features_valid = features
+        fillna = Step(name='fillna',
+                        transformer=_fillna(-1),
+                        input_data=['input'],
+                        input_steps=[features_train, features_valid],
+                        adapter=Adapter({'X': E(features_train.name, 'features'),
+                              'X_valid': E(features_valid.name, 'features'),
+                              }),
+                        cache_dirpath=config.env.cache_dirpath,
+                        **kwargs
+                        )
+    else:
+        fillna = Step(name='fillna',
+                        transformer=_fillna(-1),
+                        input_data = ['input'],
+                        input_steps = [features],
+                        adapter = Adapter({'X': E(features.name, 'features')}),
+                        cache_dirpath = config.env.cache_dirpath,
+                        ** kwargs
+                        )
+    return fillna
+
+
+def _fillna(value=-1):
+    def _inner_fillna(X, X_valid=None):
+        if X_valid is None:
+            return {'X': X.fillna(value)}
+        return {'X': X.fillna(value), 'X_valid': X_valid.fillna(value)}
+    return make_transformer(_inner_fillna)
+
+
 def classifier_lgbm(features, config, train_mode, **kwargs):
     if train_mode:
         features_train, features_valid = features
@@ -216,12 +250,10 @@ def classifier_lgbm(features, config, train_mode, **kwargs):
     return light_gbm
 
 
-def sklearn_classifier(features, ClassifierClass, full_config, clf_name, train_mode, **kwargs):
+def sklearn_classifier(sklearn_features, ClassifierClass, full_config, clf_name, train_mode, **kwargs):
     config, model_params, rs_config = full_config
     if train_mode:
-        features_train, features_valid = features
         if config.random_search.random_forest.n_runs:
-
             transformer = RandomSearchOptimizer(partial(get_sklearn_classifier, ClassifierClass=ClassifierClass),
                                                 model_params,
                                                 train_input_keys=[],
@@ -237,48 +269,24 @@ def sklearn_classifier(features, ClassifierClass, full_config, clf_name, train_m
         else:
             transformer = get_sklearn_classifier(ClassifierClass, **model_params)
 
-        sklearn_preproc = Step(name='sklearn_preprocessing',
-                               transformer=sklearn_preprocess(),
-                               input_data=['input'],
-                               input_steps=[features_train, features_valid],
-                               adapter=Adapter({'X': E(features_train.name, 'features'),
-                                                'X_valid': E(features_valid.name, 'features'),
-                                                }),
-                               cache_dirpath=config.env.cache_dirpath,
-                               **kwargs
-                               )
-
         sklearn_clf = Step(name=clf_name,
                          transformer=transformer,
                          input_data=['input'],
-                         input_steps=[sklearn_preproc],
-                         adapter=Adapter({'X': E(sklearn_preproc.name, 'X'),
+                         input_steps=[sklearn_features],
+                         adapter=Adapter({'X': E(sklearn_features.name, 'X'),
                                           'y': E('input', 'y'),
-                                          'X_valid': E(sklearn_preproc.name, 'X_valid'),
+                                          'X_valid': E(sklearn_features.name, 'X_valid'),
                                           'y_valid': E('input', 'y_valid'),
                                           }),
                          cache_dirpath=config.env.cache_dirpath,
                          **kwargs)
     else:
-        sklearn_preproc = Step(name='sklearn_preprocessing',
-                               transformer=sklearn_preprocess(),
-                               input_data=['input'],
-                               input_steps=[features],
-                               adapter=Adapter({'X': E(features.name, 'features')}),
-                               cache_dirpath=config.env.cache_dirpath,
-                               **kwargs
-                               )
-
         sklearn_clf = Step(name=clf_name,
                          transformer = get_sklearn_classifier(ClassifierClass, **model_params),
-                         input_steps=[sklearn_preproc],
-                         adapter=Adapter({'X': E(sklearn_preproc.name, 'X')}),
+                         input_steps=[sklearn_features],
+                         adapter=Adapter({'X': E(sklearn_features.name, 'X')}),
                          cache_dirpath=config.env.cache_dirpath,
                          **kwargs)
-
-
-
-
     return sklearn_clf
 
 
