@@ -8,6 +8,8 @@ import pandas as pd
 import yaml
 from attrdict import AttrDict
 from sklearn.model_selection import train_test_split
+from steppy.base import BaseTransformer
+from steppy.adapters import to_numpy_label_inputs
 
 
 def create_submission(meta, predictions):
@@ -101,3 +103,18 @@ def stratified_train_valid_split(meta_train, target_column, target_bins, valid_s
     y_binned = np.digitize(y, bins)
 
     return train_test_split(meta_train, test_size=valid_size, stratify=y_binned, random_state=random_state)
+
+
+class ToNumpyLabel(BaseTransformer):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.y = None
+
+    def fit(self, y, **kwargs):
+        self.y = to_numpy_label_inputs(y)
+        return self
+
+    def transform(self, **kwargs):
+        if self.y.any():
+            return {'y': self.y}
+        return {}

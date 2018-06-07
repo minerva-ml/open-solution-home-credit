@@ -3,6 +3,7 @@ from functools import partial
 from sklearn.metrics import roc_auc_score
 from steppy.adapter import Adapter, E
 from steppy.base import Step
+from utils import ToNumpyLabel
 
 import feature_extraction as fe
 from hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, SaveResults
@@ -315,7 +316,7 @@ def _bureau(config, train_mode, **kwargs):
 
 def _to_numpy_label(config, **kwargs):
     to_numpy_label = Step(name='to_numpy_label',
-                          transformer=fe.ToNumpyLabel(),
+                          transformer=ToNumpyLabel(),
                           input_data=['input'],
                           adapter=Adapter({'y': [E('input', 'y')]}),
                           cache_dirpath=config.env.cache_dirpath,
