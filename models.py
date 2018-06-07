@@ -42,7 +42,7 @@ def get_sklearn_classifier(ClassifierClass, normalize=False, **kwargs):
             return {SklearnClassifier.RESULT_KEY: prediction}
 
     if normalize:
-        return SklearnBinaryClassifier(Pipeline([StandardScaler(),
-                                                 ClassifierClass(**kwargs)]))
+        return SklearnBinaryClassifier(Pipeline([('standarizer', StandardScaler()),
+                                                 ('classifier', ClassifierClass(**kwargs))]))
 
     return SklearnBinaryClassifier(ClassifierClass(**kwargs))

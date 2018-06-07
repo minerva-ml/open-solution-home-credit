@@ -39,7 +39,7 @@ def main(config, train_mode):
 
     return clipper
 
-def sklearn_main(config, ClassifierClass, clf_name, train_mode):
+def sklearn_main(config, ClassifierClass, clf_name, train_mode, normalize=False):
     model_params = getattr(config, clf_name)
     random_search_config = getattr(config.random_search, clf_name)
     full_config = (config, model_params, random_search_config)
@@ -59,7 +59,7 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode):
 
     sklearn_clf = sklearn_classifier(sklearn_preproc, ClassifierClass,
                                     full_config, clf_name,
-                                    train_mode)
+                                    train_mode, normalize)
 
     clipper = Step(name='clipper',
                    transformer=Clipper(**config.clipper),
@@ -250,11 +250,11 @@ def classifier_lgbm(features, config, train_mode, **kwargs):
     return light_gbm
 
 
-def sklearn_classifier(sklearn_features, ClassifierClass, full_config, clf_name, train_mode, **kwargs):
+def sklearn_classifier(sklearn_features, ClassifierClass, full_config, clf_name, train_mode, normalize, **kwargs):
     config, model_params, rs_config = full_config
     if train_mode:
         if config.random_search.random_forest.n_runs:
-            transformer = RandomSearchOptimizer(partial(get_sklearn_classifier, ClassifierClass=ClassifierClass),
+            transformer = RandomSearchOptimizer(partial(get_sklearn_classifier, ClassifierClass=ClassifierClass, normalize=normalize),
                                                 model_params,
                                                 train_input_keys=[],
                                                 valid_input_keys=['X_valid', 'y_valid'],
@@ -267,7 +267,7 @@ def sklearn_classifier(sklearn_features, ClassifierClass, full_config, clf_name,
                                                         **rs_config.callbacks.save_results)
                                                 ])
         else:
-            transformer = get_sklearn_classifier(ClassifierClass, **model_params)
+            transformer = get_sklearn_classifier(ClassifierClass, normalize, **model_params)
 
         sklearn_clf = Step(name=clf_name,
                          transformer=transformer,
@@ -282,7 +282,7 @@ def sklearn_classifier(sklearn_features, ClassifierClass, full_config, clf_name,
                          **kwargs)
     else:
         sklearn_clf = Step(name=clf_name,
-                         transformer = get_sklearn_classifier(ClassifierClass, **model_params),
+                         transformer = get_sklearn_classifier(ClassifierClass, normalize, **model_params),
                          input_steps=[sklearn_features],
                          adapter=Adapter({'X': E(sklearn_features.name, 'X')}),
                          cache_dirpath=config.env.cache_dirpath,
@@ -353,8 +353,8 @@ PIPELINES = {'main': {'train': partial(main, train_mode=True),
 
              'random_forest': {'train': partial(sklearn_main, ClassifierClass=RandomForestClassifier, clf_name='random_forest', train_mode=True),
                                'inference': partial(sklearn_main, ClassifierClass=RandomForestClassifier, clf_name='random_forest', train_mode=False)},
-             'log_reg': {'train': partial(sklearn_main, ClassifierClass=LogisticRegression, clf_name='logistic_regression', train_mode=True),
-                         'inference': partial(sklearn_main, ClassifierClass=LogisticRegression, clf_name='logistic_regression', train_mode=False)},
-             #'SVC': {'train': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=True),
-             #            'inference': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=False)}
+             'log_reg': {'train': partial(sklearn_main, ClassifierClass=LogisticRegression, clf_name='logistic_regression', train_mode=True, normalize=True),
+                         'inference': partial(sklearn_main, ClassifierClass=LogisticRegression, clf_name='logistic_regression', train_mode=False, normalize=True)},
+             #'SVC': {'train': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=True, normalize=True),
+             #            'inference': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=False, normalize=True)}
              }
