@@ -55,28 +55,28 @@ class FeatureJoiner(BaseTransformer):
         return feature_names
 
 
-class TargetEncoder(BaseTransformer):
+class CategoricalEncoder(BaseTransformer):
     def __init__(self, **kwargs):
         super().__init__()
         self.params = kwargs
-        self.encoder_class = ce.TargetEncoder
+        self.encoder_class = ce.OrdinalEncoder
 
     def fit(self, X, y, **kwargs):
         categorical_columns = list(X.columns)
-        self.target_encoder = self.encoder_class(cols=categorical_columns, **self.params)
-        self.target_encoder.fit(X, y)
+        self.categorical_encoder = self.encoder_class(cols=categorical_columns, **self.params)
+        self.categorical_encoder.fit(X, y)
         return self
 
     def transform(self, X, y=None, **kwargs):
-        X_ = self.target_encoder.transform(X)
+        X_ = self.categorical_encoder.transform(X)
         return {'categorical_features': X_}
 
     def load(self, filepath):
-        self.target_encoder = joblib.load(filepath)
+        self.categorical_encoder = joblib.load(filepath)
         return self
 
     def save(self, filepath):
-        joblib.dump(self.target_encoder, filepath)
+        joblib.dump(self.categorical_encoder, filepath)
 
 
 class GroupbyAggregations(BaseTransformer):

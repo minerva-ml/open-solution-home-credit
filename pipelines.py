@@ -44,7 +44,7 @@ def feature_extraction(config, train_mode, **kwargs):
 
         bureau, bureau_valid = _bureau(config, train_mode, **kwargs)
 
-        target_encoder, target_encoder_valid = _target_encoders((feature_by_type_split, feature_by_type_split_valid),
+        categorical_encoder, categorical_encoder_valid = _categorical_encoders((feature_by_type_split, feature_by_type_split_valid),
                                                                 config, train_mode,
                                                                 **kwargs)
 
@@ -57,8 +57,8 @@ def feature_extraction(config, train_mode, **kwargs):
                                                                   numerical_features_valid=[feature_by_type_split_valid,
                                                                                             groupby_aggregation_valid,
                                                                                             bureau_valid],
-                                                                  categorical_features=[target_encoder],
-                                                                  categorical_features_valid=[target_encoder_valid],
+                                                                  categorical_features=[categorical_encoder],
+                                                                  categorical_features_valid=[categorical_encoder_valid],
                                                                   config=config,
                                                                   train_mode=train_mode,
                                                                   **kwargs)
@@ -69,13 +69,13 @@ def feature_extraction(config, train_mode, **kwargs):
 
         bureau = _bureau(config, train_mode, **kwargs)
 
-        target_encoder = _target_encoders(feature_by_type_split, config, train_mode, **kwargs)
+        categorical_encoder = _categorical_encoders(feature_by_type_split, config, train_mode, **kwargs)
 
         groupby_aggregation = _groupby_aggregations(feature_by_type_split, config, train_mode, **kwargs)
 
         feature_combiner = _join_features(numerical_features=[feature_by_type_split, groupby_aggregation, bureau],
                                           numerical_features_valid=[],
-                                          categorical_features=[target_encoder],
+                                          categorical_features=[categorical_encoder],
                                           categorical_features_valid=[],
                                           config=config,
                                           train_mode=train_mode,
@@ -199,12 +199,12 @@ def classifier_lgbm(features, config, train_mode, **kwargs):
     return light_gbm
 
 
-def _target_encoders(dispatchers, config, train_mode, **kwargs):
+def _categorical_encoders(dispatchers, config, train_mode, **kwargs):
     if train_mode:
         feature_by_type_split, feature_by_type_split_valid = dispatchers
         numpy_label, numpy_label_valid = _to_numpy_label(config, **kwargs)
-        target_encoder = Step(name='target_encoder',
-                              transformer=fe.TargetEncoder(),
+        categorical_encoder = Step(name='categorcial_encoder',
+                              transformer=fe.CategoricalEncoder(),
                               input_data=['input'],
                               input_steps=[feature_by_type_split, numpy_label],
                               adapter=Adapter({'X': E(feature_by_type_split.name, 'categorical_features'),
@@ -213,8 +213,8 @@ def _target_encoders(dispatchers, config, train_mode, **kwargs):
                               cache_dirpath=config.env.cache_dirpath,
                               **kwargs)
 
-        target_encoder_valid = Step(name='target_encoder_valid',
-                                    transformer=target_encoder,
+        categorical_encoder_valid = Step(name='categorical_encoder_valid',
+                                    transformer=categorical_encoder,
                                     input_data=['input'],
                                     input_steps=[feature_by_type_split_valid, numpy_label_valid],
                                     adapter=Adapter({'X': E(feature_by_type_split_valid.name, 'categorical_features'),
@@ -223,20 +223,20 @@ def _target_encoders(dispatchers, config, train_mode, **kwargs):
                                     cache_dirpath=config.env.cache_dirpath,
                                     **kwargs)
 
-        return target_encoder, target_encoder_valid
+        return categorical_encoder, categorical_encoder_valid
 
     else:
         feature_by_type_split = dispatchers
 
-        target_encoder = Step(name='target_encoder',
-                              transformer=fe.TargetEncoder(),
+        categorical_encoder = Step(name='categorical_encoder',
+                              transformer=fe.CategoricalEncoder(),
                               input_data=['input'],
                               input_steps=[feature_by_type_split],
                               adapter=Adapter({'X': E(feature_by_type_split.name, 'categorical_features')}),
                               cache_dirpath=config.env.cache_dirpath,
                               **kwargs)
 
-        return target_encoder
+        return categorical_encoder
 
 
 def _groupby_aggregations(dispatchers, config, train_mode, **kwargs):
