@@ -203,7 +203,7 @@ def _categorical_encoders(dispatchers, config, train_mode, **kwargs):
     if train_mode:
         feature_by_type_split, feature_by_type_split_valid = dispatchers
         numpy_label, numpy_label_valid = _to_numpy_label(config, **kwargs)
-        categorical_encoder = Step(name='categorcial_encoder',
+        categorical_encoder = Step(name='categorical_encoder',
                               transformer=fe.CategoricalEncoder(),
                               input_data=['input'],
                               input_steps=[feature_by_type_split, numpy_label],
