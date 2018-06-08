@@ -3,6 +3,7 @@ from functools import partial
 from sklearn.metrics import roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from steppy.adapter import Adapter, E
 from steppy.base import Step, make_transformer
 from utils import ToNumpyLabel
@@ -445,6 +446,6 @@ PIPELINES = {'lightGBM': {'train': partial(lightGBM, train_mode=True),
                                'inference': partial(sklearn_main, ClassifierClass=RandomForestClassifier, clf_name='random_forest', train_mode=False)},
              'log_reg': {'train': partial(sklearn_main, ClassifierClass=LogisticRegression, clf_name='logistic_regression', train_mode=True, normalize=True),
                          'inference': partial(sklearn_main, ClassifierClass=LogisticRegression, clf_name='logistic_regression', train_mode=False, normalize=True)},
-             #'SVC': {'train': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=True, normalize=True),
-             #            'inference': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=False, normalize=True)}
+             'SVC': {'train': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=True, normalize=True),
+                         'inference': partial(sklearn_main, ClassifierClass=SVC, clf_name='SVC', train_mode=False, normalize=True)}
              }

@@ -67,17 +67,28 @@ parameters:
   lgbm__scale_pos_weight: 1
 
 # Random forest
-  rf_random_search_runs: 100
-  rf__n_estimators: '[100, 200]'
-  rf__max_features: '["auto", "log2", "list"]'
+  rf_random_search_runs: 10
+  rf__n_estimators: '[100, 500]'
+  rf__max_features: '[0.01, 0.5, "uniform"]'
   rf__max_depth: '[5, 30]'
   rf__min_samples_split: '[2, 50]'
   rf__min_samples_leaf: '[1, 50]'
   rf__min_weight_fraction_leaf: '[0.0, 0.2, "uniform"]'
 
 #Logistic regression
-  lr_random_search_runs: 100
+  lr_random_search_runs: 10
   lr__penalty: '["l2", "l1", "list"]'
   lr__tol: '[0.0001, 0.01, "log-uniform"]'
   lr__C: '[0.1, 1000, "log-uniform"]'
   lr__solver: '["liblinear", "saga", "list"]'
+
+#SVC
+  svc_random_search_runs: 0
+  svc__kernel: rbf
+  svc__C: 1.0
+  svc__degree: 3
+  svc__gamma: auto
+  svc__coef0: 0.0
+  svc__probability: True
+  svc__tol: 0.001
+  svc__max_iter: 100

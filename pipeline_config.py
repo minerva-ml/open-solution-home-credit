@@ -203,6 +203,17 @@ SOLUTION_CONFIG = AttrDict({
                             'verbose': safe_eval(params.verbose),
                             },
 
+    'SVC': {'kernel': safe_eval(params.svc__kernel),
+            'C': safe_eval(params.svc__C),
+            'degree': safe_eval(params.svc__degree),
+            'gamma': safe_eval(params.svc__gamma),
+            'coef0': safe_eval(params.svc__coef0),
+            'probability': safe_eval(params.svc__probability),
+            'tol': safe_eval(params.svc__tol),
+            'max_iter': safe_eval(params.svc__max_iter),
+            'verbose': safe_eval(params.verbose),
+            },
+
     'random_search': {'light_gbm': {'n_runs': params.lgbm_random_search_runs,
                                     'callbacks': {'neptune_monitor': {'name': 'light_gbm'
                                                                       },
@@ -226,8 +237,15 @@ SOLUTION_CONFIG = AttrDict({
                                                                                                 'random_search_logistic_regression.pkl')
                                                                             }
                                                             }
-                                              }
-
+                                              },
+                      'SVC': {'n_runs': params.svc_random_search_runs,
+                              'callbacks': {'neptune_monitor': {'name': 'SVC'
+                                                                },
+                                            'save_results': {'filepath': os.path.join(params.experiment_dir,
+                                                                                                'random_search_SVC.pkl')
+                                                            }
+                                            }
+                             },
                       },
 
     'bureau': {'filepath': BUREAU,

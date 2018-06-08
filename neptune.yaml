@@ -82,3 +82,13 @@ parameters:
   lr__C: 1
   lr__solver: liblinear
 
+#SVC
+  svc_random_search_runs: 0
+  svc__kernel: rbf
+  svc__C: 1.0
+  svc__degree: 3
+  svc__gamma: auto
+  svc__coef0: 0.0
+  svc__probability: True
+  svc__tol: 0.001
+  svc__max_iter: 100
