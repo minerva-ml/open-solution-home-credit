@@ -37,7 +37,7 @@ class FeatureJoiner(BaseTransformer):
         features = numerical_feature_list + categorical_feature_list
         for feature in features:
             feature.reset_index(drop=True, inplace=True)
-        outputs = {}
+        outputs = dict()
         outputs['features'] = pd.concat(features, axis=1).astype(np.float32)
         outputs['feature_names'] = self._get_feature_names(features)
         outputs['categorical_features'] = self._get_feature_names(categorical_feature_list)
@@ -60,6 +60,7 @@ class CategoricalEncoder(BaseTransformer):
         super().__init__()
         self.params = kwargs
         self.encoder_class = ce.OrdinalEncoder
+        self.categorical_encoder = None
 
     def fit(self, X, y, **kwargs):
         categorical_columns = list(X.columns)
@@ -96,7 +97,6 @@ class GroupbyAggregations(BaseTransformer):
         X = pd.concat([categorical_features, numerical_features], axis=1)
         for spec, groupby_aggregations_name in zip(self.groupby_aggregations, self.groupby_aggregations_names):
             group_object = X.groupby(spec['groupby'])
-
             X = X.merge(group_object[spec['select']]
                         .agg(spec['agg'])
                         .reset_index()

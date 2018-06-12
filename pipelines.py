@@ -41,15 +41,18 @@ def lightGBM(config, train_mode):
 def feature_extraction(config, train_mode, **kwargs):
     if train_mode:
         feature_by_type_split, feature_by_type_split_valid = _feature_by_type_splits(config, train_mode)
-
         bureau, bureau_valid = _bureau(config, train_mode, **kwargs)
 
-        categorical_encoder, categorical_encoder_valid = _categorical_encoders((feature_by_type_split, feature_by_type_split_valid),
-                                                                config, train_mode,
-                                                                **kwargs)
+        categorical_encoder, categorical_encoder_valid = _categorical_encoders(
+            (feature_by_type_split, feature_by_type_split_valid),
+            config, train_mode,
+            **kwargs)
 
         groupby_aggregation, groupby_aggregation_valid = _groupby_aggregations(
-            (feature_by_type_split, feature_by_type_split_valid), config, train_mode, **kwargs)
+            (feature_by_type_split, feature_by_type_split_valid),
+            config,
+            train_mode,
+            **kwargs)
 
         feature_combiner, feature_combiner_valid = _join_features(numerical_features=[feature_by_type_split,
                                                                                       groupby_aggregation,
@@ -66,13 +69,9 @@ def feature_extraction(config, train_mode, **kwargs):
         return feature_combiner, feature_combiner_valid
     else:
         feature_by_type_split = _feature_by_type_splits(config, train_mode)
-
         bureau = _bureau(config, train_mode, **kwargs)
-
         categorical_encoder = _categorical_encoders(feature_by_type_split, config, train_mode, **kwargs)
-
         groupby_aggregation = _groupby_aggregations(feature_by_type_split, config, train_mode, **kwargs)
-
         feature_combiner = _join_features(numerical_features=[feature_by_type_split, groupby_aggregation, bureau],
                                           numerical_features_valid=[],
                                           categorical_features=[categorical_encoder],
@@ -147,12 +146,12 @@ def _join_features(numerical_features,
         feature_joiner = Step(name='feature_joiner',
                               transformer=fe.FeatureJoiner(),
                               input_steps=numerical_features + categorical_features,
-                              adapter=Adapter({
-                                  'numerical_feature_list': [
-                                      E(feature.name, 'numerical_features') for feature in numerical_features],
-                                  'categorical_feature_list': [
-                                      E(feature.name, 'categorical_features') for feature in categorical_features],
-                              }),
+                              adapter=Adapter(
+                                  {'numerical_feature_list':
+                                      [E(feature.name, 'numerical_features') for feature in numerical_features],
+                                   'categorical_feature_list':
+                                      [E(feature.name, 'categorical_features') for feature in categorical_features]}
+                              ),
                               cache_dirpath=config.env.cache_dirpath, **kwargs)
 
     return feature_joiner
@@ -162,7 +161,8 @@ def classifier_lgbm(features, config, train_mode, **kwargs):
     if train_mode:
         features_train, features_valid = features
         if config.random_search.light_gbm.n_runs:
-            transformer = RandomSearchOptimizer(LightGBM, config.light_gbm,
+            transformer = RandomSearchOptimizer(LightGBM,
+                                                config.light_gbm,
                                                 train_input_keys=[],
                                                 valid_input_keys=['X_valid', 'y_valid'],
                                                 score_func=roc_auc_score,
@@ -171,8 +171,8 @@ def classifier_lgbm(features, config, train_mode, **kwargs):
                                                 callbacks=[NeptuneMonitor(
                                                     **config.random_search.light_gbm.callbacks.neptune_monitor),
                                                     SaveResults(
-                                                        **config.random_search.light_gbm.callbacks.save_results)
-                                                ])
+                                                        **config.random_search.light_gbm.callbacks.save_results)]
+                                                )
         else:
             transformer = LightGBM(**config.light_gbm)
 
@@ -204,24 +204,25 @@ def _categorical_encoders(dispatchers, config, train_mode, **kwargs):
         feature_by_type_split, feature_by_type_split_valid = dispatchers
         numpy_label, numpy_label_valid = _to_numpy_label(config, **kwargs)
         categorical_encoder = Step(name='categorical_encoder',
-                              transformer=fe.CategoricalEncoder(),
-                              input_data=['input'],
-                              input_steps=[feature_by_type_split, numpy_label],
-                              adapter=Adapter({'X': E(feature_by_type_split.name, 'categorical_features'),
-                                               'y': E(numpy_label.name, 'y'),
-                                               }),
-                              cache_dirpath=config.env.cache_dirpath,
-                              **kwargs)
+                                   transformer=fe.CategoricalEncoder(),
+                                   input_data=['input'],
+                                   input_steps=[feature_by_type_split, numpy_label],
+                                   adapter=Adapter({'X': E(feature_by_type_split.name, 'categorical_features'),
+                                                    'y': E(numpy_label.name, 'y')}
+                                                   ),
+                                   cache_dirpath=config.env.cache_dirpath,
+                                   **kwargs)
 
         categorical_encoder_valid = Step(name='categorical_encoder_valid',
-                                    transformer=categorical_encoder,
-                                    input_data=['input'],
-                                    input_steps=[feature_by_type_split_valid, numpy_label_valid],
-                                    adapter=Adapter({'X': E(feature_by_type_split_valid.name, 'categorical_features'),
-                                                     'y': E(numpy_label_valid.name, 'y'),
-                                                     }),
-                                    cache_dirpath=config.env.cache_dirpath,
-                                    **kwargs)
+                                         transformer=categorical_encoder,
+                                         input_data=['input'],
+                                         input_steps=[feature_by_type_split_valid, numpy_label_valid],
+                                         adapter=Adapter(
+                                             {'X': E(feature_by_type_split_valid.name, 'categorical_features'),
+                                              'y': E(numpy_label_valid.name, 'y'),
+                                              }),
+                                         cache_dirpath=config.env.cache_dirpath,
+                                         **kwargs)
 
         return categorical_encoder, categorical_encoder_valid
 
@@ -229,12 +230,12 @@ def _categorical_encoders(dispatchers, config, train_mode, **kwargs):
         feature_by_type_split = dispatchers
 
         categorical_encoder = Step(name='categorical_encoder',
-                              transformer=fe.CategoricalEncoder(),
-                              input_data=['input'],
-                              input_steps=[feature_by_type_split],
-                              adapter=Adapter({'X': E(feature_by_type_split.name, 'categorical_features')}),
-                              cache_dirpath=config.env.cache_dirpath,
-                              **kwargs)
+                                   transformer=fe.CategoricalEncoder(),
+                                   input_data=['input'],
+                                   input_steps=[feature_by_type_split],
+                                   adapter=Adapter({'X': E(feature_by_type_split.name, 'categorical_features')}),
+                                   cache_dirpath=config.env.cache_dirpath,
+                                   **kwargs)
 
         return categorical_encoder
 
