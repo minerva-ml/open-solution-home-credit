@@ -19,10 +19,14 @@ exclude:
 
 parameters:
 # Data
-  train_filepath:             YOUR/PATH/TO/application_train.csv
-  test_filepath:              YOUR/PATH/TO/application_test.csv
-  sample_submission_filepath: YOUR/PATH/TO/sample_submission.csv
-  experiment_dir:             YOUR/PATH/WORKDIR
+  train_filepath:             /mnt/ml-team/minerva/open-solutions/home-credit/data/application_train.csv.zip
+  test_filepath:              /mnt/ml-team/minerva/open-solutions/home-credit/data/application_test.csv.zip
+  sample_submission_filepath: /mnt/ml-team/minerva/open-solutions/home-credit/data/sample_submission.csv.zip
+  experiment_dir:             /home/patryk/Documents/projects/Minerva/home_credit/nongit/tmp
+#  train_filepath: /input/data/application_train.csv.zip
+#  test_filepath: /input/data/application_test.csv.zip
+#  sample_submission_filepath: /input/data/sample_submission.csv.zip
+#  experiment_dir: /outputs/patryk
 
 # Validation
   target_bins: 100
@@ -30,28 +34,47 @@ parameters:
 
 # Execution
   overwrite: 1
-  num_workers: 10
-  verbose: 1
+  num_workers: 64
+  verbose: 4
 
 # Preprocessing
   target_encoder__n_splits: 10
 
 # Light GBM
-  lgbm_random_search_runs: 10
+  lgbm_random_search_runs: 1000
   lgbm__boosting_type: gbdt
   lgbm__objective: binary
   lgbm__metric: auc
   lgbm__number_boosting_rounds: 1000
-  lgbm__early_stopping_rounds: 30
-  lgbm__learning_rate: '[0.01, 0.2, "uniform"]'
-  lgbm__num_leaves: '[25, 35]'
-  lgbm__max_depth: '[10, 20]'
-  lgbm__min_child_samples: '[35, 45]'
-  lgbm__max_bin: '[275, 325]'
-  lgbm__subsample: '[0.8, 1., 1.2, "list"]'
-  lgbm__subsample_freq: 5
-  lgbm__colsample_bytree: 0.8
+  lgbm__early_stopping_rounds: 100
+  lgbm__learning_rate: '[0.0001, 0.1, "log-uniform"]'
+  lgbm__num_leaves: '[21, 41, "choice"]'
+  lgbm__max_depth: -1
+  lgbm__min_child_samples: '[1, 40, "choice"]'
+  lgbm__max_bin: '[155, 355, "choice"]'
+  lgbm__subsample: '[0.5, 1., "uniform"]'
+  lgbm__subsample_freq: 1
+  lgbm__colsample_bytree: '[0.5, 1., "uniform"]'
   lgbm__min_child_weight: 4
-  lgbm__reg_lambda: 0.0
-  lgbm__reg_alpha: 0.1
+  lgbm__reg_lambda: '[0.00001, 1.0, "log-uniform"]'
+  lgbm__reg_alpha: '[0.00001, 1.0, "log-uniform"]'
   lgbm__scale_pos_weight: 1
+
+# XGBoost
+  xgb_random_search_runs: 2
+  xgb__booster: gbtree
+  xgb__objective: binary:logistic
+  xgb__eval_metric: auc
+  xgb__nrounds: 500
+  xgb__early_stopping_rounds: 30
+  xgb__eta: '[0.0001, 0.1, "log-uniform"]'
+  xgb__max_leaves: '[21, 41, "choice"]'
+  xgb__max_depth: 16
+  xgb__max_bin: '[155, 355, "choice"]'
+  xgb__subsample: '[0.5, 1., "uniform"]'
+  xgb__colsample_bytree: '[0.5, 1., "uniform"]'
+  xgb__colsample_bylevel: 1
+  xgb__min_child_weight: 4
+  xgb__lambda: '[0.00001, 1.0, "log-uniform"]'
+  xgb__alpha: '[0.00001, 1.0, "log-uniform"]'
+  xgb__scale_pos_weight: 1

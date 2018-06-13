@@ -3,6 +3,9 @@ project: HC
 name: home-credit-default-risk
 tags: [solution-1]
 
+#Comment out if not in Cloud Environment
+pip-requirements-file: requirements.txt
+
 metric:
   channel: 'ROC_AUC'
   goal: maximize
@@ -19,10 +22,14 @@ exclude:
 
 parameters:
 # Data
-  train_filepath:             YOUR/PATH/TO/application_train.csv
-  test_filepath:              YOUR/PATH/TO/application_test.csv
-  sample_submission_filepath: YOUR/PATH/TO/sample_submission.csv
-  experiment_dir:             YOUR/PATH/WORKDIR
+  train_filepath:             /mnt/ml-team/minerva/open-solutions/home-credit/data/application_train.csv.zip
+  test_filepath:              /mnt/ml-team/minerva/open-solutions/home-credit/data/application_test.csv.zip
+  sample_submission_filepath: /mnt/ml-team/minerva/open-solutions/home-credit/data/sample_submission.csv.zip
+  experiment_dir:             /home/patryk/Documents/projects/Minerva/home_credit/nongit/tmp
+#  train_filepath: /input/data/application_train.csv.zip
+#  test_filepath: /input/data/application_test.csv.zip
+#  sample_submission_filepath: /input/data/sample_submission.csv.zip
+#  experiment_dir: /outputs/patryk
 
 # Validation
   target_bins: 100
@@ -55,3 +62,22 @@ parameters:
   lgbm__reg_lambda: 0.0
   lgbm__reg_alpha: 0.1
   lgbm__scale_pos_weight: 1
+
+# XGBoost
+  xgb_random_search_runs: 0
+  xgb__booster: gbtree
+  xgb__objective: binary:logistic
+  xgb__eval_metric: auc
+  xgb__nrounds: 500
+  xgb__early_stopping_rounds: 30
+  xgb__eta: 0.05
+  xgb__max_leaves: 31
+  xgb__max_depth: 16
+  xgb__max_bin: 300
+  xgb__subsample: 0.8
+  xgb__colsample_bytree: 0.8
+  xgb__colsample_bylevel: 1
+  xgb__min_child_weight: 4
+  xgb__lambda: 0.0
+  xgb__alpha: 0.1
+  xgb__scale_pos_weight: 1

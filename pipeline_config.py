@@ -164,14 +164,39 @@ SOLUTION_CONFIG = AttrDict({
                   'verbose': safe_eval(params.verbose)
                   },
 
+    'xgboost': {'boosting_type': safe_eval(params.xgb__booster),
+                'objective': safe_eval(params.xgb__objective),
+                'eval_metric': safe_eval(params.xgb__eval_metric),
+                'learning_rate': safe_eval(params.xgb__eta),
+                'max_depth': safe_eval(params.xgb__max_depth),
+                'subsample': safe_eval(params.xgb__subsample),
+                'colsample_bytree': safe_eval(params.xgb__colsample_bytree),
+                'colsample_bylevel': safe_eval(params.xgb__colsample_bylevel),
+                'min_child_weight': safe_eval(params.xgb__min_child_weight),
+                'reg_lambda': safe_eval(params.xgb__lambda),
+                'reg_alpha': safe_eval(params.xgb__alpha),
+                'max_bin': safe_eval(params.xgb__max_bin),
+                'num_leaves': safe_eval(params.xgb__max_leaves),
+                'nthread': safe_eval(params.num_workers),
+                'number_boosting_rounds': safe_eval(params.xgb__nrounds),
+                'early_stopping_rounds': safe_eval(params.xgb__early_stopping_rounds),
+                'verbose': safe_eval(params.verbose)
+                },
+
     'random_search': {'light_gbm': {'n_runs': params.lgbm_random_search_runs,
-                                    'callbacks': {'neptune_monitor': {'name': 'light_gbm'
-                                                                      },
+                                    'callbacks': {'neptune_monitor': {'name': 'light_gbm'},
                                                   'save_results': {'filepath': os.path.join(params.experiment_dir,
                                                                                             'random_search_light_gbm.pkl')
                                                                    }
                                                   }
-                                    }
+                                    },
+                      'xgboost': {'n_runs': params.xgb_random_search_runs,
+                                  'callbacks': {'neptune_monitor': {'name': 'xgboost'},
+                                                'save_results': {'filepath': os.path.join(params.experiment_dir,
+                                                                                          'random_search_xgboost.pkl')
+                                                                 }
+                                                }
+                                  }
                       },
 
     'clipper': {'min_val': 0,

@@ -7,6 +7,7 @@ from steppy.base import Step
 import feature_extraction as fe
 from hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, SaveResults
 from models import LightGBMLowMemory as LightGBM
+from models import XGBoostLowMemory as XGBoost
 from postprocessing import Clipper
 
 
@@ -32,6 +33,33 @@ def lightGBM(config, train_mode):
                    transformer=Clipper(**config.clipper),
                    input_steps=[light_gbm],
                    adapter=Adapter({'prediction': E(light_gbm.name, 'prediction')}),
+                   cache_dirpath=config.env.cache_dirpath)
+
+    return clipper
+
+
+def xGBoost(config, train_mode):
+    if train_mode:
+        features, features_valid = feature_extraction(config,
+                                                      train_mode,
+                                                      save_output=True,
+                                                      cache_output=True,
+                                                      load_saved_output=True)
+        xgb = classifier_xgb((features, features_valid),
+                             config,
+                             train_mode)
+    else:
+        features = feature_extraction(config,
+                                      train_mode,
+                                      cache_output=True)
+        xgb = classifier_xgb(features,
+                             config,
+                             train_mode)
+
+    clipper = Step(name='clipper',
+                   transformer=Clipper(**config.clipper),
+                   input_steps=[xgb],
+                   adapter=Adapter({'prediction': E(xgb.name, 'prediction')}),
                    cache_dirpath=config.env.cache_dirpath)
 
     return clipper
@@ -185,6 +213,47 @@ def classifier_lgbm(features, config, train_mode, **kwargs):
     return light_gbm
 
 
+def classifier_xgb(features, config, train_mode, **kwargs):
+    if train_mode:
+        features_train, features_valid = features
+        if config.random_search.xgboost.n_runs:
+            transformer = RandomSearchOptimizer(XGBoost, config.xgboost,
+                                                train_input_keys=[],
+                                                valid_input_keys=['X_valid', 'y_valid'],
+                                                score_func=roc_auc_score,
+                                                maximize=True,
+                                                n_runs=config.random_search.xgboost.n_runs,
+                                                callbacks=[NeptuneMonitor(
+                                                    **config.random_search.xgboost.callbacks.neptune_monitor),
+                                                    SaveResults(
+                                                        **config.random_search.xgboost.callbacks.save_results)
+                                                ])
+        else:
+            transformer = XGBoost(**config.xgboost)
+
+        xgboost = Step(name='xgboost',
+                       transformer=transformer,
+                       input_data=['input'],
+                       input_steps=[features_train, features_valid],
+                       adapter=Adapter({'X': E(features_train.name, 'features'),
+                                        'y': E('input', 'y'),
+                                        'feature_names': E(features_train.name, 'feature_names'),
+                                        'categorical_features': E(features_train.name, 'categorical_features'),
+                                        'X_valid': E(features_valid.name, 'features'),
+                                        'y_valid': E('input', 'y_valid'),
+                                        }),
+                       cache_dirpath=config.env.cache_dirpath,
+                       **kwargs)
+    else:
+        xgboost = Step(name='xgboost',
+                       transformer=XGBoost(**config.xgboost),
+                       input_steps=[features],
+                       adapter=Adapter({'X': E(features.name, 'features')}),
+                       cache_dirpath=config.env.cache_dirpath,
+                       **kwargs)
+    return xgboost
+
+
 def _target_encoders(dispatchers, config, train_mode, **kwargs):
     if train_mode:
         feature_by_type_split, feature_by_type_split_valid = dispatchers
@@ -245,4 +314,6 @@ def _to_numpy_label(config, **kwargs):
 
 PIPELINES = {'lightGBM': {'train': partial(lightGBM, train_mode=True),
                           'inference': partial(lightGBM, train_mode=False)},
+             'XGBoost': {'train': partial(xGBoost, train_mode=True),
+                         'inference': partial(xGBoost, train_mode=False)}
              }
