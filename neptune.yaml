@@ -34,9 +34,10 @@ parameters:
   kaggle_api: 0
   kaggle_message: 'solution-2'
 
-# Validation
+# Data preparation
   target_bins: 100
   validation_size: 0.2
+  shuffle: 1
 
 # Execution
   overwrite: 1

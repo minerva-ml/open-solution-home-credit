@@ -8,6 +8,9 @@ from utils import read_params, safe_eval
 ctx = neptune.Context()
 params = read_params(ctx)
 
+RANDOM_SEED = 90210
+DEV_SAMPLE_SIZE = int(10e4)
+
 BUREAU_BALANCE = params.bureau_balance_filepath
 BUREAU = params.bureau_filepath
 CREDIT_CARD_BALANCE = params.credit_card_balance_filepath
@@ -15,6 +18,10 @@ INSTALLMENTS_PAYMENTS = params.installments_payments_filepath
 POS_CASH_BALANCE = params.POS_CASH_balance_filepath
 PREVIOUS_APPLICATION = params.previous_application_filepath
 
+ID_COLUMN = ['SK_ID_CURR']
+TARGET_COLUMN = ['TARGET']
+
+TIMESTAMP_COLUMNS = []
 CATEGORICAL_COLUMNS = ['CODE_GENDER',
                        'EMERGENCYSTATE_MODE',
                        'FLAG_CONT_MOBILE',
@@ -124,7 +131,6 @@ NUMERICAL_COLUMNS = ['AMT_ANNUITY',
                      'YEARS_BUILD_AVG',
                      'YEARS_BUILD_MEDI',
                      'YEARS_BUILD_MODE']
-TIMESTAMP_COLUMNS = []
 USELESS_COLUMNS = ['FLAG_DOCUMENT_10',
                    'FLAG_DOCUMENT_12',
                    'FLAG_DOCUMENT_13',
@@ -136,11 +142,6 @@ USELESS_COLUMNS = ['FLAG_DOCUMENT_10',
                    'FLAG_DOCUMENT_2',
                    'FLAG_DOCUMENT_20',
                    'FLAG_DOCUMENT_21']
-
-ID_COLUMNS = ['SK_ID_CURR']
-TARGET_COLUMNS = ['TARGET']
-
-DEV_SAMPLE_SIZE = int(10e4)
 
 AGGREGATION_RECIPIES = []
 for agg in ['mean', 'size', 'var', 'min', 'max']:
@@ -157,8 +158,7 @@ for agg in ['mean', 'size', 'var', 'min', 'max']:
             AGGREGATION_RECIPIES.append({'groupby': group, 'select': select, 'agg': agg})
 
 SOLUTION_CONFIG = AttrDict({
-    'env': {'cache_dirpath': params.experiment_dir
-            },
+    'env': {'cache_dirpath': params.experiment_dir},
 
     'dataframe_by_type_splitter': {'numerical_columns': NUMERICAL_COLUMNS,
                                    'categorical_columns': CATEGORICAL_COLUMNS,
@@ -215,37 +215,34 @@ SOLUTION_CONFIG = AttrDict({
             },
 
     'random_search': {'light_gbm': {'n_runs': params.lgbm_random_search_runs,
-                                    'callbacks': {'neptune_monitor': {'name': 'light_gbm'
-                                                                      },
-                                                  'save_results': {'filepath': os.path.join(params.experiment_dir,
-                                                                                            'random_search_light_gbm.pkl')
-                                                                   }
-                                                  }
+                                    'callbacks':
+                                        {'neptune_monitor': {'name': 'light_gbm'},
+                                         'save_results': {'filepath': os.path.join(params.experiment_dir,
+                                                                                   'random_search_light_gbm.pkl')}
+                                         },
                                     },
                       'random_forest': {'n_runs': params.rf_random_search_runs,
-                                        'callbacks': {'neptune_monitor': {'name': 'random_forest'
-                                                                          },
-                                                      'save_results': {'filepath': os.path.join(params.experiment_dir,
-                                                                                                'random_search_random_forest.pkl')
-                                                                       }
-                                                      }
+                                        'callbacks':
+                                            {'neptune_monitor': {'name': 'random_forest'},
+                                             'save_results':
+                                                 {'filepath': os.path.join(params.experiment_dir,
+                                                                           'random_search_random_forest.pkl')}
+                                             },
                                         },
                       'logistic_regression': {'n_runs': params.lr_random_search_runs,
-                                              'callbacks': {'neptune_monitor': {'name': 'logistic_regression'
-                                                                                },
-                                                            'save_results': {'filepath': os.path.join(params.experiment_dir,
-                                                                                                'random_search_logistic_regression.pkl')
-                                                                            }
-                                                            }
+                                              'callbacks':
+                                                  {'neptune_monitor': {'name': 'logistic_regression'},
+                                                   'save_results':
+                                                       {'filepath': os.path.join(params.experiment_dir,
+                                                                                 'random_search_logistic_regression.pkl')}
+                                                   },
                                               },
                       'SVC': {'n_runs': params.svc_random_search_runs,
-                              'callbacks': {'neptune_monitor': {'name': 'SVC'
-                                                                },
+                              'callbacks': {'neptune_monitor': {'name': 'SVC'},
                                             'save_results': {'filepath': os.path.join(params.experiment_dir,
-                                                                                                'random_search_SVC.pkl')
-                                                            }
-                                            }
-                             },
+                                                                                      'random_search_SVC.pkl')}
+                                            },
+                              },
                       },
 
     'bureau': {'filepath': BUREAU,
