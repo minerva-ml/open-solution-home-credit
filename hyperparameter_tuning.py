@@ -9,18 +9,23 @@ from utils import set_seed
 
 
 class RandomSearchOptimizer(BaseTransformer):
-    def __init__(self, TransformerClass, params,
-                 score_func, maximize,
-                 train_input_keys, valid_input_keys,
+    def __init__(self,
+                 TransformerClass,
+                 params,
+                 score_func,
+                 maximize,
+                 train_input_keys,
+                 valid_input_keys,
                  n_runs,
-                 callbacks=[]):
+                 callbacks=None):
+        super().__init__()
         self.TransformerClass = TransformerClass
         self.param_space = create_param_space(params, n_runs)
         self.train_input_keys = train_input_keys
         self.valid_input_keys = valid_input_keys
         self.score_func = score_func
         self.maximize = maximize
-        self.callbacks = callbacks
+        self.callbacks = callbacks or []
         self.best_transformer = TransformerClass(**self.param_space[0])
 
     def fit(self, **kwargs):
@@ -91,6 +96,7 @@ def create_param_space(params, n_runs):
             else:
                 param_choice[param] = value
         param_space.append(param_choice)
+    set_seed()
     return param_space
 
 
