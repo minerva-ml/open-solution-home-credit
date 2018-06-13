@@ -41,7 +41,7 @@ class XGBoost(BaseTransformer):
     def __init__(self, **params):
         super().__init__()
         self.params = params
-        self.training_params = ['number_boosting_rounds', 'early_stopping_rounds']
+        self.training_params = ['nrounds', 'early_stopping_rounds']
         self.evaluation_function = None
 
     @property
@@ -74,7 +74,7 @@ class XGBoost(BaseTransformer):
                                    train,
                                    evals=[(train, 'train'), (valid, 'valid')],
                                    evals_result=evaluation_results,
-                                   num_boost_round=self.training_config.number_boosting_rounds,
+                                   num_boost_round=self.training_config.nrounds,
                                    early_stopping_rounds=self.training_config.early_stopping_rounds,
                                    verbose_eval=self.model_config.verbose,
                                    feval=self.evaluation_function)
@@ -121,7 +121,7 @@ class XGBoostLowMemory(XGBoost):
                                    train,
                                    evals=[(valid, 'valid')],
                                    evals_result=self.evaluation_results,
-                                   num_boost_round=self.training_config.number_boosting_rounds,
+                                   num_boost_round=self.training_config.nrounds,
                                    early_stopping_rounds=self.training_config.early_stopping_rounds,
                                    verbose_eval=self.model_config.verbose,
                                    feval=self.evaluation_function)

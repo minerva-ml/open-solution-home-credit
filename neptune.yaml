@@ -66,6 +66,7 @@ parameters:
 # XGBoost
   xgb_random_search_runs: 0
   xgb__booster: gbtree
+  xgb__tree_method: auto
   xgb__objective: binary:logistic
   xgb__eval_metric: auc
   xgb__nrounds: 500
