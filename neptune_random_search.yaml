@@ -22,7 +22,7 @@ parameters:
   train_filepath:             /mnt/ml-team/minerva/open-solutions/home-credit/data/application_train.csv.zip
   test_filepath:              /mnt/ml-team/minerva/open-solutions/home-credit/data/application_test.csv.zip
   sample_submission_filepath: /mnt/ml-team/minerva/open-solutions/home-credit/data/sample_submission.csv.zip
-  experiment_dir:             /home/patryk/Documents/projects/Minerva/home_credit/nongit/tmp
+  experiment_dir:             /mnt/ml-team/homes/patryk.miziula/Minerva/home_credit_nongit/tmp
 #  train_filepath: /input/data/application_train.csv.zip
 #  test_filepath: /input/data/application_test.csv.zip
 #  sample_submission_filepath: /input/data/sample_submission.csv.zip
@@ -34,25 +34,26 @@ parameters:
 
 # Execution
   overwrite: 1
-  num_workers: 64
-  verbose: 4
+  num_workers: 10
+  verbose: 1
 
 # Preprocessing
   target_encoder__n_splits: 10
 
 # Light GBM
-  lgbm_random_search_runs: 1000
-  lgbm__boosting_type: gbdt
+  lgbm_random_search_runs: 50
+  lgbm__device: cpu
+  lgbm__boosting_type: goss
   lgbm__objective: binary
   lgbm__metric: auc
   lgbm__number_boosting_rounds: 1000
   lgbm__early_stopping_rounds: 100
-  lgbm__learning_rate: '[0.0001, 0.1, "log-uniform"]'
+  lgbm__learning_rate: '[0.01, 0.05, "log-uniform"]'
   lgbm__num_leaves: '[21, 41, "choice"]'
   lgbm__max_depth: -1
   lgbm__min_child_samples: '[1, 40, "choice"]'
   lgbm__max_bin: '[155, 355, "choice"]'
-  lgbm__subsample: '[0.5, 1., "uniform"]'
+  lgbm__subsample: 1  # '[0.5, 1., "uniform"]'
   lgbm__subsample_freq: 1
   lgbm__colsample_bytree: '[0.5, 1., "uniform"]'
   lgbm__min_child_weight: 4
@@ -61,14 +62,14 @@ parameters:
   lgbm__scale_pos_weight: 1
 
 # XGBoost
-  xgb_random_search_runs: 2
+  xgb_random_search_runs: 50
   xgb__booster: gbtree
-  xgb__tree_method: auto
+  xgb__tree_method: approx # gpu_hist  # auto  hist
   xgb__objective: binary:logistic
   xgb__eval_metric: auc
   xgb__nrounds: 500
   xgb__early_stopping_rounds: 30
-  xgb__eta: '[0.0001, 0.1, "log-uniform"]'
+  xgb__eta: '[0.001, 0.1, "log-uniform"]'
   xgb__max_leaves: '[21, 41, "choice"]'
   xgb__max_depth: 16
   xgb__max_bin: '[155, 355, "choice"]'

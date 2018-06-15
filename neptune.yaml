@@ -25,7 +25,7 @@ parameters:
   train_filepath:             /mnt/ml-team/minerva/open-solutions/home-credit/data/application_train.csv.zip
   test_filepath:              /mnt/ml-team/minerva/open-solutions/home-credit/data/application_test.csv.zip
   sample_submission_filepath: /mnt/ml-team/minerva/open-solutions/home-credit/data/sample_submission.csv.zip
-  experiment_dir:             /home/patryk/Documents/projects/Minerva/home_credit/nongit/tmp
+  experiment_dir:             /mnt/ml-team/homes/patryk.miziula/Minerva/home_credit_nongit/tmp
 #  train_filepath: /input/data/application_train.csv.zip
 #  test_filepath: /input/data/application_test.csv.zip
 #  sample_submission_filepath: /input/data/sample_submission.csv.zip
@@ -45,6 +45,7 @@ parameters:
 
 # Light GBM
   lgbm_random_search_runs: 0
+  lgbm__device: cpu
   lgbm__boosting_type: gbdt
   lgbm__objective: binary
   lgbm__metric: auc

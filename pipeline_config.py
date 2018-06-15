@@ -144,7 +144,8 @@ SOLUTION_CONFIG = AttrDict({
                                    'timestamp_columns': TIMESTAMP_COLUMNS,
                                    },
 
-    'light_gbm': {'boosting_type': safe_eval(params.lgbm__boosting_type),
+    'light_gbm': {'device': safe_eval(params.lgbm__device),
+                  'boosting_type': safe_eval(params.lgbm__boosting_type),
                   'objective': safe_eval(params.lgbm__objective),
                   'metric': safe_eval(params.lgbm__metric),
                   'learning_rate': safe_eval(params.lgbm__learning_rate),
