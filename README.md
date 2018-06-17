@@ -11,22 +11,25 @@ Create (entirely) open solution to this competition. We are opening both the cod
 
 ## Installation
 ### Fast Track
-1. clone repository and install requirements (check _requirements.txt_)
-1. register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
-1. run experiment based on [LightGBM and random search](https://github.com/minerva-ml/open-solution-home-credit/wiki/LightGBM-and-basic-features): `neptune run --config neptune_random_search.yaml main.py train_evaluate_predict --pipeline_name lightGBM`
+1. Clone repository and install requirements (check _requirements.txt_)
+1. Register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
+1. Run experiment based on [LightGBM and random search](https://github.com/minerva-ml/open-solution-home-credit/wiki/LightGBM-and-basic-features):
+```bash
+neptune run --config neptune_random_search.yaml main.py train_evaluate_predict --pipeline_name lightGBM
+```
 
-### Step-by-step
-1. clone this repository
+### Step by step
+1. Clone this repository
 ```bash
 git clone https://github.com/minerva-ml/open-solution-home-credit.git
 ```
-2. install requirements in your Python3 environment
+2. Install requirements in your Python3 environment
 ```bash
 pip3 install requirements.txt
 ```
-3. register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
-4. update data directories in the [neptune.yaml](https://github.com/minerva-ml/open-solution-home-credit/blob/master/neptune.yaml) configuration file
-5. run experiment based on [LightGBM and random search](https://github.com/minerva-ml/open-solution-home-credit/wiki/LightGBM-and-basic-features):
+3. Register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
+4. Update data directories in the [neptune.yaml](https://github.com/minerva-ml/open-solution-home-credit/blob/master/neptune.yaml) configuration file
+5. Run experiment based on [LightGBM and random search](https://github.com/minerva-ml/open-solution-home-credit/wiki/LightGBM-and-basic-features):
 ```bash
 neptune login
 neptune run --config neptune_random_search.yaml main.py train_evaluate_predict --pipeline_name lightGBM
