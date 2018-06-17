@@ -14,7 +14,6 @@ Create (entirely) open solution to this competition. We are opening both the cod
 1. clone repository and install requirements (check _requirements.txt_)
 1. register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
 1. run experiment based on [LightGBM and random search](https://github.com/minerva-ml/open-solution-home-credit/wiki/LightGBM-and-basic-features): `neptune run --config neptune_random_search.yaml main.py train_evaluate_predict --pipeline_name lightGBM`
-1. collect submit from `experiment_directory` specified in the [neptune.yaml](https://github.com/minerva-ml/open-solution-home-credit/blob/master/neptune.yaml)
 
 ### Step-by-step
 1. clone this repository
