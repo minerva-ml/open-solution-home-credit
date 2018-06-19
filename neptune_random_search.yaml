@@ -1,4 +1,4 @@
-project: HC
+project: ORGANIZATION/home-credit
 
 name: home-credit-default-risk
 tags: [solution-2]
@@ -13,6 +13,7 @@ exclude:
   - neptune.log
   - offline_job.log
   - .git
+  - .github
   - .idea
   - .ipynb_checkpoints
   - Untitled.ipynb
@@ -28,68 +29,67 @@ parameters:
   POS_CASH_balance_filepath:      YOUR/PATH/TO/POS_CASH_balance.csv
   previous_application_filepath:  YOUR/PATH/TO/previous_application.csv
   sample_submission_filepath:     YOUR/PATH/TO/sample_submission.csv
-  experiment_dir:                 YOUR/PATH/WORKDIR
+  experiment_directory:           YOUR/PATH/WORKDIR
 
 # Kaggle
   kaggle_api: 0
   kaggle_message: 'solution-2'
 
 # Data preparation
-  target_bins: 100
   validation_size: 0.2
   shuffle: 1
 
 # Execution
-  overwrite: 1
-  num_workers: 10
+  clean_experiment_directory_before_training: 1
+  num_workers: 16
   verbose: 1
-
-# Preprocessing
-  target_encoder__n_splits: 10
 
 # Light GBM
   lgbm_random_search_runs: 10
   lgbm__boosting_type: gbdt
   lgbm__objective: binary
   lgbm__metric: auc
-  lgbm__number_boosting_rounds: 1000
-  lgbm__early_stopping_rounds: 30
-  lgbm__learning_rate: '[0.01, 0.2, "uniform"]'
-  lgbm__num_leaves: '[25, 35]'
-  lgbm__max_depth: '[10, 20]'
-  lgbm__min_child_samples: '[35, 45]'
-  lgbm__max_bin: '[275, 325]'
-  lgbm__subsample: '[0.8, 1., 1.2, "list"]'
-  lgbm__subsample_freq: 5
+  lgbm__number_boosting_rounds: 10000
+  lgbm__early_stopping_rounds: 100
+  lgbm__learning_rate: '[0.0005, 0.1, "log-uniform"]'
+  lgbm__num_leaves: '[20, 50]'
+  lgbm__max_depth: '[7, 30]'
+  lgbm__min_child_samples: '[20, 45]'
+  lgbm__max_bin: '[180, 500]'
+  lgbm__subsample: '[0.8, 0.9, 0.99, 0.6, 0.7, "list"]'
+  lgbm__subsample_freq: 0
   lgbm__colsample_bytree: 0.8
   lgbm__min_child_weight: 4
-  lgbm__reg_lambda: 0.0
-  lgbm__reg_alpha: 0.1
+  lgbm__reg_lambda: '[0.0, 0.1, "uniform"]'
+  lgbm__reg_alpha: '[0.0, 0.1, "uniform"]'
   lgbm__scale_pos_weight: 1
 
 # Random forest
   rf_random_search_runs: 10
   rf__n_estimators: '[100, 500]'
+  rf__criterion: '["gini", "entropy", "list"]'
   rf__max_features: '[0.01, 0.5, "uniform"]'
-  rf__max_depth: '[5, 30]'
   rf__min_samples_split: '[2, 50]'
   rf__min_samples_leaf: '[1, 50]'
-  rf__min_weight_fraction_leaf: '[0.0, 0.2, "uniform"]'
+  rf__class_weight: '[1, "balanced_subsample", "balanced", "list"]'
 
-#Logistic regression
+# Logistic regression
   lr_random_search_runs: 10
   lr__penalty: '["l2", "l1", "list"]'
-  lr__tol: '[0.0001, 0.01, "log-uniform"]'
-  lr__C: '[0.1, 1000, "log-uniform"]'
+  lr__tol: '[0.00001, 0.01, "log-uniform"]'
+  lr__C: '[0.1, 100, "log-uniform"]'
+  lr__fit_intercept: '[0, 1]'
+  lr__class_weight: '[1, "balanced", "list"]'
   lr__solver: '["liblinear", "saga", "list"]'
+  lr__max_iter: '["100", "1000", "10000", "50000", "list"]'
 
-#SVC
-  svc_random_search_runs: 0
-  svc__kernel: rbf
-  svc__C: 1.0
-  svc__degree: 3
+# SVC
+  svc_random_search_runs: 10
+  svc__kernel: '["poly", "rbf", "sigmoid", "list"]'
+  svc__C: '[0.1, 100, "log-uniform"]'
+  svc__degree: '[2, 7]'
   svc__gamma: auto
-  svc__coef0: 0.0
+  svc__coef0: '[0.0, 1.0, "uniform"]'
   svc__probability: True
-  svc__tol: 0.001
-  svc__max_iter: 100
+  svc__tol: '[0.00001, 0.01, "log-uniform"]'
+  svc__max_iter: '["-1", "100", "1000", "10000", "50000", "list"]'
