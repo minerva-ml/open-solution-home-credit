@@ -6,7 +6,8 @@ from sklearn.svm import SVC
 from steppy.adapter import Adapter, E
 from steppy.base import Step
 
-from pipeline_blocks import feature_extraction, classifier_light_gbm, preprocessing_fillna, classifier_sklearn
+from pipeline_blocks import feature_extraction, classifier_light_gbm, preprocessing_fillna, classifier_sklearn, \
+    classifier_xgb
 from postprocessing import Clipper
 
 
@@ -32,6 +33,33 @@ def lightGBM(config, train_mode):
                    transformer=Clipper(**config.clipper),
                    input_steps=[light_gbm],
                    adapter=Adapter({'prediction': E(light_gbm.name, 'prediction')}),
+                   experiment_directory=config.pipeline.experiment_directory)
+
+    return clipper
+
+
+def xgboost(config, train_mode):
+    if train_mode:
+        features, features_valid = feature_extraction(config,
+                                                      train_mode,
+                                                      persist_output=True,
+                                                      cache_output=True,
+                                                      load_persisted_output=True)
+        xgb = classifier_xgb((features, features_valid),
+                             config,
+                             train_mode)
+    else:
+        features = feature_extraction(config,
+                                      train_mode,
+                                      cache_output=True)
+        xgb = classifier_xgb(features,
+                             config,
+                             train_mode)
+
+    clipper = Step(name='clipper',
+                   transformer=Clipper(**config.clipper),
+                   input_steps=[xgb],
+                   adapter=Adapter({'prediction': E(xgb.name, 'prediction')}),
                    experiment_directory=config.pipeline.experiment_directory)
 
     return clipper
@@ -73,6 +101,9 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, normalize=False)
 PIPELINES = {'lightGBM': {'train': partial(lightGBM, train_mode=True),
                           'inference': partial(lightGBM, train_mode=False)
                           },
+             'XGBoost': {'train': partial(xgboost, train_mode=True),
+                         'inference': partial(xgboost, train_mode=False)
+                         },
              'random_forest': {'train': partial(sklearn_main,
                                                 ClassifierClass=RandomForestClassifier,
                                                 clf_name='random_forest',

@@ -49,6 +49,7 @@ parameters:
 
 # Light GBM
   lgbm_random_search_runs: 0
+  lgbm__device: cpu # gpu cpu
   lgbm__boosting_type: gbdt
   lgbm__objective: binary
   lgbm__metric: auc
@@ -58,7 +59,7 @@ parameters:
   lgbm__num_leaves: 50
   lgbm__max_depth: 20
   lgbm__min_child_samples: 20
-  lgbm__max_bin: 300
+  lgbm__max_bin: 300  # at most 255 for device=gpu
   lgbm__subsample: 0.6
   lgbm__subsample_freq: 0
   lgbm__colsample_bytree: 0.8
@@ -66,6 +67,26 @@ parameters:
   lgbm__reg_lambda: 0.05
   lgbm__reg_alpha: 0.05
   lgbm__scale_pos_weight: 1
+
+# XGBoost
+  xgb_random_search_runs: 0
+  xgb__booster: gbtree
+  xgb__tree_method: hist # gpu_hist  # auto  hist
+  xgb__objective: binary:logistic
+  xgb__eval_metric: auc
+  xgb__nrounds: 10000
+  xgb__early_stopping_rounds: 100
+  xgb__eta: 0.001
+  xgb__max_leaves: 40
+  xgb__max_depth: 16
+  xgb__max_bin: 255
+  xgb__subsample: 0.5
+  xgb__colsample_bytree: 0.5
+  xgb__colsample_bylevel: 1
+  xgb__min_child_weight: 4
+  xgb__lambda: 0.001
+  xgb__alpha: 0.001
+  xgb__scale_pos_weight: 1
 
 # Random forest
   rf_random_search_runs: 0

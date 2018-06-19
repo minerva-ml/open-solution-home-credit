@@ -7,7 +7,7 @@ from toolkit.misc import LightGBM
 
 import feature_extraction as fe
 from hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, PersistResults
-from models import get_sklearn_classifier
+from models import get_sklearn_classifier, XGBoost
 from utils import ToNumpyLabel
 
 
@@ -15,15 +15,16 @@ def classifier_light_gbm(features, config, train_mode, **kwargs):
     if train_mode:
         features_train, features_valid = features
         if config.random_search.light_gbm.n_runs:
-            transformer = RandomSearchOptimizer(LightGBM,
-                                                config.light_gbm,
+            transformer = RandomSearchOptimizer(TransformerClass=LightGBM,
+                                                params=config.light_gbm,
                                                 train_input_keys=[],
                                                 valid_input_keys=['X_valid', 'y_valid'],
                                                 score_func=roc_auc_score,
                                                 maximize=True,
                                                 n_runs=config.random_search.light_gbm.n_runs,
-                                                callbacks=[NeptuneMonitor(
-                                                    **config.random_search.light_gbm.callbacks.neptune_monitor),
+                                                callbacks=[
+                                                    NeptuneMonitor(
+                                                        **config.random_search.light_gbm.callbacks.neptune_monitor),
                                                     PersistResults(
                                                         **config.random_search.light_gbm.callbacks.persist_results)]
                                                 )
@@ -51,6 +52,48 @@ def classifier_light_gbm(features, config, train_mode, **kwargs):
                          experiment_directory=config.pipeline.experiment_directory,
                          **kwargs)
     return light_gbm
+
+
+def classifier_xgb(features, config, train_mode, **kwargs):
+    if train_mode:
+        features_train, features_valid = features
+        if config.random_search.xgboost.n_runs:
+            transformer = RandomSearchOptimizer(TransformerClass=XGBoost,
+                                                params=config.xgboost,
+                                                train_input_keys=[],
+                                                valid_input_keys=['X_valid', 'y_valid'],
+                                                score_func=roc_auc_score,
+                                                maximize=True,
+                                                n_runs=config.random_search.xgboost.n_runs,
+                                                callbacks=[
+                                                    NeptuneMonitor(
+                                                        **config.random_search.xgboost.callbacks.neptune_monitor),
+                                                    PersistResults(
+                                                        **config.random_search.xgboost.callbacks.persist_results)]
+                                                )
+        else:
+            transformer = XGBoost(**config.xgboost)
+
+        xgboost = Step(name='xgboost',
+                       transformer=transformer,
+                       input_data=['input'],
+                       input_steps=[features_train, features_valid],
+                       adapter=Adapter({'X': E(features_train.name, 'features'),
+                                        'y': E('input', 'y'),
+                                        'feature_names': E(features_train.name, 'feature_names'),
+                                        'X_valid': E(features_valid.name, 'features'),
+                                        'y_valid': E('input', 'y_valid'),
+                                        }),
+                       experiment_directory=config.pipeline.experiment_directory,
+                       **kwargs)
+    else:
+        xgboost = Step(name='xgboost',
+                       transformer=XGBoost(**config.xgboost),
+                       input_steps=[features],
+                       adapter=Adapter({'X': E(features.name, 'features')}),
+                       experiment_directory=config.pipeline.experiment_directory,
+                       **kwargs)
+    return xgboost
 
 
 def classifier_sklearn(sklearn_features, ClassifierClass, full_config, clf_name, train_mode, normalize, **kwargs):

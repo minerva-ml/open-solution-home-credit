@@ -168,7 +168,8 @@ SOLUTION_CONFIG = AttrDict({
                                    'timestamp_columns': TIMESTAMP_COLUMNS,
                                    },
 
-    'light_gbm': {'boosting_type': parameter_eval(params.lgbm__boosting_type),
+    'light_gbm': {'device': parameter_eval(params.lgbm__device),
+                  'boosting_type': parameter_eval(params.lgbm__boosting_type),
                   'objective': parameter_eval(params.lgbm__objective),
                   'metric': parameter_eval(params.lgbm__metric),
                   'learning_rate': parameter_eval(params.lgbm__learning_rate),
@@ -187,6 +188,26 @@ SOLUTION_CONFIG = AttrDict({
                   'early_stopping_rounds': parameter_eval(params.lgbm__early_stopping_rounds),
                   'verbose': parameter_eval(params.verbose),
                   },
+
+    'xgboost': {'booster': parameter_eval(params.xgb__booster),
+                'objective': parameter_eval(params.xgb__objective),
+                'tree_method': parameter_eval(params.xgb__tree_method),
+                'eval_metric': parameter_eval(params.xgb__eval_metric),
+                'eta': parameter_eval(params.xgb__eta),
+                'max_depth': parameter_eval(params.xgb__max_depth),
+                'subsample': parameter_eval(params.xgb__subsample),
+                'colsample_bytree': parameter_eval(params.xgb__colsample_bytree),
+                'colsample_bylevel': parameter_eval(params.xgb__colsample_bylevel),
+                'min_child_weight': parameter_eval(params.xgb__min_child_weight),
+                'lambda': parameter_eval(params.xgb__lambda),
+                'alpha': parameter_eval(params.xgb__alpha),
+                'max_bin': parameter_eval(params.xgb__max_bin),
+                'num_leaves': parameter_eval(params.xgb__max_leaves),
+                'nthread': parameter_eval(params.num_workers),
+                'nrounds': parameter_eval(params.xgb__nrounds),
+                'early_stopping_rounds': parameter_eval(params.xgb__early_stopping_rounds),
+                'verbose': parameter_eval(params.verbose)
+                },
 
     'random_forest': {'n_estimators': parameter_eval(params.rf__n_estimators),
                       'criterion': parameter_eval(params.rf__criterion),
@@ -230,6 +251,13 @@ SOLUTION_CONFIG = AttrDict({
                                                                                       'random_search_light_gbm.pkl')}
                                          },
                                     },
+                      'xgboost': {'n_runs': params.xgb_random_search_runs,
+                                  'callbacks':
+                                      {'neptune_monitor': {'name': 'xgboost'},
+                                       'persist_results': {'filepath': os.path.join(params.experiment_directory,
+                                                                                    'random_search_xgboost.pkl')}
+                                       },
+                                  },
                       'random_forest': {'n_runs': params.rf_random_search_runs,
                                         'callbacks':
                                             {'neptune_monitor': {'name': 'random_forest'},

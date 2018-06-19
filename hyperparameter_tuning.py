@@ -4,8 +4,11 @@ import numpy as np
 from deepsense import neptune
 from sklearn.externals import joblib
 from steppy.base import BaseTransformer
+from steppy.utils import get_logger
 
 from utils import set_seed
+
+logger = get_logger()
 
 
 class RandomSearchOptimizer(BaseTransformer):
@@ -37,6 +40,8 @@ class RandomSearchOptimizer(BaseTransformer):
 
         results = []
         for i, param_set in enumerate(self.param_space):
+            logger.info('training run {}'.format(i))
+            logger.info('parameters: {}'.format(str(param_set)))
             transformer = self.TransformerClass(**param_set)
             transformer.fit(**train_inputs)
 
@@ -93,7 +98,6 @@ def create_param_space(params, n_runs):
                     param_choice[param] = sample_param_space(value[:-1], mode)
             else:
                 param_choice[param] = value
-        print(param_choice)
         param_space.append(param_choice)
     set_seed()
     return param_space

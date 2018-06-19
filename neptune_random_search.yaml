@@ -49,6 +49,7 @@ parameters:
 
 # Light GBM
   lgbm_random_search_runs: 50
+  lgbm__device: cpu # gpu cpu
   lgbm__boosting_type: gbdt
   lgbm__objective: binary
   lgbm__metric: auc
@@ -58,7 +59,7 @@ parameters:
   lgbm__num_leaves: '[20, 50]'
   lgbm__max_depth: '[7, 30]'
   lgbm__min_child_samples: '[20, 45]'
-  lgbm__max_bin: '[180, 500]'
+  lgbm__max_bin: '[180, 500]' # at most 255 for device=gpu
   lgbm__subsample: '[0.8, 0.9, 0.99, 0.6, 0.7, "list"]'
   lgbm__subsample_freq: 0
   lgbm__colsample_bytree: 0.8
@@ -66,6 +67,26 @@ parameters:
   lgbm__reg_lambda: '[0.0, 0.1, "uniform"]'
   lgbm__reg_alpha: '[0.0, 0.1, "uniform"]'
   lgbm__scale_pos_weight: 1
+
+# XGBoost
+  xgb_random_search_runs: 50
+  xgb__booster: gbtree
+  xgb__tree_method: hist # gpu_hist  # auto  hist
+  xgb__objective: binary:logistic
+  xgb__eval_metric: auc
+  xgb__nrounds: 10000
+  xgb__early_stopping_rounds: 100
+  xgb__eta: '[0.001, 0.1, "log-uniform"]'
+  xgb__max_leaves: '[21, 41, "choice"]'
+  xgb__max_depth: 16
+  xgb__max_bin: '[155, 355, "choice"]'
+  xgb__subsample: '[0.5, 1., "uniform"]'
+  xgb__colsample_bytree: '[0.5, 1., "uniform"]'
+  xgb__colsample_bylevel: 1
+  xgb__min_child_weight: 4
+  xgb__lambda: '[0.00001, 1.0, "log-uniform"]'
+  xgb__alpha: '[0.00001, 1.0, "log-uniform"]'
+  xgb__scale_pos_weight: 1
 
 # Random forest
   rf_random_search_runs: 50
