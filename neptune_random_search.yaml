@@ -43,7 +43,7 @@ parameters:
 # Light GBM
   lgbm_random_search_runs: 50
   lgbm__device: cpu
-  lgbm__boosting_type: goss
+  lgbm__boosting_type: gbdt
   lgbm__objective: binary
   lgbm__metric: auc
   lgbm__number_boosting_rounds: 1000
@@ -52,8 +52,8 @@ parameters:
   lgbm__num_leaves: '[21, 41, "choice"]'
   lgbm__max_depth: -1
   lgbm__min_child_samples: '[1, 40, "choice"]'
-  lgbm__max_bin: '[155, 355, "choice"]'
-  lgbm__subsample: 1  # '[0.5, 1., "uniform"]'
+  lgbm__max_bin: '[155, 355, "choice"]'  # at most 255 for device=gpu
+  lgbm__subsample: '[0.5, 1., "uniform"]'  # 1 for goss
   lgbm__subsample_freq: 1
   lgbm__colsample_bytree: '[0.5, 1., "uniform"]'
   lgbm__min_child_weight: 4
@@ -64,11 +64,11 @@ parameters:
 # XGBoost
   xgb_random_search_runs: 50
   xgb__booster: gbtree
-  xgb__tree_method: approx # gpu_hist  # auto  hist
+  xgb__tree_method: hist # gpu_hist  # auto  hist
   xgb__objective: binary:logistic
   xgb__eval_metric: auc
-  xgb__nrounds: 500
-  xgb__early_stopping_rounds: 30
+  xgb__nrounds: 1000
+  xgb__early_stopping_rounds: 100
   xgb__eta: '[0.001, 0.1, "log-uniform"]'
   xgb__max_leaves: '[21, 41, "choice"]'
   xgb__max_depth: 16
