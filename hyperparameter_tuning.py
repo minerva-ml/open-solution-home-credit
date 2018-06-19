@@ -71,8 +71,8 @@ class RandomSearchOptimizer(BaseTransformer):
     def transform(self, **kwargs):
         return self.best_transformer.transform(**kwargs)
 
-    def save(self, filepath):
-        self.best_transformer.save(filepath)
+    def persist(self, filepath):
+        self.best_transformer.persist(filepath)
 
     def load(self, filepath):
         self.best_transformer.load(filepath)
@@ -153,7 +153,7 @@ class NeptuneMonitor(GridSearchCallback):
         return self.ctx.create_channel(name=name, channel_type=neptune.ChannelType.TEXT)
 
 
-class SaveResults(GridSearchCallback):
+class PersistResults(GridSearchCallback):
     def __init__(self, filepath):
         self.filepath = filepath
 

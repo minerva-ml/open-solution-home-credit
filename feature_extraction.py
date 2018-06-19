@@ -76,7 +76,7 @@ class CategoricalEncoder(BaseTransformer):
         self.categorical_encoder = joblib.load(filepath)
         return self
 
-    def save(self, filepath):
+    def persist(self, filepath):
         joblib.dump(self.categorical_encoder, filepath)
 
 
