@@ -67,11 +67,11 @@ def read_yaml(filepath):
     return AttrDict(config)
 
 
-def parameter_eval(obj):
+def parameter_eval(param):
     try:
-        return eval(obj)
+        return eval(param)
     except Exception:
-        return obj
+        return param
 
 
 def persist_evaluation_predictions(experiment_directory, y_pred, raw_data, id_column, target_column):
