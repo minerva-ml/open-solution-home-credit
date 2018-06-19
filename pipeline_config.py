@@ -161,6 +161,8 @@ SOLUTION_CONFIG = AttrDict({
     'pipeline': {'experiment_directory': params.experiment_directory
                  },
 
+    'preprocessing': {'fillna_value': params.fillna_value},
+
     'dataframe_by_type_splitter': {'numerical_columns': NUMERICAL_COLUMNS,
                                    'categorical_columns': CATEGORICAL_COLUMNS,
                                    'timestamp_columns': TIMESTAMP_COLUMNS,
@@ -209,7 +211,7 @@ SOLUTION_CONFIG = AttrDict({
                             'n_jobs': parameter_eval(params.num_workers),
                             },
 
-    'SVC': {'kernel': parameter_eval(params.svc__kernel),
+    'svc': {'kernel': parameter_eval(params.svc__kernel),
             'C': parameter_eval(params.svc__C),
             'degree': parameter_eval(params.svc__degree),
             'gamma': parameter_eval(params.svc__gamma),
@@ -244,10 +246,10 @@ SOLUTION_CONFIG = AttrDict({
                                                                                  'random_search_logistic_regression.pkl')}
                                                    },
                                               },
-                      'SVC': {'n_runs': params.svc_random_search_runs,
-                              'callbacks': {'neptune_monitor': {'name': 'SVC'},
+                      'svc': {'n_runs': params.svc_random_search_runs,
+                              'callbacks': {'neptune_monitor': {'name': 'svc'},
                                             'persist_results': {'filepath': os.path.join(params.experiment_directory,
-                                                                                         'random_search_SVC.pkl')}
+                                                                                         'random_search_svc.pkl')}
                                             },
                               },
                       },

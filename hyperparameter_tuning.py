@@ -37,11 +37,9 @@ class RandomSearchOptimizer(BaseTransformer):
 
         results = []
         for i, param_set in enumerate(self.param_space):
-            try:
-                transformer = self.TransformerClass(**param_set)
-                transformer.fit(**train_inputs)
-            except Exception:
-                continue
+            transformer = self.TransformerClass(**param_set)
+            transformer.fit(**train_inputs)
+
             y_pred_valid = transformer.transform(X_valid)
             y_pred_valid_value = list(y_pred_valid.values())[0]
             run_score = self.score_func(y_valid, y_pred_valid_value)
@@ -95,6 +93,7 @@ def create_param_space(params, n_runs):
                     param_choice[param] = sample_param_space(value[:-1], mode)
             else:
                 param_choice[param] = value
+        print(param_choice)
         param_space.append(param_choice)
     set_seed()
     return param_space

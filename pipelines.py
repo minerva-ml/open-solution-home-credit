@@ -53,12 +53,12 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, normalize=False)
                                                       cache_output=True,
                                                       load_persisted_output=True)
 
-        sklearn_preproc = sklearn_preprocessing((features, features_valid), config, train_mode)
+        sklearn_preproc = preprocessing_fillna((features, features_valid), config, train_mode)
     else:
         features = feature_extraction(config,
                                       train_mode,
                                       cache_output=True)
-        sklearn_preproc = sklearn_preprocessing(features, config, train_mode)
+        sklearn_preproc = preprocessing_fillna(features, config, train_mode)
 
     sklearn_clf = sklearn_classifier(sklearn_preproc, ClassifierClass,
                                      full_config, clf_name,
@@ -196,11 +196,11 @@ def _join_features(numerical_features,
     return feature_joiner
 
 
-def sklearn_preprocessing(features, config, train_mode, **kwargs):
+def preprocessing_fillna(features, config, train_mode, **kwargs):
     if train_mode:
         features_train, features_valid = features
         fillna = Step(name='fillna',
-                      transformer=_fillna(-1),
+                      transformer=_fillna(**config.preprocessing),
                       input_data=['input'],
                       input_steps=[features_train, features_valid],
                       adapter=Adapter({'X': E(features_train.name, 'features'),
@@ -211,7 +211,7 @@ def sklearn_preprocessing(features, config, train_mode, **kwargs):
                       )
     else:
         fillna = Step(name='fillna',
-                      transformer=_fillna(-1),
+                      transformer=_fillna(**config.preprocessing),
                       input_data=['input'],
                       input_steps=[features],
                       adapter=Adapter({'X': E(features.name, 'features')}),
@@ -221,12 +221,13 @@ def sklearn_preprocessing(features, config, train_mode, **kwargs):
     return fillna
 
 
-def _fillna(value=-1):
+def _fillna(fillna_value):
     def _inner_fillna(X, X_valid=None):
         if X_valid is None:
-            return {'X': X.fillna(value)}
-        return {'X': X.fillna(value),
-                'X_valid': X_valid.fillna(value)}
+            return {'X': X.fillna(fillna_value)}
+        else:
+            return {'X': X.fillna(fillna_value),
+                    'X_valid': X_valid.fillna(fillna_value)}
     return make_transformer(_inner_fillna)
 
 
@@ -467,14 +468,14 @@ PIPELINES = {'lightGBM': {'train': partial(lightGBM, train_mode=True),
                                               train_mode=False,
                                               normalize=True)
                          },
-             'SVC': {'train': partial(sklearn_main,
+             'svc': {'train': partial(sklearn_main,
                                       ClassifierClass=SVC,
-                                      clf_name='SVC',
+                                      clf_name='svc',
                                       train_mode=True,
                                       normalize=True),
                      'inference': partial(sklearn_main,
                                           ClassifierClass=SVC,
-                                          clf_name='SVC',
+                                          clf_name='svc',
                                           train_mode=False,
                                           normalize=True)
                      }
