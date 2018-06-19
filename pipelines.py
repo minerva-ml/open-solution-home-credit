@@ -60,9 +60,12 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, normalize=False)
                                       cache_output=True)
         sklearn_preproc = preprocessing_fillna(features, config, train_mode)
 
-    sklearn_clf = sklearn_classifier(sklearn_preproc, ClassifierClass,
-                                     full_config, clf_name,
-                                     train_mode, normalize)
+    sklearn_clf = sklearn_classifier(sklearn_preproc,
+                                     ClassifierClass,
+                                     full_config,
+                                     clf_name,
+                                     train_mode,
+                                     normalize)
 
     clipper = Step(name='clipper',
                    transformer=Clipper(**config.clipper),
@@ -70,165 +73,6 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, normalize=False)
                    adapter=Adapter({'prediction': E(sklearn_clf.name, 'predicted')}),
                    experiment_directory=config.pipeline.experiment_directory)
     return clipper
-
-
-def feature_extraction(config, train_mode, **kwargs):
-    if train_mode:
-        feature_by_type_split, feature_by_type_split_valid = _feature_by_type_splits(config, train_mode)
-        bureau, bureau_valid = _bureau(config, train_mode, **kwargs)
-
-        categorical_encoder, categorical_encoder_valid = _categorical_encoders(
-            (feature_by_type_split, feature_by_type_split_valid),
-            config,
-            train_mode,
-            **kwargs)
-
-        groupby_aggregation, groupby_aggregation_valid = _groupby_aggregations(
-            (feature_by_type_split, feature_by_type_split_valid),
-            config,
-            train_mode,
-            **kwargs)
-
-        feature_combiner, feature_combiner_valid = _join_features(numerical_features=[feature_by_type_split,
-                                                                                      groupby_aggregation,
-                                                                                      bureau],
-                                                                  numerical_features_valid=[feature_by_type_split_valid,
-                                                                                            groupby_aggregation_valid,
-                                                                                            bureau_valid],
-                                                                  categorical_features=[categorical_encoder],
-                                                                  categorical_features_valid=[
-                                                                      categorical_encoder_valid],
-                                                                  config=config,
-                                                                  train_mode=train_mode,
-                                                                  **kwargs)
-
-        return feature_combiner, feature_combiner_valid
-    else:
-        feature_by_type_split = _feature_by_type_splits(config, train_mode)
-        bureau = _bureau(config, train_mode, **kwargs)
-        categorical_encoder = _categorical_encoders(feature_by_type_split, config, train_mode, **kwargs)
-        groupby_aggregation = _groupby_aggregations(feature_by_type_split, config, train_mode, **kwargs)
-        feature_combiner = _join_features(numerical_features=[feature_by_type_split, groupby_aggregation, bureau],
-                                          numerical_features_valid=[],
-                                          categorical_features=[categorical_encoder],
-                                          categorical_features_valid=[],
-                                          config=config,
-                                          train_mode=train_mode,
-                                          **kwargs)
-
-        return feature_combiner
-
-
-def _feature_by_type_splits(config, train_mode):
-    if train_mode:
-        feature_by_type_split = Step(name='feature_by_type_split',
-                                     transformer=fe.DataFrameByTypeSplitter(**config.dataframe_by_type_splitter),
-                                     input_data=['input'],
-                                     adapter=Adapter({'X': E('input', 'X')}),
-                                     experiment_directory=config.pipeline.experiment_directory)
-
-        feature_by_type_split_valid = Step(name='feature_by_type_split_valid',
-                                           transformer=feature_by_type_split,
-                                           input_data=['input'],
-                                           adapter=Adapter({'X': E('input', 'X_valid')}),
-                                           experiment_directory=config.pipeline.experiment_directory)
-
-        return feature_by_type_split, feature_by_type_split_valid
-
-    else:
-        feature_by_type_split = Step(name='feature_by_type_split',
-                                     transformer=fe.DataFrameByTypeSplitter(**config.dataframe_by_type_splitter),
-                                     input_data=['input'],
-                                     adapter=Adapter({'X': E('input', 'X')}),
-                                     experiment_directory=config.pipeline.experiment_directory)
-
-    return feature_by_type_split
-
-
-def _join_features(numerical_features,
-                   numerical_features_valid,
-                   categorical_features,
-                   categorical_features_valid,
-                   config, train_mode,
-                   **kwargs):
-    if train_mode:
-        feature_joiner = Step(name='feature_joiner',
-                              transformer=fe.FeatureJoiner(),
-                              input_steps=numerical_features + categorical_features,
-                              adapter=Adapter({
-                                  'numerical_feature_list': [
-                                      E(feature.name, 'numerical_features') for feature in numerical_features],
-                                  'categorical_feature_list': [
-                                      E(feature.name, 'categorical_features') for feature in categorical_features],
-                              }),
-                              experiment_directory=config.pipeline.experiment_directory,
-                              **kwargs)
-
-        feature_joiner_valid = Step(name='feature_joiner_valid',
-                                    transformer=feature_joiner,
-                                    input_steps=numerical_features_valid + categorical_features_valid,
-                                    adapter=Adapter({
-                                        'numerical_feature_list': [
-                                            E(feature.name,
-                                              'numerical_features') for feature in numerical_features_valid],
-                                        'categorical_feature_list': [
-                                            E(feature.name,
-                                              'categorical_features') for feature in categorical_features_valid],
-                                    }),
-                                    experiment_directory=config.pipeline.experiment_directory,
-                                    **kwargs)
-
-        return feature_joiner, feature_joiner_valid
-
-    else:
-        feature_joiner = Step(name='feature_joiner',
-                              transformer=fe.FeatureJoiner(),
-                              input_steps=numerical_features + categorical_features,
-                              adapter=Adapter(
-                                  {'numerical_feature_list':
-                                       [E(feature.name, 'numerical_features') for feature in numerical_features],
-                                   'categorical_feature_list':
-                                       [E(feature.name, 'categorical_features') for feature in categorical_features]}
-                              ),
-                              experiment_directory=config.pipeline.experiment_directory,
-                              **kwargs)
-
-    return feature_joiner
-
-
-def preprocessing_fillna(features, config, train_mode, **kwargs):
-    if train_mode:
-        features_train, features_valid = features
-        fillna = Step(name='fillna',
-                      transformer=_fillna(**config.preprocessing),
-                      input_data=['input'],
-                      input_steps=[features_train, features_valid],
-                      adapter=Adapter({'X': E(features_train.name, 'features'),
-                                       'X_valid': E(features_valid.name, 'features'),
-                                       }),
-                      experiment_directory=config.pipeline.experiment_directory,
-                      **kwargs
-                      )
-    else:
-        fillna = Step(name='fillna',
-                      transformer=_fillna(**config.preprocessing),
-                      input_data=['input'],
-                      input_steps=[features],
-                      adapter=Adapter({'X': E(features.name, 'features')}),
-                      experiment_directory=config.pipeline.experiment_directory,
-                      **kwargs
-                      )
-    return fillna
-
-
-def _fillna(fillna_value):
-    def _inner_fillna(X, X_valid=None):
-        if X_valid is None:
-            return {'X': X.fillna(fillna_value)}
-        else:
-            return {'X': X.fillna(fillna_value),
-                    'X_valid': X_valid.fillna(fillna_value)}
-    return make_transformer(_inner_fillna)
 
 
 def classifier_lgbm(features, config, train_mode, **kwargs):
@@ -312,6 +156,155 @@ def sklearn_classifier(sklearn_features, ClassifierClass, full_config, clf_name,
                            experiment_directory=config.pipeline.experiment_directory,
                            **kwargs)
     return sklearn_clf
+
+
+def feature_extraction(config, train_mode, **kwargs):
+    if train_mode:
+        feature_by_type_split, feature_by_type_split_valid = _feature_by_type_splits(config, train_mode)
+        bureau, bureau_valid = _bureau(config, train_mode, **kwargs)
+
+        categorical_encoder, categorical_encoder_valid = _categorical_encoders(
+            (feature_by_type_split, feature_by_type_split_valid),
+            config,
+            train_mode,
+            **kwargs)
+
+        groupby_aggregation, groupby_aggregation_valid = _groupby_aggregations(
+            (feature_by_type_split, feature_by_type_split_valid),
+            config,
+            train_mode,
+            **kwargs)
+
+        feature_combiner, feature_combiner_valid = _join_features(numerical_features=[feature_by_type_split,
+                                                                                      groupby_aggregation,
+                                                                                      bureau],
+                                                                  numerical_features_valid=[feature_by_type_split_valid,
+                                                                                            groupby_aggregation_valid,
+                                                                                            bureau_valid],
+                                                                  categorical_features=[categorical_encoder],
+                                                                  categorical_features_valid=[
+                                                                      categorical_encoder_valid],
+                                                                  config=config,
+                                                                  train_mode=train_mode,
+                                                                  **kwargs)
+
+        return feature_combiner, feature_combiner_valid
+    else:
+        feature_by_type_split = _feature_by_type_splits(config, train_mode)
+        bureau = _bureau(config, train_mode, **kwargs)
+        categorical_encoder = _categorical_encoders(feature_by_type_split, config, train_mode, **kwargs)
+        groupby_aggregation = _groupby_aggregations(feature_by_type_split, config, train_mode, **kwargs)
+        feature_combiner = _join_features(numerical_features=[feature_by_type_split, groupby_aggregation, bureau],
+                                          numerical_features_valid=[],
+                                          categorical_features=[categorical_encoder],
+                                          categorical_features_valid=[],
+                                          config=config,
+                                          train_mode=train_mode,
+                                          **kwargs)
+
+        return feature_combiner
+
+
+def preprocessing_fillna(features, config, train_mode, **kwargs):
+    if train_mode:
+        features_train, features_valid = features
+        fillna = Step(name='fillna',
+                      transformer=_fillna(**config.preprocessing),
+                      input_data=['input'],
+                      input_steps=[features_train, features_valid],
+                      adapter=Adapter({'X': E(features_train.name, 'features'),
+                                       'X_valid': E(features_valid.name, 'features'),
+                                       }),
+                      experiment_directory=config.pipeline.experiment_directory,
+                      **kwargs
+                      )
+    else:
+        fillna = Step(name='fillna',
+                      transformer=_fillna(**config.preprocessing),
+                      input_data=['input'],
+                      input_steps=[features],
+                      adapter=Adapter({'X': E(features.name, 'features')}),
+                      experiment_directory=config.pipeline.experiment_directory,
+                      **kwargs
+                      )
+    return fillna
+
+
+def _feature_by_type_splits(config, train_mode):
+    if train_mode:
+        feature_by_type_split = Step(name='feature_by_type_split',
+                                     transformer=fe.DataFrameByTypeSplitter(**config.dataframe_by_type_splitter),
+                                     input_data=['input'],
+                                     adapter=Adapter({'X': E('input', 'X')}),
+                                     experiment_directory=config.pipeline.experiment_directory)
+
+        feature_by_type_split_valid = Step(name='feature_by_type_split_valid',
+                                           transformer=feature_by_type_split,
+                                           input_data=['input'],
+                                           adapter=Adapter({'X': E('input', 'X_valid')}),
+                                           experiment_directory=config.pipeline.experiment_directory)
+
+        return feature_by_type_split, feature_by_type_split_valid
+
+    else:
+        feature_by_type_split = Step(name='feature_by_type_split',
+                                     transformer=fe.DataFrameByTypeSplitter(**config.dataframe_by_type_splitter),
+                                     input_data=['input'],
+                                     adapter=Adapter({'X': E('input', 'X')}),
+                                     experiment_directory=config.pipeline.experiment_directory)
+
+    return feature_by_type_split
+
+
+def _join_features(numerical_features,
+                   numerical_features_valid,
+                   categorical_features,
+                   categorical_features_valid,
+                   config, train_mode,
+                   **kwargs):
+    if train_mode:
+        feature_joiner = Step(name='feature_joiner',
+                              transformer=fe.FeatureJoiner(),
+                              input_steps=numerical_features + categorical_features,
+                              adapter=Adapter({
+                                  'numerical_feature_list': [
+                                      E(feature.name, 'numerical_features') for feature in numerical_features],
+                                  'categorical_feature_list': [
+                                      E(feature.name, 'categorical_features') for feature in categorical_features],
+                              }),
+                              experiment_directory=config.pipeline.experiment_directory,
+                              **kwargs)
+
+        feature_joiner_valid = Step(name='feature_joiner_valid',
+                                    transformer=feature_joiner,
+                                    input_steps=numerical_features_valid + categorical_features_valid,
+                                    adapter=Adapter({
+                                        'numerical_feature_list': [
+                                            E(feature.name,
+                                              'numerical_features') for feature in numerical_features_valid],
+                                        'categorical_feature_list': [
+                                            E(feature.name,
+                                              'categorical_features') for feature in categorical_features_valid],
+                                    }),
+                                    experiment_directory=config.pipeline.experiment_directory,
+                                    **kwargs)
+
+        return feature_joiner, feature_joiner_valid
+
+    else:
+        feature_joiner = Step(name='feature_joiner',
+                              transformer=fe.FeatureJoiner(),
+                              input_steps=numerical_features + categorical_features,
+                              adapter=Adapter(
+                                  {'numerical_feature_list':
+                                       [E(feature.name, 'numerical_features') for feature in numerical_features],
+                                   'categorical_feature_list':
+                                       [E(feature.name, 'categorical_features') for feature in categorical_features]}
+                              ),
+                              experiment_directory=config.pipeline.experiment_directory,
+                              **kwargs)
+
+    return feature_joiner
 
 
 def _categorical_encoders(dispatchers, config, train_mode, **kwargs):
@@ -425,6 +418,16 @@ def _bureau(config, train_mode, **kwargs):
                       **kwargs)
 
         return bureau
+
+
+def _fillna(fillna_value):
+    def _inner_fillna(X, X_valid=None):
+        if X_valid is None:
+            return {'X': X.fillna(fillna_value)}
+        else:
+            return {'X': X.fillna(fillna_value),
+                    'X_valid': X_valid.fillna(fillna_value)}
+    return make_transformer(_inner_fillna)
 
 
 def _to_numpy_label(config, **kwargs):

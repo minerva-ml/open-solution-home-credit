@@ -41,8 +41,11 @@ parameters:
 
 # Execution
   clean_experiment_directory_before_training: 1
-  num_workers: 8
+  num_workers: 16
   verbose: 1
+
+# Preprocessing
+  fillna_value: -1
 
 # Light GBM
   lgbm_random_search_runs: 0

@@ -102,6 +102,8 @@ def create_param_space(params, n_runs):
 def sample_param_space(value_range, mode):
     if mode == 'list':
         value = np.random.choice(value_range)
+        if isinstance(value, np.str_):
+            value = str(value)
     else:
         range_min, range_max = value_range
         if mode == 'choice':
