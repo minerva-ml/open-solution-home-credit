@@ -4,23 +4,31 @@ import numpy as np
 from deepsense import neptune
 from sklearn.externals import joblib
 from steppy.base import BaseTransformer
+from steppy.utils import get_logger
 
 from utils import set_seed
 
+logger = get_logger()
+
 
 class RandomSearchOptimizer(BaseTransformer):
-    def __init__(self, TransformerClass, params,
-                 score_func, maximize,
-                 train_input_keys, valid_input_keys,
+    def __init__(self,
+                 TransformerClass,
+                 params,
+                 score_func,
+                 maximize,
+                 train_input_keys,
+                 valid_input_keys,
                  n_runs,
-                 callbacks=[]):
+                 callbacks=None):
+        super().__init__()
         self.TransformerClass = TransformerClass
         self.param_space = create_param_space(params, n_runs)
         self.train_input_keys = train_input_keys
         self.valid_input_keys = valid_input_keys
         self.score_func = score_func
         self.maximize = maximize
-        self.callbacks = callbacks
+        self.callbacks = callbacks or []
         self.best_transformer = TransformerClass(**self.param_space[0])
 
     def fit(self, **kwargs):
@@ -32,11 +40,11 @@ class RandomSearchOptimizer(BaseTransformer):
 
         results = []
         for i, param_set in enumerate(self.param_space):
-            try:
-                transformer = self.TransformerClass(**param_set)
-                transformer.fit(**train_inputs)
-            except Exception:
-                continue
+            logger.info('training run {}'.format(i))
+            logger.info('parameters: {}'.format(str(param_set)))
+            transformer = self.TransformerClass(**param_set)
+            transformer.fit(**train_inputs)
+
             y_pred_valid = transformer.transform(X_valid)
             y_pred_valid_value = list(y_pred_valid.values())[0]
             run_score = self.score_func(y_valid, y_pred_valid_value)
@@ -66,8 +74,8 @@ class RandomSearchOptimizer(BaseTransformer):
     def transform(self, **kwargs):
         return self.best_transformer.transform(**kwargs)
 
-    def save(self, filepath):
-        self.best_transformer.save(filepath)
+    def persist(self, filepath):
+        self.best_transformer.persist(filepath)
 
     def load(self, filepath):
         self.best_transformer.load(filepath)
@@ -91,12 +99,15 @@ def create_param_space(params, n_runs):
             else:
                 param_choice[param] = value
         param_space.append(param_choice)
+    set_seed()
     return param_space
 
 
 def sample_param_space(value_range, mode):
     if mode == 'list':
         value = np.random.choice(value_range)
+        if isinstance(value, np.str_):
+            value = str(value)
     else:
         range_min, range_max = value_range
         if mode == 'choice':
@@ -147,7 +158,7 @@ class NeptuneMonitor(GridSearchCallback):
         return self.ctx.create_channel(name=name, channel_type=neptune.ChannelType.TEXT)
 
 
-class SaveResults(GridSearchCallback):
+class PersistResults(GridSearchCallback):
     def __init__(self, filepath):
         self.filepath = filepath
 

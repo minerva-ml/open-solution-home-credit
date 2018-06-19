@@ -1,8 +1,9 @@
+import os
+
 import category_encoders as ce
 import numpy as np
 import pandas as pd
 from sklearn.externals import joblib
-from steppy.adapters import to_numpy_label_inputs
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
@@ -11,6 +12,7 @@ logger = get_logger()
 
 class DataFrameByTypeSplitter(BaseTransformer):
     def __init__(self, numerical_columns, categorical_columns, timestamp_columns):
+        super().__init__()
         self.numerical_columns = numerical_columns
         self.categorical_columns = categorical_columns
         self.timestamp_columns = timestamp_columns
@@ -35,7 +37,7 @@ class FeatureJoiner(BaseTransformer):
         features = numerical_feature_list + categorical_feature_list
         for feature in features:
             feature.reset_index(drop=True, inplace=True)
-        outputs = {}
+        outputs = dict()
         outputs['features'] = pd.concat(features, axis=1).astype(np.float32)
         outputs['feature_names'] = self._get_feature_names(features)
         outputs['categorical_features'] = self._get_feature_names(categorical_feature_list)
@@ -53,38 +55,88 @@ class FeatureJoiner(BaseTransformer):
         return feature_names
 
 
-class TargetEncoder(BaseTransformer):
+class CategoricalEncoder(BaseTransformer):
     def __init__(self, **kwargs):
+        super().__init__()
         self.params = kwargs
-        self.encoder_class = ce.TargetEncoder
+        self.encoder_class = ce.OrdinalEncoder
+        self.categorical_encoder = None
 
     def fit(self, X, y, **kwargs):
         categorical_columns = list(X.columns)
-        self.target_encoder = self.encoder_class(cols=categorical_columns, **self.params)
-        self.target_encoder.fit(X, y)
+        self.categorical_encoder = self.encoder_class(cols=categorical_columns, **self.params)
+        self.categorical_encoder.fit(X, y)
         return self
 
     def transform(self, X, y=None, **kwargs):
-        X_ = self.target_encoder.transform(X)
+        X_ = self.categorical_encoder.transform(X)
         return {'categorical_features': X_}
 
     def load(self, filepath):
-        self.target_encoder = joblib.load(filepath)
+        self.categorical_encoder = joblib.load(filepath)
         return self
 
-    def save(self, filepath):
-        joblib.dump(self.target_encoder, filepath)
+    def persist(self, filepath):
+        joblib.dump(self.categorical_encoder, filepath)
 
 
-class ToNumpyLabel(BaseTransformer):
-    def __init__(self, **kwargs):
-        self.y = None
+class GroupbyAggregations(BaseTransformer):
+    def __init__(self, groupby_aggregations):
+        super().__init__()
+        self.groupby_aggregations = groupby_aggregations
 
-    def fit(self, y, **kwargs):
-        self.y = to_numpy_label_inputs(y)
-        return self
+    @property
+    def groupby_aggregations_names(self):
+        groupby_aggregations_names = ['{}_{}_{}'.format('_'.join(spec['groupby']),
+                                                        spec['agg'],
+                                                        spec['select'])
+                                      for spec in self.groupby_aggregations]
+        return groupby_aggregations_names
 
-    def transform(self, **kwargs):
-        if self.y.any():
-            return {'y': self.y}
-        return {}
+    def transform(self, categorical_features, numerical_features):
+        X = pd.concat([categorical_features, numerical_features], axis=1)
+        for spec, groupby_aggregations_name in zip(self.groupby_aggregations, self.groupby_aggregations_names):
+            group_object = X.groupby(spec['groupby'])
+            X = X.merge(group_object[spec['select']]
+                        .agg(spec['agg'])
+                        .reset_index()
+                        .rename(index=str,
+                                columns={spec['select']: groupby_aggregations_name})
+                        [spec['groupby'] + [groupby_aggregations_name]],
+                        on=spec['groupby'],
+                        how='left')
+
+        return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}
+
+
+class GroupbyAggregationFromFile(BaseTransformer):
+    def __init__(self, filepath, id_columns, groupby_aggregations):
+        super().__init__()
+        self.filename = os.path.basename(filepath).split('.')[0]
+        self.file = pd.read_csv(filepath)
+        self.id_columns = id_columns
+        self.groupby_aggregations = groupby_aggregations
+
+    @ property
+    def groupby_aggregations_names(self):
+        groupby_aggregations_names = ['{}_{}_{}_{}'.format(self.filename,
+                                                           '_'.join(spec['groupby']),
+                                                           spec['agg'],
+                                                           spec['select'])
+                                      for spec in self.groupby_aggregations]
+        return groupby_aggregations_names
+
+    def transform(self, X):
+        for spec, groupby_aggregations_name in zip(self.groupby_aggregations, self.groupby_aggregations_names):
+            group_object = self.file.groupby(spec['groupby'])
+            X = X.merge(group_object[spec['select']]
+                        .agg(spec['agg'])
+                        .reset_index()
+                        .rename(index=str,
+                                columns={spec['select']: groupby_aggregations_name})
+                        [spec['groupby'] + [groupby_aggregations_name]],
+                        left_on=self.id_columns[0],
+                        right_on=self.id_columns[1],
+                        how='left')
+
+        return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}

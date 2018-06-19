@@ -5,6 +5,7 @@ from steppy.base import BaseTransformer
 
 class Clipper(BaseTransformer):
     def __init__(self, min_val=0, max_val=1):
+        super().__init__()
         self.min_val = min_val
         self.max_val = max_val
 

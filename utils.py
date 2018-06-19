@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from attrdict import AttrDict
-from sklearn.model_selection import train_test_split
+from steppy.base import BaseTransformer
 
 
 def create_submission(meta, predictions):
@@ -49,12 +49,6 @@ def init_logger():
     return logger
 
 
-def log_loss_row(y_true, y_pred, eps=1e-15):
-    y_pred = np.clip(y_pred, eps, 1 - eps)
-    scores = y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred)
-    return scores
-
-
 def read_params(ctx):
     if ctx.params.__class__.__name__ == 'OfflineContextParams':
         try:
@@ -73,31 +67,36 @@ def read_yaml(filepath):
     return AttrDict(config)
 
 
-def safe_eval(obj):
+def parameter_eval(param):
     try:
-        return eval(obj)
+        return eval(param)
     except Exception:
-        return obj
+        return param
 
 
-def save_evaluation_predictions(experiment_dir, y_true, y_pred, raw_data):
-    raw_data['y_pred'] = y_pred
-    raw_data['score'] = log_loss_row(y_true, y_pred)
-
-    raw_data.sort_values('score', ascending=False, inplace=True)
-
-    filepath = os.path.join(experiment_dir, 'evaluation_predictions.csv')
-    raw_data.to_csv(filepath, index=None)
+def persist_evaluation_predictions(experiment_directory, y_pred, raw_data, id_column, target_column):
+    raw_data.loc[:, 'y_pred'] = y_pred.reshape(-1)
+    predictions_df = raw_data.loc[:, [id_column, target_column, 'y_pred']]
+    filepath = os.path.join(experiment_directory, 'evaluation_predictions.csv')
+    logging.info('evaluation predictions csv shape: {}'.format(predictions_df.shape))
+    predictions_df.to_csv(filepath, index=None)
 
 
-def set_seed(seed):
+def set_seed(seed=90210):
     random.seed(seed)
     np.random.seed(seed)
 
 
-def stratified_train_valid_split(meta_train, target_column, target_bins, valid_size, random_state=1234):
-    y = meta_train[target_column].values
-    bins = np.linspace(0, y.shape[0], target_bins)
-    y_binned = np.digitize(y, bins)
+class ToNumpyLabel(BaseTransformer):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.y = None
 
-    return train_test_split(meta_train, test_size=valid_size, stratify=y_binned, random_state=random_state)
+    def fit(self, y, **kwargs):
+        self.y = y[0].values.reshape(-1)
+        return self
+
+    def transform(self, **kwargs):
+        if self.y.any():
+            return {'y': self.y}
+        return {}
