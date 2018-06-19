@@ -3,13 +3,13 @@ import os
 from attrdict import AttrDict
 from deepsense import neptune
 
-from utils import read_params, safe_eval
+from utils import read_params, parameter_eval
 
 ctx = neptune.Context()
 params = read_params(ctx)
 
 RANDOM_SEED = 90210
-DEV_SAMPLE_SIZE = int(10e4)
+DEV_SAMPLE_SIZE = 1000
 
 BUREAU_BALANCE = params.bureau_balance_filepath
 BUREAU = params.bureau_filepath
@@ -18,8 +18,8 @@ INSTALLMENTS_PAYMENTS = params.installments_payments_filepath
 POS_CASH_BALANCE = params.POS_CASH_balance_filepath
 PREVIOUS_APPLICATION = params.previous_application_filepath
 
-ID_COLUMN = ['SK_ID_CURR']
-TARGET_COLUMN = ['TARGET']
+ID_COLUMN = 'SK_ID_CURR'
+TARGET_COLUMN = 'TARGET'
 
 TIMESTAMP_COLUMNS = []
 CATEGORICAL_COLUMNS = ['CODE_GENDER',
@@ -158,89 +158,96 @@ for agg in ['mean', 'size', 'var', 'min', 'max']:
             AGGREGATION_RECIPIES.append({'groupby': group, 'select': select, 'agg': agg})
 
 SOLUTION_CONFIG = AttrDict({
-    'env': {'cache_dirpath': params.experiment_dir},
+    'pipeline': {'experiment_directory': params.experiment_directory
+                 },
 
     'dataframe_by_type_splitter': {'numerical_columns': NUMERICAL_COLUMNS,
                                    'categorical_columns': CATEGORICAL_COLUMNS,
                                    'timestamp_columns': TIMESTAMP_COLUMNS,
                                    },
 
-    'light_gbm': {'boosting_type': safe_eval(params.lgbm__boosting_type),
-                  'objective': safe_eval(params.lgbm__objective),
-                  'metric': safe_eval(params.lgbm__metric),
-                  'learning_rate': safe_eval(params.lgbm__learning_rate),
-                  'max_depth': safe_eval(params.lgbm__max_depth),
-                  'subsample': safe_eval(params.lgbm__subsample),
-                  'colsample_bytree': safe_eval(params.lgbm__colsample_bytree),
-                  'min_child_weight': safe_eval(params.lgbm__min_child_weight),
-                  'reg_lambda': safe_eval(params.lgbm__reg_lambda),
-                  'reg_alpha': safe_eval(params.lgbm__reg_alpha),
-                  'subsample_freq': safe_eval(params.lgbm__subsample_freq),
-                  'max_bin': safe_eval(params.lgbm__max_bin),
-                  'min_child_samples': safe_eval(params.lgbm__min_child_samples),
-                  'num_leaves': safe_eval(params.lgbm__num_leaves),
-                  'nthread': safe_eval(params.num_workers),
-                  'number_boosting_rounds': safe_eval(params.lgbm__number_boosting_rounds),
-                  'early_stopping_rounds': safe_eval(params.lgbm__early_stopping_rounds),
-                  'verbose': safe_eval(params.verbose)
+    'light_gbm': {'boosting_type': parameter_eval(params.lgbm__boosting_type),
+                  'objective': parameter_eval(params.lgbm__objective),
+                  'metric': parameter_eval(params.lgbm__metric),
+                  'learning_rate': parameter_eval(params.lgbm__learning_rate),
+                  'max_depth': parameter_eval(params.lgbm__max_depth),
+                  'subsample': parameter_eval(params.lgbm__subsample),
+                  'colsample_bytree': parameter_eval(params.lgbm__colsample_bytree),
+                  'min_child_weight': parameter_eval(params.lgbm__min_child_weight),
+                  'reg_lambda': parameter_eval(params.lgbm__reg_lambda),
+                  'reg_alpha': parameter_eval(params.lgbm__reg_alpha),
+                  'subsample_freq': parameter_eval(params.lgbm__subsample_freq),
+                  'max_bin': parameter_eval(params.lgbm__max_bin),
+                  'min_child_samples': parameter_eval(params.lgbm__min_child_samples),
+                  'num_leaves': parameter_eval(params.lgbm__num_leaves),
+                  'nthread': parameter_eval(params.num_workers),
+                  'number_boosting_rounds': parameter_eval(params.lgbm__number_boosting_rounds),
+                  'early_stopping_rounds': parameter_eval(params.lgbm__early_stopping_rounds),
+                  'verbose': parameter_eval(params.verbose),
                   },
 
-    'random_forest': {'n_estimators': safe_eval(params.rf__n_estimators),
-                      'max_features': safe_eval(params.rf__max_features),
-                      'max_depth': safe_eval(params.rf__max_depth),
-                      'min_samples_split': safe_eval(params.rf__min_samples_split),
-                      'min_samples_leaf': safe_eval(params.rf__min_samples_leaf),
-                      'min_weight_fraction_leaf': safe_eval(params.rf__min_weight_fraction_leaf),
-                      'n_jobs': safe_eval(params.num_workers),
-                      'verbose': safe_eval(params.verbose)
+    'random_forest': {'n_estimators': parameter_eval(params.rf__n_estimators),
+                      'criterion': parameter_eval(params.rf__criterion),
+                      'max_features': parameter_eval(params.rf__max_features),
+                      'min_samples_split': parameter_eval(params.rf__min_samples_split),
+                      'min_samples_leaf': parameter_eval(params.rf__min_samples_leaf),
+                      'n_jobs': parameter_eval(params.num_workers),
+                      'random_state': RANDOM_SEED,
+                      'verbose': parameter_eval(params.verbose),
+                      'class_weight': parameter_eval(params.rf__class_weight),
                       },
 
-    'logistic_regression': {'penalty': safe_eval(params.lr__penalty),
-                            'tol': safe_eval(params.lr__tol),
-                            'C': safe_eval(params.lr__C),
-                            'solver': safe_eval(params.lr__solver),
-                            'n_jobs': safe_eval(params.num_workers),
-                            'verbose': safe_eval(params.verbose),
+    'logistic_regression': {'penalty': parameter_eval(params.lr__penalty),
+                            'tol': parameter_eval(params.lr__tol),
+                            'C': parameter_eval(params.lr__C),
+                            'fit_intercept': parameter_eval(params.lr__fit_intercept),
+                            'class_weight': parameter_eval(params.lr__class_weight),
+                            'random_state': RANDOM_SEED,
+                            'solver': parameter_eval(params.lr__solver),
+                            'max_iter': parameter_eval(params.lr__max_iter),
+                            'verbose': parameter_eval(params.verbose),
+                            'n_jobs': parameter_eval(params.num_workers),
                             },
 
-    'SVC': {'kernel': safe_eval(params.svc__kernel),
-            'C': safe_eval(params.svc__C),
-            'degree': safe_eval(params.svc__degree),
-            'gamma': safe_eval(params.svc__gamma),
-            'coef0': safe_eval(params.svc__coef0),
-            'probability': safe_eval(params.svc__probability),
-            'tol': safe_eval(params.svc__tol),
-            'max_iter': safe_eval(params.svc__max_iter),
-            'verbose': safe_eval(params.verbose),
+    'SVC': {'kernel': parameter_eval(params.svc__kernel),
+            'C': parameter_eval(params.svc__C),
+            'degree': parameter_eval(params.svc__degree),
+            'gamma': parameter_eval(params.svc__gamma),
+            'coef0': parameter_eval(params.svc__coef0),
+            'probability': parameter_eval(params.svc__probability),
+            'tol': parameter_eval(params.svc__tol),
+            'max_iter': parameter_eval(params.svc__max_iter),
+            'verbose': parameter_eval(params.verbose),
+            'random_state': RANDOM_SEED,
             },
 
     'random_search': {'light_gbm': {'n_runs': params.lgbm_random_search_runs,
                                     'callbacks':
                                         {'neptune_monitor': {'name': 'light_gbm'},
-                                         'save_results': {'filepath': os.path.join(params.experiment_dir,
-                                                                                   'random_search_light_gbm.pkl')}
+                                         'persist_results': {'filepath': os.path.join(params.experiment_directory,
+                                                                                      'random_search_light_gbm.pkl')}
                                          },
                                     },
                       'random_forest': {'n_runs': params.rf_random_search_runs,
                                         'callbacks':
                                             {'neptune_monitor': {'name': 'random_forest'},
-                                             'save_results':
-                                                 {'filepath': os.path.join(params.experiment_dir,
+                                             'persist_results':
+                                                 {'filepath': os.path.join(params.experiment_directory,
                                                                            'random_search_random_forest.pkl')}
                                              },
                                         },
                       'logistic_regression': {'n_runs': params.lr_random_search_runs,
                                               'callbacks':
                                                   {'neptune_monitor': {'name': 'logistic_regression'},
-                                                   'save_results':
-                                                       {'filepath': os.path.join(params.experiment_dir,
+                                                   'persist_results':
+                                                       {'filepath': os.path.join(params.experiment_directory,
                                                                                  'random_search_logistic_regression.pkl')}
                                                    },
                                               },
                       'SVC': {'n_runs': params.svc_random_search_runs,
                               'callbacks': {'neptune_monitor': {'name': 'SVC'},
-                                            'save_results': {'filepath': os.path.join(params.experiment_dir,
-                                                                                      'random_search_SVC.pkl')}
+                                            'persist_results': {'filepath': os.path.join(params.experiment_directory,
+                                                                                         'random_search_SVC.pkl')}
                                             },
                               },
                       },
