@@ -4,10 +4,10 @@
 
 This is an open solution to the [Home Credit Default Risk challenge](https://www.kaggle.com/c/home-credit-default-risk).
 
-## The goal
-Create (entirely) open solution to this competition. We are opening both the code and process. Check [issues](https://github.com/minerva-ml/open-solution-home-credit/issues) and our [project board](https://github.com/minerva-ml/open-solution-home-credit/projects/1). Rules are simple:
-* Clean code and extensible solution leads to the reproducible experimentations and better control over the improvements.
-* Open solution should establish solid benchmark and give good base for your custom ideas and experiments.
+## The purpose of the Open Solution
+We are building entirely open solution to this competition. Specifically:
+1. Check **live preview of our work** on public projects page: [Home Credit Default Risk](https://app.neptune.ml/neptune-ml/Home-Credit-Default-Risk).
+1. Source code and [issues](https://github.com/minerva-ml/open-solution-home-credit/issues) are publicly available.
 
 ## Installation
 ### Fast Track
