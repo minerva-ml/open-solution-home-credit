@@ -9,6 +9,10 @@ We are building entirely open solution to this competition. Specifically:
 1. Check **live preview of our work** on public projects page: [Home Credit Default Risk](https://app.neptune.ml/neptune-ml/Home-Credit-Default-Risk).
 1. Source code and [issues](https://github.com/minerva-ml/open-solution-home-credit/issues) are publicly available.
 
+Rules are simple:
+1. Clean code and extensible solution leads to the reproducible experimentations and better control over the improvements.
+1. Open solution should establish solid benchmark and give good base for your custom ideas and experiments.
+
 ## Installation
 ### Fast Track
 1. Clone repository and install requirements (check _requirements.txt_)
