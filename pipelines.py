@@ -76,6 +76,7 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, normalize=False)
                                                       cache_output=True,
                                                       load_persisted_output=True)
 
+
         sklearn_preproc = preprocessing_fillna((features, features_valid), config, train_mode)
     else:
         features = feature_extraction(config,

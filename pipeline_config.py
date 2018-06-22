@@ -22,6 +22,7 @@ ID_COLUMN = 'SK_ID_CURR'
 TARGET_COLUMN = 'TARGET'
 
 TIMESTAMP_COLUMNS = []
+
 CATEGORICAL_COLUMNS = ['CODE_GENDER',
                        'EMERGENCYSTATE_MODE',
                        'FLAG_CONT_MOBILE',
@@ -157,6 +158,76 @@ for agg in ['mean', 'size', 'var', 'min', 'max']:
                       ]:
             AGGREGATION_RECIPIES.append({'groupby': group, 'select': select, 'agg': agg})
 
+BUREAU_AGGREGATION_RECIPIES = [{'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_TYPE', 'agg': 'count'},
+                               {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_ACTIVE', 'agg': 'size'}]
+for agg in ['mean', 'min', 'max', 'sum', 'var']:
+    for select in ['AMT_ANNUITY',
+                   'AMT_CREDIT_SUM',
+                   'AMT_CREDIT_SUM_DEBT',
+                   'AMT_CREDIT_SUM_LIMIT',
+                   'AMT_CREDIT_SUM_OVERDUE',
+                   'AMT_CREDIT_MAX_OVERDUE',
+                   'CNT_CREDIT_PROLONG',
+                   'CREDIT_DAY_OVERDUE',
+                   'DAYS_CREDIT',
+                   'DAYS_CREDIT_ENDDATE',
+                   'DAYS_CREDIT_UPDATE'
+                   ]:
+        BUREAU_AGGREGATION_RECIPIES.append({'groupby': ['SK_ID_CURR'], 'select': select, 'agg': agg})
+
+CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES = []
+for agg in ['mean', 'min', 'max', 'sum', 'var']:
+    for select in ['AMT_BALANCE',
+                   'AMT_CREDIT_LIMIT_ACTUAL',
+                   'AMT_DRAWINGS_ATM_CURRENT',
+                   'AMT_DRAWINGS_CURRENT',
+                   'AMT_DRAWINGS_OTHER_CURRENT',
+                   'AMT_DRAWINGS_POS_CURRENT',
+                   'AMT_PAYMENT_CURRENT',
+                   'CNT_DRAWINGS_ATM_CURRENT',
+                   'CNT_DRAWINGS_CURRENT',
+                   'CNT_DRAWINGS_OTHER_CURRENT',
+                   'CNT_INSTALMENT_MATURE_CUM',
+                   'MONTHS_BALANCE',
+                   'SK_DPD',
+                   'SK_DPD_DEF'
+                   ]:
+        CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES.append({'groupby': ['SK_ID_CURR'], 'select': select, 'agg': agg})
+
+INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES = []
+for agg in ['mean', 'min', 'max', 'sum', 'var']:
+    for select in ['AMT_INSTALMENT',
+                   'AMT_PAYMENT',
+                   'DAYS_ENTRY_PAYMENT',
+                   'DAYS_INSTALMENT',
+                   'NUM_INSTALMENT_NUMBER',
+                   'NUM_INSTALMENT_VERSION'
+                   ]:
+        INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES.append({'groupby': ['SK_ID_CURR'], 'select': select, 'agg': agg})
+
+POS_CASH_BALANCE_AGGREGATION_RECIPIES = []
+for agg in ['mean', 'min', 'max', 'sum', 'var']:
+    for select in ['MONTHS_BALANCE',
+                   'SK_DPD',
+                   'SK_DPD_DEF'
+                   ]:
+        POS_CASH_BALANCE_AGGREGATION_RECIPIES.append({'groupby': ['SK_ID_CURR'], 'select': select, 'agg': agg})
+
+PREVIOUS_APPLICATION_AGGREGATION_RECIPIES = []
+for agg in ['mean', 'min', 'max', 'sum', 'var']:
+    for select in ['AMT_ANNUITY',
+                   'AMT_APPLICATION',
+                   'AMT_CREDIT',
+                   'AMT_DOWN_PAYMENT',
+                   'AMT_GOODS_PRICE',
+                   'CNT_PAYMENT',
+                   'DAYS_DECISION',
+                   'HOUR_APPR_PROCESS_START',
+                   'RATE_DOWN_PAYMENT'
+                   ]:
+        PREVIOUS_APPLICATION_AGGREGATION_RECIPIES.append({'groupby': ['SK_ID_CURR'], 'select': select, 'agg': agg})
+
+
 SOLUTION_CONFIG = AttrDict({
     'pipeline': {'experiment_directory': params.experiment_directory
                  },
@@ -284,14 +355,28 @@ SOLUTION_CONFIG = AttrDict({
 
     'bureau': {'filepath': BUREAU,
                'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-               'groupby_aggregations': [
-                   {'groupby': ['SK_ID_CURR'], 'select': 'DAYS_CREDIT', 'agg': 'count'},        # 1
-                   {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_TYPE', 'agg': 'nunique'},      # 2
-                   {'groupby': ['SK_ID_CURR'], 'select': 'CNT_CREDIT_PROLONG', 'agg': 'mean'},  # 10
-                   {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_DAY_OVERDUE', 'agg': 'count'},
-                   {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_ACTIVE', 'agg': 'size'},
-                   {'groupby': ['SK_ID_CURR'], 'select': 'AMT_CREDIT_SUM', 'agg': 'count'},
-               ]},
+               'groupby_aggregations': BUREAU_AGGREGATION_RECIPIES
+               },
+
+    'credit_card_balance': {'filepath': CREDIT_CARD_BALANCE,
+                            'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                            'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES
+                            },
+
+    'installments_payments': {'filepath': INSTALLMENTS_PAYMENTS,
+                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                              'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES
+                              },
+
+    'pos_cash_balance': {'filepath': POS_CASH_BALANCE,
+                         'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                         'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES
+                         },
+
+    'previous_applications': {'filepath': PREVIOUS_APPLICATION,
+                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                              'groupby_aggregations': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES
+                              },
 
     'clipper': {'min_val': 0,
                 'max_val': 1
