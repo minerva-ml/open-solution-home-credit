@@ -13,6 +13,9 @@ Rules are simple:
 1. Clean code and extensible solution leads to the reproducible experimentations and better control over the improvements.
 1. Open solution should establish solid benchmark and give good base for your custom ideas and experiments.
 
+## Disclaimer
+In this open source solution you will find references to the neptune.ml. It is free platform for community Users, which we use daily to keep track of our experiments. Please note that using neptune.ml is not necessary to proceed with this solution. You may run it as plain Python script :wink:.
+
 ## Installation
 ### Fast Track
 1. Clone repository and install requirements (check _requirements.txt_)
