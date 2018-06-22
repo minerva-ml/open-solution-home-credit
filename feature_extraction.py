@@ -142,7 +142,7 @@ class GroupbyAggregationFromFile(BaseTransformer):
         return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}
 
 
-class Application(BaseTransformer):
+class ApplicationFeatures(BaseTransformer):
     def __init__(self):
         super().__init__()
         self.application_names = ['ANNUITY_INCOME_PERCENTAGE',
@@ -167,7 +167,7 @@ class Application(BaseTransformer):
         return {'numerical_features': X[self.application_names]}
 
 
-class Bureau(BaseTransformer):
+class BureauFeatures(BaseTransformer):
     def __init__(self, filepath, id_columns, **kwargs):
         self.filepath = filepath
         self.id_columns = id_columns
@@ -268,7 +268,7 @@ class Bureau(BaseTransformer):
         joblib.dump(self.bureau_features, filepath)
 
 
-class CreditCardBalance(BaseTransformer):
+class CreditCardBalanceFeatures(BaseTransformer):
     def __init__(self, filepath, id_columns, **kwargs):
         self.filepath = filepath
         self.id_columns = id_columns

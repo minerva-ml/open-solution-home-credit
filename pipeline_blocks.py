@@ -567,7 +567,7 @@ def _previous_applications_groupby_agg(config, train_mode, **kwargs):
 def _application(config, train_mode, **kwargs):
     if train_mode:
         application = Step(name='application',
-                           transformer=fe.Application(),
+                           transformer=fe.ApplicationFeatures(),
                            input_data=['input'],
                            adapter=Adapter({'X': E('input', 'X')}),
                            experiment_directory=config.pipeline.experiment_directory,
@@ -584,7 +584,7 @@ def _application(config, train_mode, **kwargs):
 
     else:
         application = Step(name='application',
-                           transformer=fe.Application(),
+                           transformer=fe.ApplicationFeatures(),
                            input_data=['input'],
                            adapter=Adapter({'X': E('input', 'X')}),
                            experiment_directory=config.pipeline.experiment_directory,
@@ -596,7 +596,7 @@ def _application(config, train_mode, **kwargs):
 def _bureau(config, train_mode, **kwargs):
     if train_mode:
         bureau = Step(name='bureau',
-                      transformer=fe.Bureau(**config.bureau),
+                      transformer=fe.BureauFeatures(**config.bureau),
                       input_data=['input'],
                       adapter=Adapter({'X': E('input', 'X')}),
                       experiment_directory=config.pipeline.experiment_directory,
@@ -613,7 +613,7 @@ def _bureau(config, train_mode, **kwargs):
 
     else:
         bureau = Step(name='bureau',
-                      transformer=fe.Bureau(**config.bureau),
+                      transformer=fe.BureauFeatures(**config.bureau),
                       input_data=['input'],
                       adapter=Adapter({'X': E('input', 'X')}),
                       experiment_directory=config.pipeline.experiment_directory,
@@ -625,7 +625,7 @@ def _bureau(config, train_mode, **kwargs):
 def _credit_card_balance(config, train_mode, **kwargs):
     if train_mode:
         credit_card_balance = Step(name='credit_card_balance',
-                                   transformer=fe.CreditCardBalance(**config.credit_card_balance),
+                                   transformer=fe.CreditCardBalanceFeatures(**config.credit_card_balance),
                                    input_data=['input'],
                                    adapter=Adapter({'X': E('input', 'X')}),
                                    experiment_directory=config.pipeline.experiment_directory,
@@ -642,7 +642,7 @@ def _credit_card_balance(config, train_mode, **kwargs):
 
     else:
         credit_card_balance = Step(name='credit_card_balance',
-                                   transformer=fe.CreditCardBalance(**config.credit_card_balance),
+                                   transformer=fe.CreditCardBalanceFeatures(**config.credit_card_balance),
                                    input_data=['input'],
                                    adapter=Adapter({'X': E('input', 'X')}),
                                    experiment_directory=config.pipeline.experiment_directory,
