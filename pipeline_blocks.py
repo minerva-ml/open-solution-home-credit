@@ -140,12 +140,31 @@ def classifier_sklearn(sklearn_features, ClassifierClass, full_config, clf_name,
 def feature_extraction(config, train_mode, **kwargs):
     if train_mode:
         feature_by_type_split, feature_by_type_split_valid = _feature_by_type_splits(config, train_mode)
+        application, application_valid = _application(config, train_mode, **kwargs)
         bureau, bureau_valid = _bureau(config, train_mode, **kwargs)
+        credit_card_balance, credit_card_balance_valid = _credit_card_balance(config, train_mode, **kwargs)
+
+        bureau_agg, bureau_agg_valid = _bureau_groupby_agg(config, train_mode, **kwargs)
+        credit_card_balance_agg, credit_card_balance_agg_valid = _credit_card_balance_groupby_agg(
+            config,
+            train_mode,
+            **kwargs)
+        installments_payments_agg, installments_payments_agg_valid = _installments_payments_groupby_agg(
+            config,
+            train_mode,
+            **kwargs)
+        pos_cash_balance_agg, pos_cash_balance_agg_valid = _pos_cash_balance_groupby_agg(
+            config,
+            train_mode,
+            **kwargs)
+        previous_applications_agg, previous_applications_agg_valid = _previous_applications_groupby_agg(
+            config,
+            train_mode,
+            **kwargs)
 
         categorical_encoder, categorical_encoder_valid = _categorical_encoders(
             (feature_by_type_split, feature_by_type_split_valid),
-            config,
-            train_mode,
+            config, train_mode,
             **kwargs)
 
         groupby_aggregation, groupby_aggregation_valid = _groupby_aggregations(
@@ -154,26 +173,56 @@ def feature_extraction(config, train_mode, **kwargs):
             train_mode,
             **kwargs)
 
-        feature_combiner, feature_combiner_valid = _join_features(numerical_features=[feature_by_type_split,
-                                                                                      groupby_aggregation,
-                                                                                      bureau],
-                                                                  numerical_features_valid=[feature_by_type_split_valid,
-                                                                                            groupby_aggregation_valid,
-                                                                                            bureau_valid],
-                                                                  categorical_features=[categorical_encoder],
-                                                                  categorical_features_valid=[
-                                                                      categorical_encoder_valid],
-                                                                  config=config,
-                                                                  train_mode=train_mode,
-                                                                  **kwargs)
+        feature_combiner, feature_combiner_valid = _join_features(
+            numerical_features=[feature_by_type_split,
+                                application,
+                                bureau,
+                                credit_card_balance,
+                                groupby_aggregation,
+                                bureau_agg,
+                                credit_card_balance_agg,
+                                installments_payments_agg,
+                                pos_cash_balance_agg,
+                                previous_applications_agg],
+            numerical_features_valid=[feature_by_type_split_valid,
+                                      application_valid,
+                                      bureau_valid,
+                                      credit_card_balance_valid,
+                                      groupby_aggregation_valid,
+                                      bureau_agg_valid,
+                                      credit_card_balance_agg_valid,
+                                      installments_payments_agg_valid,
+                                      pos_cash_balance_agg_valid,
+                                      previous_applications_agg_valid],
+            categorical_features=[categorical_encoder],
+            categorical_features_valid=[categorical_encoder_valid],
+            config=config,
+            train_mode=train_mode,
+            **kwargs)
 
         return feature_combiner, feature_combiner_valid
     else:
         feature_by_type_split = _feature_by_type_splits(config, train_mode)
+        application = _application(config, train_mode, **kwargs)
         bureau = _bureau(config, train_mode, **kwargs)
+        credit_card_balance = _credit_card_balance(config, train_mode, **kwargs)
+        bureau_agg = _bureau_groupby_agg(config, train_mode, **kwargs)
+        credit_card_balance_agg = _credit_card_balance_groupby_agg(config, train_mode, **kwargs)
+        installments_payments_agg = _installments_payments_groupby_agg(config, train_mode, **kwargs)
+        pos_cash_balance_agg = _pos_cash_balance_groupby_agg(config, train_mode, **kwargs)
+        previous_applications_agg = _previous_applications_groupby_agg(config, train_mode, **kwargs)
         categorical_encoder = _categorical_encoders(feature_by_type_split, config, train_mode, **kwargs)
         groupby_aggregation = _groupby_aggregations(feature_by_type_split, config, train_mode, **kwargs)
-        feature_combiner = _join_features(numerical_features=[feature_by_type_split, groupby_aggregation, bureau],
+        feature_combiner = _join_features(numerical_features=[feature_by_type_split,
+                                                              application,
+                                                              bureau,
+                                                              credit_card_balance,
+                                                              groupby_aggregation,
+                                                              bureau_agg,
+                                                              credit_card_balance_agg,
+                                                              installments_payments_agg,
+                                                              pos_cash_balance_agg,
+                                                              previous_applications_agg],
                                           numerical_features_valid=[],
                                           categorical_features=[categorical_encoder],
                                           categorical_features_valid=[],
