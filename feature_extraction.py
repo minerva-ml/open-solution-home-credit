@@ -145,23 +145,39 @@ class ApplicationFeatures(BaseTransformer):
     def __init__(self):
         super().__init__()
         self.application_names = ['annuity_income_percentage',
+                                  'car_to_birth_ratio',
+                                  'car_to_employ_ratio',
+                                  'children_ratio',
+                                  'credit_to_annuity_ratio',
                                   'credit_to_goods_ratio',
+                                  'credit_to_income_ratio',
                                   'days_employed_percentage',
                                   'ext_sources_mean',
                                   'income_credit_percentage',
+                                  'income_per_child',
                                   'income_per_person',
-                                  'payment_rate']
+                                  'payment_rate',
+                                  'phone_to_birth_ratio',
+                                  'phone_to_employ_ratio']
 
     def transform(self, X, y=None):
         X['DAYS_EMPLOYED'].replace(365243, np.nan, inplace=True)
 
         X['annuity_income_percentage'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
+        X['car_to_birth_ratio'] = X['OWN_CAR_AGE'] / X['DAYS_BIRTH']
+        X['car_to_employ_ratio'] = X['OWN_CAR_AGE'] / X['DAYS_EMPLOYED']
+        X['children_ratio'] = X['CNT_CHILDREN'] / X['CNT_FAM_MEMBERS']
+        X['credit_to_annuity_ratio'] = X['AMT_CREDIT'] / X['AMT_ANNUITY']
         X['credit_to_goods_ratio'] = X['AMT_CREDIT'] / X['AMT_GOODS_PRICE']
+        X['credit_to_income_ratio'] = X['AMT_CREDIT'] / X['AMT_INCOME_TOTAL']
         X['days_employed_percentage'] = X['DAYS_EMPLOYED'] / X['DAYS_BIRTH']
         X['ext_sources_mean'] = X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']].mean(axis=1)
         X['income_credit_percentage'] = X['AMT_INCOME_TOTAL'] / X['AMT_CREDIT']
+        X['income_per_child'] = X['AMT_INCOME_TOTAL'] / (1 + X['CNT_CHILDREN'])
         X['income_per_person'] = X['AMT_INCOME_TOTAL'] / X['CNT_FAM_MEMBERS']
         X['payment_rate'] = X['AMT_ANNUITY'] / X['AMT_CREDIT']
+        X['phone_to_birth_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_BIRTH']
+        X['phone_to_employ_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_EMPLOYED']
 
         return {'numerical_features': X[self.application_names]}
 
