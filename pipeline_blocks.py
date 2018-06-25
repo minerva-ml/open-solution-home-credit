@@ -579,19 +579,33 @@ def _previous_applications_groupby_agg(config, train_mode, **kwargs):
         return previous_applications_groupby_agg
 
 
+def _application_cleaning(config, **kwargs):
+    application_cleaning = Step(name='application-cleaning',
+                                transformer=fe.ApplicationCleaning(),
+                                input_data=['input'],
+                                adapter=Adapter({'application': E('input', 'application')}),
+                                experiment_directory=config.pipeline.experiment_directory,
+                                **kwargs)
+
+    return application_cleaning
+
+
 def _application(config, train_mode, **kwargs):
+    application_cleaned = _application_cleaning(config, **kwargs)
     if train_mode:
         application = Step(name='application',
                            transformer=fe.ApplicationFeatures(),
-                           input_data=['input'],
-                           adapter=Adapter({'X': E('input', 'X')}),
+                           # input_data=['input'],
+                           input_steps=[application_cleaned],
+                           adapter=Adapter({'X': E(application_cleaned.name, 'X')}),
                            experiment_directory=config.pipeline.experiment_directory,
                            **kwargs)
 
         application_valid = Step(name='application_valid',
                                  transformer=application,
-                                 input_data=['input'],
-                                 adapter=Adapter({'X': E('input', 'X_valid')}),
+                                 # input_data=['input'],
+                                 input_steps=[application_cleaned],
+                                 adapter=Adapter({'X': E(application_cleaned.name, 'X')}),
                                  experiment_directory=config.pipeline.experiment_directory,
                                  **kwargs)
 
@@ -600,21 +614,35 @@ def _application(config, train_mode, **kwargs):
     else:
         application = Step(name='application',
                            transformer=fe.ApplicationFeatures(),
-                           input_data=['input'],
-                           adapter=Adapter({'X': E('input', 'X')}),
+                           # input_data=['input'],
+                           input_steps=[application_cleaned],
+                           adapter=Adapter({'X': E(application_cleaned.name, 'X')}),
                            experiment_directory=config.pipeline.experiment_directory,
                            **kwargs)
 
         return application
 
 
+def _bureau_cleaning(config, **kwargs):
+    bureau_cleaning = Step(name='bureau-cleaning',
+                           transformer=fe.BureauCleaning(),
+                           input_data=['input'],
+                           adapter=Adapter({'bureau': E('input', 'bureau')}),
+                           experiment_directory=config.pipeline.experiment_directory,
+                           **kwargs)
+
+    return bureau_cleaning
+
+
 def _bureau(config, train_mode, **kwargs):
+    bureau_cleaned = _bureau_cleaning(config, **kwargs)
     if train_mode:
         bureau = Step(name='bureau',
                       transformer=fe.BureauFeatures(**config.bureau),
                       input_data=['input'],
+                      input_steps=[bureau_cleaned],
                       adapter=Adapter({'X': E('input', 'X'),
-                                       'bureau': E('input', 'bureau')}),
+                                       'bureau': E(bureau_cleaned.name, 'bureau')}),
                       experiment_directory=config.pipeline.experiment_directory,
                       **kwargs)
 

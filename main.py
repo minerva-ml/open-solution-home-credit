@@ -77,22 +77,18 @@ def _train(pipeline_name, dev_mode):
 
     logger.info('Reading data...')
     if dev_mode:
+        nrows = cfg.DEV_SAMPLE_SIZE
         logger.info('running in "dev-mode". Sample size is: {}'.format(cfg.DEV_SAMPLE_SIZE))
-        application_train = pd.read_csv(params.train_filepath, nrows=cfg.DEV_SAMPLE_SIZE)
-        bureau_balance = pd.read_csv(params.bureau_balance_filepath, nrows=cfg.DEV_SAMPLE_SIZE)
-        bureau = pd.read_csv(params.bureau_filepath, nrows=cfg.DEV_SAMPLE_SIZE)
-        credit_card_balance = pd.read_csv(params.credit_card_balance_filepath, nrows=cfg.DEV_SAMPLE_SIZE)
-        installments_payments = pd.read_csv(params.installments_payments_filepath, nrows=cfg.DEV_SAMPLE_SIZE)
-        pos_cash_balance = pd.read_csv(params.POS_CASH_balance_filepath, nrows=cfg.DEV_SAMPLE_SIZE)
-        previous_application = pd.read_csv(params.previous_application_filepath, nrows=cfg.DEV_SAMPLE_SIZE)
     else:
-        application_train = pd.read_csv(params.train_filepath)
-        bureau_balance = pd.read_csv(params.bureau_balance_filepath)
-        bureau = pd.read_csv(params.bureau_filepath)
-        credit_card_balance = pd.read_csv(params.credit_card_balance_filepath)
-        installments_payments = pd.read_csv(params.installments_payments_filepath)
-        pos_cash_balance = pd.read_csv(params.POS_CASH_balance_filepath)
-        previous_application = pd.read_csv(params.previous_application_filepath)
+        nrows = None
+
+    application_train = pd.read_csv(params.train_filepath, nrows=nrows)
+    bureau_balance = pd.read_csv(params.bureau_balance_filepath, nrows=nrows)
+    bureau = pd.read_csv(params.bureau_filepath, nrows=nrows)
+    credit_card_balance = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows)
+    installments_payments = pd.read_csv(params.installments_payments_filepath, nrows=nrows)
+    pos_cash_balance = pd.read_csv(params.POS_CASH_balance_filepath, nrows=nrows)
+    previous_application = pd.read_csv(params.previous_application_filepath, nrows=nrows)
 
     logger.info('Shuffling and splitting into train and test...')
     train_data_split, valid_data_split = train_test_split(application_train,

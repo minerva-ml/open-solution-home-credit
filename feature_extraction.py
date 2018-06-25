@@ -141,6 +141,16 @@ class GroupbyAggregationFromFile(BaseTransformer):
         return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}
 
 
+class ApplicationCleaning(BaseTransformer):
+    def __init__(self):
+        super().__init__()
+
+    def transform(self, X):
+        X['DAYS_EMPLOYED'].replace(365243, np.nan, inplace=True)
+
+        return {'X': X}
+
+
 class ApplicationFeatures(BaseTransformer):
     def __init__(self):
         super().__init__()
@@ -161,8 +171,6 @@ class ApplicationFeatures(BaseTransformer):
                                   'phone_to_employ_ratio']
 
     def transform(self, X, y=None):
-        X['DAYS_EMPLOYED'].replace(365243, np.nan, inplace=True)
-
         X['annuity_income_percentage'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
         X['car_to_birth_ratio'] = X['OWN_CAR_AGE'] / X['DAYS_BIRTH']
         X['car_to_employ_ratio'] = X['OWN_CAR_AGE'] / X['DAYS_EMPLOYED']
@@ -182,8 +190,22 @@ class ApplicationFeatures(BaseTransformer):
         return {'numerical_features': X[self.application_names]}
 
 
+class BureauCleaning(BaseTransformer):
+    def __init__(self):
+        super().__init__()
+
+    def transform(self, bureau):
+        bureau['AMT_CREDIT_SUM'].fillna(0, inplace=True)
+        bureau['AMT_CREDIT_SUM_DEBT'].fillna(0, inplace=True)
+        bureau['AMT_CREDIT_SUM_OVERDUE'].fillna(0, inplace=True)
+        bureau['CNT_CREDIT_PROLONG'].fillna(0, inplace=True)
+
+        return {'bureau': bureau}
+
+
 class BureauFeatures(BaseTransformer):
     def __init__(self, id_columns, **kwargs):
+        super().__init__()
         self.id_columns = id_columns
         self.bureau_names = ['bureau_number_of_past_loans',
                              'bureau_number_of_loan_types',
@@ -201,11 +223,6 @@ class BureauFeatures(BaseTransformer):
                              ]
 
     def fit(self, X, bureau):
-        bureau['AMT_CREDIT_SUM'].fillna(0, inplace=True)
-        bureau['AMT_CREDIT_SUM_DEBT'].fillna(0, inplace=True)
-        bureau['AMT_CREDIT_SUM_OVERDUE'].fillna(0, inplace=True)
-        bureau['CNT_CREDIT_PROLONG'].fillna(0, inplace=True)
-
         bureau['bureau_number_of_past_loans'] = bureau.groupby(
             by=['SK_ID_CURR'])['DAYS_CREDIT'].agg('count').reset_index()['DAYS_CREDIT']
 
@@ -278,6 +295,7 @@ class BureauFeatures(BaseTransformer):
 
 class CreditCardBalanceFeatures(BaseTransformer):
     def __init__(self, id_columns, **kwargs):
+        super().__init__()
         self.id_columns = id_columns
         self.credit_card_names = ['credit_card-number_of_loans',
                                   'credit_card-total_instalments',
