@@ -101,17 +101,17 @@ def _train(pipeline_name, dev_mode):
     logger.info('Train shape: {}'.format(train_data_split.shape))
     logger.info('Valid shape: {}'.format(valid_data_split.shape))
 
-    data = {'input': {'X': train_data_split.drop(cfg.TARGET_COLUMN, axis=1),
+    data = {'main': {'X': train_data_split.drop(cfg.TARGET_COLUMN, axis=1),
                       'y': train_data_split[cfg.TARGET_COLUMN],
                       'X_valid': valid_data_split.drop(cfg.TARGET_COLUMN, axis=1),
-                      'y_valid': valid_data_split[cfg.TARGET_COLUMN],
-                      'bureau_balance': bureau_balance,
-                      'bureau': bureau,
-                      'credit_card_balance': credit_card_balance,
-                      'installments_payments': installments_payments,
-                      'pos_cash_balance': pos_cash_balance,
-                      'previous_application': previous_application
+                      'y_valid': valid_data_split[cfg.TARGET_COLUMN]
                       },
+            'bureau_balance': {'X': bureau_balance},
+            'bureau': {'X': bureau},
+            'credit_card_balance': {'X': credit_card_balance},
+            'installments_payments': {'X': installments_payments},
+            'pos_cash_balance': {'X': pos_cash_balance},
+            'previous_application': {'X': previous_application},
             }
 
     pipeline = PIPELINES[pipeline_name]['train'](cfg.SOLUTION_CONFIG)
