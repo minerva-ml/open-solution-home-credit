@@ -11,17 +11,8 @@ params = read_params(ctx)
 RANDOM_SEED = 90210
 DEV_SAMPLE_SIZE = 1000
 
-BUREAU_BALANCE = params.bureau_balance_filepath
-BUREAU = params.bureau_filepath
-CREDIT_CARD_BALANCE = params.credit_card_balance_filepath
-INSTALLMENTS_PAYMENTS = params.installments_payments_filepath
-POS_CASH_BALANCE = params.POS_CASH_balance_filepath
-PREVIOUS_APPLICATION = params.previous_application_filepath
-
 ID_COLUMN = 'SK_ID_CURR'
 TARGET_COLUMN = 'TARGET'
-
-TIMESTAMP_COLUMNS = []
 
 CATEGORICAL_COLUMNS = ['CODE_GENDER',
                        'EMERGENCYSTATE_MODE',
@@ -236,7 +227,7 @@ SOLUTION_CONFIG = AttrDict({
 
     'dataframe_by_type_splitter': {'numerical_columns': NUMERICAL_COLUMNS,
                                    'categorical_columns': CATEGORICAL_COLUMNS,
-                                   'timestamp_columns': TIMESTAMP_COLUMNS,
+                                   'timestamp_columns': [],
                                    },
 
     'light_gbm': {'device': parameter_eval(params.lgbm__device),
@@ -353,27 +344,27 @@ SOLUTION_CONFIG = AttrDict({
                               },
                       },
 
-    'bureau': {'filepath': BUREAU,
+    'bureau': {'filename': 'bureau',
                'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                'groupby_aggregations': BUREAU_AGGREGATION_RECIPIES
                },
 
-    'credit_card_balance': {'filepath': CREDIT_CARD_BALANCE,
+    'credit_card_balance': {'filename': 'credit_card_balance',
                             'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                             'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES
                             },
 
-    'installments_payments': {'filepath': INSTALLMENTS_PAYMENTS,
+    'installments_payments': {'filename': 'installments_payments',
                               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                               'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES
                               },
 
-    'pos_cash_balance': {'filepath': POS_CASH_BALANCE,
+    'pos_cash_balance': {'filename': 'POS_CASH_balance',
                          'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                          'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES
                          },
 
-    'previous_applications': {'filepath': PREVIOUS_APPLICATION,
+    'previous_applications': {'filename': 'previous_application',
                               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                               'groupby_aggregations': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES
                               },

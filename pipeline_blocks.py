@@ -424,14 +424,16 @@ def _bureau_groupby_agg(config, train_mode, **kwargs):
         bureau_groupby_agg = Step(name='bureau_groupby_agg',
                                   transformer=fe.GroupbyAggregationFromFile(**config.bureau),
                                   input_data=['input'],
-                                  adapter=Adapter({'X': E('input', 'X')}),
+                                  adapter=Adapter({'X': E('input', 'X'),
+                                                   'file': E('input', 'bureau')}),
                                   experiment_directory=config.pipeline.experiment_directory,
                                   **kwargs)
 
         bureau_groupby_agg_valid = Step(name='bureau_groupby_agg_valid',
                                         transformer=bureau_groupby_agg,
                                         input_data=['input'],
-                                        adapter=Adapter({'X': E('input', 'X_valid')}),
+                                        adapter=Adapter({'X': E('input', 'X_valid'),
+                                                         'file': E('input', 'bureau')}),
                                         experiment_directory=config.pipeline.experiment_directory,
                                         **kwargs)
 
@@ -441,7 +443,8 @@ def _bureau_groupby_agg(config, train_mode, **kwargs):
         bureau_groupby_agg = Step(name='bureau_groupby_agg',
                                   transformer=fe.GroupbyAggregationFromFile(**config.bureau),
                                   input_data=['input'],
-                                  adapter=Adapter({'X': E('input', 'X')}),
+                                  adapter=Adapter({'X': E('input', 'X'),
+                                                   'file': E('input', 'bureau')}),
                                   experiment_directory=config.pipeline.experiment_directory,
                                   **kwargs)
 
@@ -453,14 +456,16 @@ def _credit_card_balance_groupby_agg(config, train_mode, **kwargs):
         credit_card_balance_groupby_agg = Step(name='credit_card_balance_groupby_agg',
                                                transformer=fe.GroupbyAggregationFromFile(**config.credit_card_balance),
                                                input_data=['input'],
-                                               adapter=Adapter({'X': E('input', 'X')}),
+                                               adapter=Adapter({'X': E('input', 'X'),
+                                                                'file': E('input', 'credit_card_balance')}),
                                                experiment_directory=config.pipeline.experiment_directory,
                                                **kwargs)
 
         credit_card_balance_groupby_agg_valid = Step(name='credit_card_balance_groupby_agg_valid',
                                                      transformer=credit_card_balance_groupby_agg,
                                                      input_data=['input'],
-                                                     adapter=Adapter({'X': E('input', 'X_valid')}),
+                                                     adapter=Adapter({'X': E('input', 'X_valid'),
+                                                                      'file': E('input', 'credit_card_balance')}),
                                                      experiment_directory=config.pipeline.experiment_directory,
                                                      **kwargs)
 
@@ -470,7 +475,8 @@ def _credit_card_balance_groupby_agg(config, train_mode, **kwargs):
         credit_card_balance_groupby_agg = Step(name='credit_card_balance_groupby_agg',
                                                transformer=fe.GroupbyAggregationFromFile(**config.credit_card_balance),
                                                input_data=['input'],
-                                               adapter=Adapter({'X': E('input', 'X')}),
+                                               adapter=Adapter({'X': E('input', 'X'),
+                                                                'file': E('input', 'credit_card_balance')}),
                                                experiment_directory=config.pipeline.experiment_directory,
                                                **kwargs)
 
@@ -482,14 +488,16 @@ def _installments_payments_groupby_agg(config, train_mode, **kwargs):
         installments_payments_groupby_agg = Step(name='installments_payments_groupby_agg',
                                                  transformer=fe.GroupbyAggregationFromFile(**config.installments_payments),
                                                  input_data=['input'],
-                                                 adapter=Adapter({'X': E('input', 'X')}),
+                                                 adapter=Adapter({'X': E('input', 'X'),
+                                                                  'file': E('input', 'installments_payments')}),
                                                  experiment_directory=config.pipeline.experiment_directory,
                                                  **kwargs)
 
         installments_payments_groupby_agg_valid = Step(name='installments_payments_groupby_agg_valid',
                                                        transformer=installments_payments_groupby_agg,
                                                        input_data=['input'],
-                                                       adapter=Adapter({'X': E('input', 'X_valid')}),
+                                                       adapter=Adapter({'X': E('input', 'X_valid'),
+                                                                        'file': E('input', 'installments_payments')}),
                                                        experiment_directory=config.pipeline.experiment_directory,
                                                        **kwargs)
 
@@ -499,7 +507,8 @@ def _installments_payments_groupby_agg(config, train_mode, **kwargs):
         installments_payments_groupby_agg = Step(name='installments_payments_groupby_agg',
                                                  transformer=fe.GroupbyAggregationFromFile(**config.installments_payments),
                                                  input_data=['input'],
-                                                 adapter=Adapter({'X': E('input', 'X')}),
+                                                 adapter=Adapter({'X': E('input', 'X'),
+                                                                  'file': E('input', 'installments_payments')}),
                                                  experiment_directory=config.pipeline.experiment_directory,
                                                  **kwargs)
 
@@ -511,14 +520,16 @@ def _pos_cash_balance_groupby_agg(config, train_mode, **kwargs):
         pos_cash_balance_groupby_agg = Step(name='pos_cash_balance_groupby_agg',
                                             transformer=fe.GroupbyAggregationFromFile(**config.pos_cash_balance),
                                             input_data=['input'],
-                                            adapter=Adapter({'X': E('input', 'X')}),
+                                            adapter=Adapter({'X': E('input', 'X'),
+                                                             'file': E('input', 'pos_cash_balance')}),
                                             experiment_directory=config.pipeline.experiment_directory,
                                             **kwargs)
 
         pos_cash_balance_groupby_agg_valid = Step(name='pos_cash_balance_groupby_agg_valid',
                                                   transformer=pos_cash_balance_groupby_agg,
                                                   input_data=['input'],
-                                                  adapter=Adapter({'X': E('input', 'X_valid')}),
+                                                  adapter=Adapter({'X': E('input', 'X_valid'),
+                                                                   'file': E('input', 'pos_cash_balance')}),
                                                   experiment_directory=config.pipeline.experiment_directory,
                                                   **kwargs)
 
@@ -528,7 +539,8 @@ def _pos_cash_balance_groupby_agg(config, train_mode, **kwargs):
         pos_cash_balance_groupby_agg = Step(name='pos_cash_balance_groupby_agg',
                                             transformer=fe.GroupbyAggregationFromFile(**config.pos_cash_balance),
                                             input_data=['input'],
-                                            adapter=Adapter({'X': E('input', 'X')}),
+                                            adapter=Adapter({'X': E('input', 'X'),
+                                                             'file': E('input', 'pos_cash_balance')}),
                                             experiment_directory=config.pipeline.experiment_directory,
                                             **kwargs)
 
@@ -540,14 +552,16 @@ def _previous_applications_groupby_agg(config, train_mode, **kwargs):
         previous_applications_groupby_agg = Step(name='previous_applications_groupby_agg',
                                                  transformer=fe.GroupbyAggregationFromFile(**config.previous_applications),
                                                  input_data=['input'],
-                                                 adapter=Adapter({'X': E('input', 'X')}),
+                                                 adapter=Adapter({'X': E('input', 'X'),
+                                                                  'file': E('input', 'previous_application')}),
                                                  experiment_directory=config.pipeline.experiment_directory,
                                                  **kwargs)
 
         previous_applications_groupby_agg_valid = Step(name='previous_applications_groupby_agg_valid',
                                                        transformer=previous_applications_groupby_agg,
                                                        input_data=['input'],
-                                                       adapter=Adapter({'X': E('input', 'X_valid')}),
+                                                       adapter=Adapter({'X': E('input', 'X_valid'),
+                                                                        'file': E('input', 'previous_application')}),
                                                        experiment_directory=config.pipeline.experiment_directory,
                                                        **kwargs)
 
@@ -557,7 +571,8 @@ def _previous_applications_groupby_agg(config, train_mode, **kwargs):
         previous_applications_groupby_agg = Step(name='previous_applications_groupby_agg',
                                                  transformer=fe.GroupbyAggregationFromFile(**config.previous_applications),
                                                  input_data=['input'],
-                                                 adapter=Adapter({'X': E('input', 'X')}),
+                                                 adapter=Adapter({'X': E('input', 'X'),
+                                                                  'file': E('input', 'previous_application')}),
                                                  experiment_directory=config.pipeline.experiment_directory,
                                                  **kwargs)
 
@@ -598,7 +613,8 @@ def _bureau(config, train_mode, **kwargs):
         bureau = Step(name='bureau',
                       transformer=fe.BureauFeatures(**config.bureau),
                       input_data=['input'],
-                      adapter=Adapter({'X': E('input', 'X')}),
+                      adapter=Adapter({'X': E('input', 'X'),
+                                       'bureau': E('input', 'bureau')}),
                       experiment_directory=config.pipeline.experiment_directory,
                       **kwargs)
 
@@ -627,7 +643,8 @@ def _credit_card_balance(config, train_mode, **kwargs):
         credit_card_balance = Step(name='credit_card_balance',
                                    transformer=fe.CreditCardBalanceFeatures(**config.credit_card_balance),
                                    input_data=['input'],
-                                   adapter=Adapter({'X': E('input', 'X')}),
+                                   adapter=Adapter({'X': E('input', 'X'),
+                                                    'credit_card': E('input', 'credit_card_balance')}),
                                    experiment_directory=config.pipeline.experiment_directory,
                                    **kwargs)
 
