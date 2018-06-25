@@ -77,10 +77,18 @@ def _train(pipeline_name, dev_mode):
 
     logger.info('Reading data...')
     if dev_mode:
+        nrows = cfg.DEV_SAMPLE_SIZE
         logger.info('running in "dev-mode". Sample size is: {}'.format(cfg.DEV_SAMPLE_SIZE))
-        application_train = pd.read_csv(params.train_filepath, nrows=cfg.DEV_SAMPLE_SIZE)
     else:
-        application_train = pd.read_csv(params.train_filepath)
+        nrows = None
+
+    application_train = pd.read_csv(params.train_filepath, nrows=nrows)
+    bureau_balance = pd.read_csv(params.bureau_balance_filepath, nrows=nrows)
+    bureau = pd.read_csv(params.bureau_filepath, nrows=nrows)
+    credit_card_balance = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows)
+    installments_payments = pd.read_csv(params.installments_payments_filepath, nrows=nrows)
+    pos_cash_balance = pd.read_csv(params.POS_CASH_balance_filepath, nrows=nrows)
+    previous_application = pd.read_csv(params.previous_application_filepath, nrows=nrows)
 
     logger.info('Shuffling and splitting into train and test...')
     train_data_split, valid_data_split = train_test_split(application_train,
@@ -93,11 +101,17 @@ def _train(pipeline_name, dev_mode):
     logger.info('Train shape: {}'.format(train_data_split.shape))
     logger.info('Valid shape: {}'.format(valid_data_split.shape))
 
-    data = {'input': {'X': train_data_split.drop(cfg.TARGET_COLUMN, axis=1),
+    data = {'main': {'X': train_data_split.drop(cfg.TARGET_COLUMN, axis=1),
                       'y': train_data_split[cfg.TARGET_COLUMN],
                       'X_valid': valid_data_split.drop(cfg.TARGET_COLUMN, axis=1),
-                      'y_valid': valid_data_split[cfg.TARGET_COLUMN],
+                      'y_valid': valid_data_split[cfg.TARGET_COLUMN]
                       },
+            'bureau_balance': {'X': bureau_balance},
+            'bureau': {'X': bureau},
+            'credit_card_balance': {'X': credit_card_balance},
+            'installments_payments': {'X': installments_payments},
+            'pos_cash_balance': {'X': pos_cash_balance},
+            'previous_application': {'X': previous_application},
             }
 
     pipeline = PIPELINES[pipeline_name]['train'](cfg.SOLUTION_CONFIG)
