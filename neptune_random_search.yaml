@@ -22,7 +22,7 @@ parameters:
 # Data
   train_filepath:                 YOUR/PATH/TO/application_train.csv
   test_filepath:                  YOUR/PATH/TO/application_test.csv
-  bureau_balance_filepath:        YOUR/PATH/TO/bureau_balance_filepath.csv
+  bureau_balance_filepath:        YOUR/PATH/TO/bureau_balance.csv
   bureau_filepath:                YOUR/PATH/TO/bureau.csv
   credit_card_balance_filepath:   YOUR/PATH/TO/credit_card_balance.csv
   installments_payments_filepath: YOUR/PATH/TO/installments_payments.csv

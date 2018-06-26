@@ -1,7 +1,7 @@
 project: ORGANIZATION/home-credit
 
 name: home-credit-default-risk
-tags: [solution-3]
+tags: [solution-3, dev]
 
 metric:
   channel: 'ROC_AUC'
@@ -22,7 +22,7 @@ parameters:
 # Data
   train_filepath:                 YOUR/PATH/TO/application_train.csv
   test_filepath:                  YOUR/PATH/TO/application_test.csv
-  bureau_balance_filepath:        YOUR/PATH/TO/bureau_balance_filepath.csv
+  bureau_balance_filepath:        YOUR/PATH/TO/bureau_balance.csv
   bureau_filepath:                YOUR/PATH/TO/bureau.csv
   credit_card_balance_filepath:   YOUR/PATH/TO/credit_card_balance.csv
   installments_payments_filepath: YOUR/PATH/TO/installments_payments.csv
@@ -41,7 +41,7 @@ parameters:
 
 # Execution
   clean_experiment_directory_before_training: 1
-  num_workers: 16
+  num_workers: 1
   verbose: 1
 
 # Preprocessing
