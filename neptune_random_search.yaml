@@ -36,6 +36,7 @@ parameters:
   kaggle_message: 'solution-3'
 
 # Data preparation
+  n_cv_splits: 5
   validation_size: 0.2
   shuffle: 1
 
@@ -117,3 +118,6 @@ parameters:
   svc__probability: True
   svc__tol: '[0.00001, 0.01, "log-uniform"]'
   svc__max_iter: '[-1, 100, 1000, 10000, 50000, "list"]'
+
+# Postprocessing
+  aggregation_method: mean

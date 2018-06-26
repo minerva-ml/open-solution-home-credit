@@ -3,16 +3,16 @@ import os
 from attrdict import AttrDict
 from deepsense import neptune
 
-from utils import read_params, parameter_eval
+from .utils import read_params, parameter_eval
 
 ctx = neptune.Context()
-params = read_params(ctx)
+params = read_params(ctx, fallback_file='neptune.yaml')
 
 RANDOM_SEED = 90210
 DEV_SAMPLE_SIZE = 1000
 
-ID_COLUMN = 'SK_ID_CURR'
-TARGET_COLUMN = 'TARGET'
+ID_COLUMNS = ['SK_ID_CURR']
+TARGET_COLUMNS = ['TARGET']
 
 CATEGORICAL_COLUMNS = ['CODE_GENDER',
                        'EMERGENCYSTATE_MODE',

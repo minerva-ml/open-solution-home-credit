@@ -10,7 +10,7 @@ from steppy.base import BaseTransformer
 from toolkit.sklearn_transformers.models import SklearnClassifier
 import xgboost as xgb
 
-from utils import get_logger
+from .utils import get_logger
 
 logger = get_logger()
 ctx = neptune.Context()
