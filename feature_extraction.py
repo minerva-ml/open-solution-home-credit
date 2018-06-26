@@ -1,5 +1,3 @@
-import os
-
 import category_encoders as ce
 import numpy as np
 import pandas as pd
@@ -17,7 +15,7 @@ class DataFrameByTypeSplitter(BaseTransformer):
         self.categorical_columns = categorical_columns
         self.timestamp_columns = timestamp_columns
 
-    def transform(self, X, y=None, **kwargs):
+    def transform(self, X, **kwargs):
         outputs = {}
 
         if self.numerical_columns is not None:
@@ -68,7 +66,7 @@ class CategoricalEncoder(BaseTransformer):
         self.categorical_encoder.fit(X, y)
         return self
 
-    def transform(self, X, y=None, **kwargs):
+    def transform(self, X, **kwargs):
         X_ = self.categorical_encoder.transform(X)
         return {'categorical_features': X_}
 
@@ -80,75 +78,58 @@ class CategoricalEncoder(BaseTransformer):
         joblib.dump(self.categorical_encoder, filepath)
 
 
-class GroupbyAggregations(BaseTransformer):
+class GroupbyAggregate(BaseTransformer):
     def __init__(self, groupby_aggregations):
         super().__init__()
         self.groupby_aggregations = groupby_aggregations
+        self.groupby_aggregate_names = []
 
-    @property
-    def groupby_aggregations_names(self):
-        groupby_aggregations_names = ['{}_{}_{}'.format('_'.join(spec['groupby']),
-                                                        spec['agg'],
-                                                        spec['select'])
-                                      for spec in self.groupby_aggregations]
-        return groupby_aggregations_names
+    def transform(self, main_table, **kwargs):
+        for groupby_cols, specs in self.groupby_aggregations:
+            group_object = main_table.groupby(groupby_cols)
+            for select, agg in specs:
+                groupby_aggregate_name = self._create_colname_from_specs(groupby_cols, select, agg)
+                main_table = main_table.merge(group_object[select]
+                                              .agg(agg)
+                                              .reset_index()
+                                              .rename(index=str,
+                                                      columns={select: groupby_aggregate_name})
+                                              [groupby_cols + [groupby_aggregate_name]],
+                                              on=groupby_cols,
+                                              how='left')
+                self.groupby_aggregate_names.append(groupby_aggregate_name)
+        return {'numerical_features': main_table[self.groupby_aggregate_names].astype(np.float32)}
 
-    def transform(self, categorical_features, numerical_features):
-        X = pd.concat([categorical_features, numerical_features], axis=1)
-        for spec, groupby_aggregations_name in zip(self.groupby_aggregations, self.groupby_aggregations_names):
-            group_object = X.groupby(spec['groupby'])
-            X = X.merge(group_object[spec['select']]
-                        .agg(spec['agg'])
-                        .reset_index()
-                        .rename(index=str,
-                                columns={spec['select']: groupby_aggregations_name})
-                        [spec['groupby'] + [groupby_aggregations_name]],
-                        on=spec['groupby'],
-                        how='left')
-
-        return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}
+    def _create_colname_from_specs(self, groupby_cols, agg, select):
+        return '{}_{}_{}'.format('_'.join(groupby_cols), agg, select)
 
 
-class GroupbyAggregationFromFile(BaseTransformer):
-    def __init__(self, filename, id_columns, groupby_aggregations):
+class GroupbyAggregateMerge(BaseTransformer):
+    def __init__(self, table_name, id_columns, groupby_aggregations):
         super().__init__()
-        self.filename = filename
+        self.table_name = table_name
         self.id_columns = id_columns
         self.groupby_aggregations = groupby_aggregations
+        self.groupby_aggregate_names = []
 
-    @ property
-    def groupby_aggregations_names(self):
-        groupby_aggregations_names = ['{}_{}_{}_{}'.format(self.filename,
-                                                           '_'.join(spec['groupby']),
-                                                           spec['agg'],
-                                                           spec['select'])
-                                      for spec in self.groupby_aggregations]
-        return groupby_aggregations_names
+    def transform(self, main_table, side_table):
+        for groupby_cols, specs in self.groupby_aggregations:
+            group_object = side_table.groupby(groupby_cols)
+            for select, agg in specs:
+                groupby_aggregate_name = self._create_colname_from_specs(groupby_cols, select, agg)
+                main_table = main_table.merge(group_object[select]
+                                              .agg(agg)
+                                              .reset_index()
+                                              .rename(index=str,
+                                                      columns={select: groupby_aggregate_name})
+                                              [groupby_cols + [groupby_aggregate_name]],
+                                              on=groupby_cols,
+                                              how='left')
+                self.groupby_aggregate_names.append(groupby_aggregate_name)
+        return {'numerical_features': main_table[self.groupby_aggregate_names].astype(np.float32)}
 
-    def transform(self, X, file):
-        for spec, groupby_aggregations_name in zip(self.groupby_aggregations, self.groupby_aggregations_names):
-            group_object = file.groupby(spec['groupby'])
-            X = X.merge(group_object[spec['select']]
-                        .agg(spec['agg'])
-                        .reset_index()
-                        .rename(index=str,
-                                columns={spec['select']: groupby_aggregations_name})
-                        [spec['groupby'] + [groupby_aggregations_name]],
-                        left_on=self.id_columns[0],
-                        right_on=self.id_columns[1],
-                        how='left')
-
-        return {'numerical_features': X[self.groupby_aggregations_names].astype(np.float32)}
-
-
-class ApplicationCleaning(BaseTransformer):
-    def __init__(self):
-        super().__init__()
-
-    def transform(self, X):
-        X['DAYS_EMPLOYED'].replace(365243, np.nan, inplace=True)
-
-        return {'X': X}
+    def _create_colname_from_specs(self, groupby_cols, select, agg):
+        return '{}_{}_{}_{}'.format(self.table_name, '_'.join(groupby_cols), agg, select)
 
 
 class ApplicationFeatures(BaseTransformer):
@@ -170,7 +151,7 @@ class ApplicationFeatures(BaseTransformer):
                                   'phone_to_birth_ratio',
                                   'phone_to_employ_ratio']
 
-    def transform(self, X, y=None):
+    def transform(self, X, **kwargs):
         X['annuity_income_percentage'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
         X['car_to_birth_ratio'] = X['OWN_CAR_AGE'] / X['DAYS_BIRTH']
         X['car_to_employ_ratio'] = X['OWN_CAR_AGE'] / X['DAYS_EMPLOYED']
@@ -188,19 +169,6 @@ class ApplicationFeatures(BaseTransformer):
         X['phone_to_employ_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_EMPLOYED']
 
         return {'numerical_features': X[self.application_names]}
-
-
-class BureauCleaning(BaseTransformer):
-    def __init__(self):
-        super().__init__()
-
-    def transform(self, bureau):
-        bureau['AMT_CREDIT_SUM'].fillna(0, inplace=True)
-        bureau['AMT_CREDIT_SUM_DEBT'].fillna(0, inplace=True)
-        bureau['AMT_CREDIT_SUM_OVERDUE'].fillna(0, inplace=True)
-        bureau['CNT_CREDIT_PROLONG'].fillna(0, inplace=True)
-
-        return {'bureau': bureau}
 
 
 class BureauFeatures(BaseTransformer):
@@ -266,7 +234,8 @@ class BureauFeatures(BaseTransformer):
 
         bureau['bureau_total_customer_overdue'] = bureau.groupby(
             by=['SK_ID_CURR'])['AMT_CREDIT_SUM_OVERDUE'].agg('sum').reset_index()['AMT_CREDIT_SUM_OVERDUE']
-        bureau['bureau_overdue_debt_ratio'] = bureau['bureau_total_customer_overdue'] / bureau['bureau_total_customer_debt']
+        bureau['bureau_overdue_debt_ratio'] = bureau['bureau_total_customer_overdue'] / bureau[
+            'bureau_total_customer_debt']
 
         bureau['bureau_average_creditdays_prolonged'] = bureau.groupby(
             by=['SK_ID_CURR'])['CNT_CREDIT_PROLONG'].agg('mean').reset_index()['CNT_CREDIT_PROLONG']
@@ -367,3 +336,13 @@ class CreditCardBalanceFeatures(BaseTransformer):
 
     def persist(self, filepath):
         joblib.dump(self.credit_card_features, filepath)
+
+
+class ConcatFeatures(BaseTransformer):
+    def transform(self, **kwargs):
+        features_concat = []
+        for _, feature in kwargs.items():
+            feature.reset_index(drop=True, inplace=True)
+            features_concat.append(feature)
+        features_concat = pd.concat(features_concat, axis=1)
+        return {'concatenated_features': features_concat}
