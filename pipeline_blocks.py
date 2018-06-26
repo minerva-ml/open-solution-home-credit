@@ -489,7 +489,7 @@ def _installments_payments_groupby_agg(config, train_mode, **kwargs):
                                                  transformer=fe.GroupbyAggregationFromFile(**config.installments_payments),
                                                  input_data=['main', 'installments_payments'],
                                                  adapter=Adapter({'X': E('main', 'X'),
-                                                                  'file': E('main', 'installments_payments')}),
+                                                                  'file': E('installments_payments', 'X')}),
                                                  experiment_directory=config.pipeline.experiment_directory,
                                                  **kwargs)
 

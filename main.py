@@ -102,10 +102,10 @@ def _train(pipeline_name, dev_mode):
     logger.info('Valid shape: {}'.format(valid_data_split.shape))
 
     data = {'main': {'X': train_data_split.drop(cfg.TARGET_COLUMN, axis=1),
-                      'y': train_data_split[cfg.TARGET_COLUMN],
-                      'X_valid': valid_data_split.drop(cfg.TARGET_COLUMN, axis=1),
-                      'y_valid': valid_data_split[cfg.TARGET_COLUMN]
-                      },
+                     'y': train_data_split[cfg.TARGET_COLUMN],
+                     'X_valid': valid_data_split.drop(cfg.TARGET_COLUMN, axis=1),
+                     'y_valid': valid_data_split[cfg.TARGET_COLUMN]
+                     },
             'bureau_balance': {'X': bureau_balance},
             'bureau': {'X': bureau},
             'credit_card_balance': {'X': credit_card_balance},
