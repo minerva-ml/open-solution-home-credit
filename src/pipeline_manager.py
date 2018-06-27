@@ -109,7 +109,7 @@ def evaluate(pipeline_name, dev_mode):
     output = pipeline.transform(eval_data)
     pipeline.clean_cache()
 
-    y_pred = output['clipped_prediction']
+    y_pred = output['prediction']
 
     logger.info('Calculating ROC_AUC on validation set')
     score = roc_auc_score(y_true, y_pred)
@@ -139,7 +139,7 @@ def predict(pipeline_name, dev_mode, submit_predictions):
     logger.info('Start pipeline transform')
     output = pipeline.transform(test_data)
     pipeline.clean_cache()
-    y_pred = output['clipped_prediction']
+    y_pred = output['prediction']
 
     if not dev_mode:
         logger.info('creating submission file...')
