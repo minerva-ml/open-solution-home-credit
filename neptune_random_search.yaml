@@ -38,6 +38,7 @@ parameters:
 # Data preparation
   n_cv_splits: 5
   validation_size: 0.2
+  stratified_cv: True
   shuffle: 1
 
 # Execution

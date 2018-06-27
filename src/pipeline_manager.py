@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.stats import gmean
 from deepsense import neptune
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
 
 from . import pipeline_config as cfg
 from .pipelines import PIPELINES
@@ -165,11 +165,11 @@ def train_evaluate_cv(pipeline_name, dev_mode):
 
     tables = _read_data(dev_mode, read_train=True, read_test=False)
 
-    cv = KFold(n_splits=params.n_cv_splits, shuffle=True, random_state=cfg.RANDOM_SEED)
     target_values = tables.application_train[cfg.TARGET_COLUMNS].values.reshape(-1)
+    fold_generator = _get_fold_generator(target_values)
 
     fold_scores = []
-    for fold_id, (train_idx, valid_idx) in enumerate(cv.split(target_values)):
+    for fold_id, (train_idx, valid_idx) in enumerate(fold_generator):
         (train_data_split,
          valid_data_split) = tables.application_train.iloc[train_idx], tables.application_train.iloc[valid_idx]
 
@@ -200,11 +200,11 @@ def train_evaluate_predict_cv(pipeline_name, dev_mode, submit_predictions):
 
     tables = _read_data(dev_mode, read_train=True, read_test=True)
 
-    cv = KFold(n_splits=params.n_cv_splits, shuffle=True, random_state=cfg.RANDOM_SEED)
     target_values = tables.application_train[cfg.TARGET_COLUMNS].values.reshape(-1)
+    fold_generator = _get_fold_generator(target_values)
 
     fold_scores, out_of_fold_train_predictions, out_of_fold_test_predictions = [], [], []
-    for fold_id, (train_idx, valid_idx) in enumerate(cv.split(target_values)):
+    for fold_id, (train_idx, valid_idx) in enumerate(fold_generator):
         (train_data_split,
          valid_data_split) = tables.application_train.iloc[train_idx], tables.application_train.iloc[valid_idx]
 
@@ -287,6 +287,17 @@ def _read_data(dev_mode, read_train=True, read_test=False):
     raw_data['previous_application'] = pd.read_csv(params.previous_application_filepath, nrows=nrows)
 
     return AttrDict(raw_data)
+
+
+def _get_fold_generator(target_values):
+    if params.stratified_cv:
+        cv = StratifiedKFold(n_splits=params.n_cv_splits, shuffle=True, random_state=cfg.RANDOM_SEED)
+        cv.get_n_splits(target_values)
+        fold_generator = cv.split(target_values, target_values)
+    else:
+        cv = KFold(n_splits=params.n_cv_splits, shuffle=True, random_state=cfg.RANDOM_SEED)
+        fold_generator = cv.split(target_values)
+    return fold_generator
 
 
 def _fold_fit_evaluate_predict_loop(train_data_split, valid_data_split, tables, fold_id, pipeline_name):
