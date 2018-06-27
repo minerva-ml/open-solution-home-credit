@@ -156,7 +156,7 @@ class LightGBM(BaseTransformer):
     def _check_target_shape_and_type(self, target, name):
         if not any([isinstance(target, obj_type) for obj_type in [pd.Series, np.ndarray, list]]):
             raise TypeError(
-                '"{}" must be "numpy.ndarray" or "Pandas.Series" or "list", got {} instead.'.format(type(target)))
+                '"target" must be "numpy.ndarray" or "Pandas.Series" or "list", got {} instead.'.format(type(target)))
         try:
             assert len(target.shape) == 1, '"{}" must be 1-D. It is {}-D instead.'.format(name,
                                                                                           len(target.shape))
@@ -175,7 +175,7 @@ class LightGBM(BaseTransformer):
             return np.array(target)
         else:
             raise TypeError(
-                '"{}" must be "numpy.ndarray" or "Pandas.Series" or "list", got {} instead.'.format(type(target)))
+                '"target" must be "numpy.ndarray" or "Pandas.Series" or "list", got {} instead.'.format(type(target)))
 
 
 def get_sklearn_classifier(ClassifierClass, normalize=False, **kwargs):
