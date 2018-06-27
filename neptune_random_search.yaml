@@ -47,7 +47,8 @@ parameters:
   verbose: 1
 
 # Preprocessing
-  fillna_value: -1
+  fill_missing: False
+  fill_value: None
 
 # Light GBM
   lgbm_random_search_runs: 50

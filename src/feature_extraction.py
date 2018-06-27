@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import category_encoders as ce
 import numpy as np
 import pandas as pd
@@ -56,18 +58,22 @@ class FeatureJoiner(BaseTransformer):
 class CategoricalEncoder(BaseTransformer):
     def __init__(self, **kwargs):
         super().__init__()
-        self.params = kwargs
+        self.categorical_columns = kwargs['categorical_columns']
+        params = deepcopy(kwargs)
+        params.pop('categorical_columns', None)
+        self.params = params
         self.encoder_class = ce.OrdinalEncoder
         self.categorical_encoder = None
 
     def fit(self, X, y, **kwargs):
-        categorical_columns = list(X.columns)
-        self.categorical_encoder = self.encoder_class(cols=categorical_columns, **self.params)
-        self.categorical_encoder.fit(X, y)
+        X_ = X[self.categorical_columns]
+        self.categorical_encoder = self.encoder_class(cols=self.categorical_columns, **self.params)
+        self.categorical_encoder.fit(X_, y)
         return self
 
     def transform(self, X, **kwargs):
-        X_ = self.categorical_encoder.transform(X)
+        X_ = X[self.categorical_columns]
+        X_ = self.categorical_encoder.transform(X_)
         return {'categorical_features': X_}
 
     def load(self, filepath):
@@ -133,23 +139,24 @@ class GroupbyAggregateMerge(BaseTransformer):
 
 
 class ApplicationFeatures(BaseTransformer):
-    def __init__(self):
-        super().__init__()
-        self.application_names = ['annuity_income_percentage',
-                                  'car_to_birth_ratio',
-                                  'car_to_employ_ratio',
-                                  'children_ratio',
-                                  'credit_to_annuity_ratio',
-                                  'credit_to_goods_ratio',
-                                  'credit_to_income_ratio',
-                                  'days_employed_percentage',
-                                  'ext_sources_mean',
-                                  'income_credit_percentage',
-                                  'income_per_child',
-                                  'income_per_person',
-                                  'payment_rate',
-                                  'phone_to_birth_ratio',
-                                  'phone_to_employ_ratio']
+    def __init__(self, categorical_columns, numerical_columns):
+        self.categorical_columns = categorical_columns
+        self.numerical_columns = numerical_columns
+        self.engineered_numerical_columns = ['annuity_income_percentage',
+                                             'car_to_birth_ratio',
+                                             'car_to_employ_ratio',
+                                             'children_ratio',
+                                             'credit_to_annuity_ratio',
+                                             'credit_to_goods_ratio',
+                                             'credit_to_income_ratio',
+                                             'days_employed_percentage',
+                                             'ext_sources_mean',
+                                             'income_credit_percentage',
+                                             'income_per_child',
+                                             'income_per_person',
+                                             'payment_rate',
+                                             'phone_to_birth_ratio',
+                                             'phone_to_employ_ratio']
 
     def transform(self, X, **kwargs):
         X['annuity_income_percentage'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
@@ -168,7 +175,9 @@ class ApplicationFeatures(BaseTransformer):
         X['phone_to_birth_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_BIRTH']
         X['phone_to_employ_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_EMPLOYED']
 
-        return {'numerical_features': X[self.application_names]}
+        return {'numerical_features': X[self.engineered_numerical_columns + self.numerical_columns],
+                'categorical_features': X[self.categorical_columns]
+                }
 
 
 class BureauFeatures(BaseTransformer):

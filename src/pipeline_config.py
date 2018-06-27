@@ -52,6 +52,7 @@ CATEGORICAL_COLUMNS = ['CODE_GENDER',
                        'REG_REGION_NOT_WORK_REGION',
                        'WALLSMATERIAL_MODE',
                        'WEEKDAY_APPR_PROCESS_START']
+
 NUMERICAL_COLUMNS = ['AMT_ANNUITY',
                      'AMT_CREDIT',
                      'AMT_GOODS_PRICE',
@@ -230,12 +231,15 @@ SOLUTION_CONFIG = AttrDict({
     'pipeline': {'experiment_directory': params.experiment_directory
                  },
 
-    'preprocessing': {'fillna_value': params.fillna_value},
+    'preprocessing': {'impute_missing': {'fill_missing': params.fill_missing,
+                                         'fill_value': params.fill_value},
+                      'categorical_encoder': {'categorical_columns': CATEGORICAL_COLUMNS
+                                              },
+                      },
 
-    'dataframe_by_type_splitter': {'numerical_columns': NUMERICAL_COLUMNS,
-                                   'categorical_columns': CATEGORICAL_COLUMNS,
-                                   'timestamp_columns': [],
-                                   },
+    'feature_extraction': {'application': {'categorical_columns': CATEGORICAL_COLUMNS,
+                                           'numerical_columns': NUMERICAL_COLUMNS}
+                           },
 
     'light_gbm': {'device': parameter_eval(params.lgbm__device),
                   'boosting_type': parameter_eval(params.lgbm__boosting_type),
