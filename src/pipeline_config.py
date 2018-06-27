@@ -3,16 +3,16 @@ import os
 from attrdict import AttrDict
 from deepsense import neptune
 
-from utils import read_params, parameter_eval
+from .utils import read_params, parameter_eval
 
 ctx = neptune.Context()
-params = read_params(ctx)
+params = read_params(ctx, fallback_file='neptune.yaml')
 
 RANDOM_SEED = 90210
 DEV_SAMPLE_SIZE = 1000
 
-ID_COLUMN = 'SK_ID_CURR'
-TARGET_COLUMN = 'TARGET'
+ID_COLUMNS = ['SK_ID_CURR']
+TARGET_COLUMNS = ['TARGET']
 
 CATEGORICAL_COLUMNS = ['CODE_GENDER',
                        'EMERGENCYSTATE_MODE',
@@ -136,22 +136,25 @@ USELESS_COLUMNS = ['FLAG_DOCUMENT_10',
                    'FLAG_DOCUMENT_21']
 
 AGGREGATION_RECIPIES = []
-for agg in ['mean', 'size', 'var', 'min', 'max']:
-    for select in NUMERICAL_COLUMNS:
-        for group in [['CODE_GENDER'],
-                      ['CODE_GENDER', 'OCCUPATION_TYPE'],
-                      ['CODE_GENDER', 'FLAG_OWN_REALTY'],
-                      ['CODE_GENDER', 'ORGANIZATION_TYPE'],
-                      ['CODE_GENDER', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
-                      ['FLAG_OWN_REALTY', 'NAME_HOUSING_TYPE'],
-                      ['FLAG_OWN_REALTY', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
-                      ['OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
-                      ]:
-            AGGREGATION_RECIPIES.append({'groupby': group, 'select': select, 'agg': agg})
+for group in [['CODE_GENDER'],
+              # ['CODE_GENDER', 'OCCUPATION_TYPE'],
+              # ['CODE_GENDER', 'FLAG_OWN_REALTY'],
+              # ['CODE_GENDER', 'ORGANIZATION_TYPE'],
+              # ['CODE_GENDER', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
+              # ['FLAG_OWN_REALTY', 'NAME_HOUSING_TYPE'],
+              # ['FLAG_OWN_REALTY', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
+              # ['OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
+              ]:
+    AGGREGATION_RECIPIES_GROUP = []
+    for agg in ['mean', ]:  # 'size', 'var', 'min', 'max']:
+        for select in NUMERICAL_COLUMNS:
+            AGGREGATION_RECIPIES_GROUP.append((select, agg))
+    AGGREGATION_RECIPIES.append((group, AGGREGATION_RECIPIES_GROUP))
 
-BUREAU_AGGREGATION_RECIPIES = [{'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_TYPE', 'agg': 'count'},
-                               {'groupby': ['SK_ID_CURR'], 'select': 'CREDIT_ACTIVE', 'agg': 'size'}]
-for agg in ['mean', 'min', 'max', 'sum', 'var']:
+BUREAU_AGGREGATION_RECIPIES = [('CREDIT_TYPE', 'count'),
+                               ('CREDIT_ACTIVE', 'size')
+                               ]
+for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
     for select in ['AMT_ANNUITY',
                    'AMT_CREDIT_SUM',
                    'AMT_CREDIT_SUM_DEBT',
@@ -164,10 +167,11 @@ for agg in ['mean', 'min', 'max', 'sum', 'var']:
                    'DAYS_CREDIT_ENDDATE',
                    'DAYS_CREDIT_UPDATE'
                    ]:
-        BUREAU_AGGREGATION_RECIPIES.append({'groupby': ['SK_ID_CURR'], 'select': select, 'agg': agg})
+        BUREAU_AGGREGATION_RECIPIES.append((select, agg))
+BUREAU_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], BUREAU_AGGREGATION_RECIPIES)]
 
 CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES = []
-for agg in ['mean', 'min', 'max', 'sum', 'var']:
+for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
     for select in ['AMT_BALANCE',
                    'AMT_CREDIT_LIMIT_ACTUAL',
                    'AMT_DRAWINGS_ATM_CURRENT',
@@ -183,10 +187,11 @@ for agg in ['mean', 'min', 'max', 'sum', 'var']:
                    'SK_DPD',
                    'SK_DPD_DEF'
                    ]:
-        CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES.append({'groupby': ['SK_ID_CURR'], 'select': select, 'agg': agg})
+        CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES.append((select, agg))
+CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES)]
 
 INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES = []
-for agg in ['mean', 'min', 'max', 'sum', 'var']:
+for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
     for select in ['AMT_INSTALMENT',
                    'AMT_PAYMENT',
                    'DAYS_ENTRY_PAYMENT',
@@ -194,18 +199,20 @@ for agg in ['mean', 'min', 'max', 'sum', 'var']:
                    'NUM_INSTALMENT_NUMBER',
                    'NUM_INSTALMENT_VERSION'
                    ]:
-        INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES.append({'groupby': ['SK_ID_CURR'], 'select': select, 'agg': agg})
+        INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES.append((select, agg))
+INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES)]
 
 POS_CASH_BALANCE_AGGREGATION_RECIPIES = []
-for agg in ['mean', 'min', 'max', 'sum', 'var']:
+for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
     for select in ['MONTHS_BALANCE',
                    'SK_DPD',
                    'SK_DPD_DEF'
                    ]:
-        POS_CASH_BALANCE_AGGREGATION_RECIPIES.append({'groupby': ['SK_ID_CURR'], 'select': select, 'agg': agg})
+        POS_CASH_BALANCE_AGGREGATION_RECIPIES.append((select, agg))
+POS_CASH_BALANCE_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], POS_CASH_BALANCE_AGGREGATION_RECIPIES)]
 
 PREVIOUS_APPLICATION_AGGREGATION_RECIPIES = []
-for agg in ['mean', 'min', 'max', 'sum', 'var']:
+for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
     for select in ['AMT_ANNUITY',
                    'AMT_APPLICATION',
                    'AMT_CREDIT',
@@ -216,8 +223,8 @@ for agg in ['mean', 'min', 'max', 'sum', 'var']:
                    'HOUR_APPR_PROCESS_START',
                    'RATE_DOWN_PAYMENT'
                    ]:
-        PREVIOUS_APPLICATION_AGGREGATION_RECIPIES.append({'groupby': ['SK_ID_CURR'], 'select': select, 'agg': agg})
-
+        PREVIOUS_APPLICATION_AGGREGATION_RECIPIES.append((select, agg))
+PREVIOUS_APPLICATION_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], PREVIOUS_APPLICATION_AGGREGATION_RECIPIES)]
 
 SOLUTION_CONFIG = AttrDict({
     'pipeline': {'experiment_directory': params.experiment_directory
@@ -344,27 +351,27 @@ SOLUTION_CONFIG = AttrDict({
                               },
                       },
 
-    'bureau': {'filename': 'bureau',
+    'bureau': {'table_name': 'bureau',
                'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                'groupby_aggregations': BUREAU_AGGREGATION_RECIPIES
                },
 
-    'credit_card_balance': {'filename': 'credit_card_balance',
+    'credit_card_balance': {'table_name': 'credit_card_balance',
                             'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                             'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES
                             },
 
-    'installments_payments': {'filename': 'installments_payments',
+    'installments_payments': {'table_name': 'installments_payments',
                               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                               'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES
                               },
 
-    'pos_cash_balance': {'filename': 'POS_CASH_balance',
+    'pos_cash_balance': {'table_name': 'POS_CASH_balance',
                          'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                          'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES
                          },
 
-    'previous_applications': {'filename': 'previous_application',
+    'previous_applications': {'table_name': 'previous_application',
                               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                               'groupby_aggregations': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES
                               },

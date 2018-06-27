@@ -6,7 +6,7 @@ from sklearn.externals import joblib
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
-from utils import set_seed
+from .utils import set_seed
 
 logger = get_logger()
 
