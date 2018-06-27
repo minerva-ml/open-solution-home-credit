@@ -246,23 +246,6 @@ def preprocessing_fillna(features, config, train_mode, suffix, **kwargs):
     return fillna
 
 
-def _feature_by_type_splits(config, train_mode, suffix):
-    feature_by_type_split = Step(name='feature_by_type_split{}'.format(suffix),
-                                 transformer=fe.DataFrameByTypeSplitter(**config.dataframe_by_type_splitter),
-                                 input_data=['application'],
-                                 adapter=Adapter({'X': E('application', 'X')}),
-                                 experiment_directory=config.pipeline.experiment_directory)
-    if train_mode:
-        feature_by_type_split_valid = Step(name='feature_by_type_split_valid{}'.format(suffix),
-                                           transformer=feature_by_type_split,
-                                           input_data=['application'],
-                                           adapter=Adapter({'X': E('application', 'X_valid')}),
-                                           experiment_directory=config.pipeline.experiment_directory)
-        return feature_by_type_split, feature_by_type_split_valid
-    else:
-        return feature_by_type_split
-
-
 def _join_features(numerical_features,
                    numerical_features_valid,
                    categorical_features,
