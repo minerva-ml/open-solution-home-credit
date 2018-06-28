@@ -503,7 +503,7 @@ def _bureau(config, train_mode, suffix, **kwargs):
     bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
 
     bureau = Step(name='bureau{}'.format(suffix),
-                  transformer=fe.BureauFeatures(**config.bureau),
+                  transformer=fe.BureauFeatures(),
                   input_data=['application'],
                   input_steps=[bureau_cleaned],
                   adapter=Adapter({'X': E('application', 'X'),
