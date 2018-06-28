@@ -9,14 +9,13 @@ metric:
 
 exclude:
   - output
-  - imgs
+  - notebooks
   - neptune.log
   - offline_job.log
   - .git
   - .github
   - .idea
   - .ipynb_checkpoints
-  - Untitled.ipynb
 
 parameters:
 # Data

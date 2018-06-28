@@ -55,7 +55,6 @@ CATEGORICAL_COLUMNS = ['CODE_GENDER',
 
 NUMERICAL_COLUMNS = ['AMT_ANNUITY',
                      'AMT_CREDIT',
-                     'AMT_GOODS_PRICE',
                      'AMT_INCOME_TOTAL',
                      'AMT_REQ_CREDIT_BUREAU_HOUR',
                      'AMT_REQ_CREDIT_BUREAU_DAY',
@@ -64,14 +63,8 @@ NUMERICAL_COLUMNS = ['AMT_ANNUITY',
                      'AMT_REQ_CREDIT_BUREAU_QRT',
                      'AMT_REQ_CREDIT_BUREAU_YEAR',
                      'APARTMENTS_AVG',
-                     'APARTMENTS_MEDI',
-                     'APARTMENTS_MODE',
                      'BASEMENTAREA_AVG',
-                     'BASEMENTAREA_MEDI',
-                     'BASEMENTAREA_MODE',
                      'COMMONAREA_AVG',
-                     'COMMONAREA_MEDI',
-                     'COMMONAREA_MODE',
                      'CNT_CHILDREN',
                      'CNT_FAM_MEMBERS',
                      'DAYS_BIRTH',
@@ -82,48 +75,25 @@ NUMERICAL_COLUMNS = ['AMT_ANNUITY',
                      'DEF_30_CNT_SOCIAL_CIRCLE',
                      'DEF_60_CNT_SOCIAL_CIRCLE',
                      'ELEVATORS_AVG',
-                     'ELEVATORS_MEDI',
-                     'ELEVATORS_MODE',
                      'ENTRANCES_AVG',
-                     'ENTRANCES_MEDI',
-                     'ENTRANCES_MODE',
                      'EXT_SOURCE_1',
                      'EXT_SOURCE_2',
                      'EXT_SOURCE_3',
                      'FLOORSMAX_AVG',
-                     'FLOORSMAX_MEDI',
-                     'FLOORSMAX_MODE',
                      'FLOORSMIN_AVG',
-                     'FLOORSMIN_MEDI',
-                     'FLOORSMIN_MODE',
                      'LANDAREA_AVG',
-                     'LANDAREA_MEDI',
-                     'LANDAREA_MODE',
                      'LIVINGAPARTMENTS_AVG',
-                     'LIVINGAPARTMENTS_MEDI',
-                     'LIVINGAPARTMENTS_MODE',
                      'LIVINGAREA_AVG',
-                     'LIVINGAREA_MEDI',
-                     'LIVINGAREA_MODE',
                      'NONLIVINGAPARTMENTS_AVG',
-                     'NONLIVINGAPARTMENTS_MEDI',
-                     'NONLIVINGAPARTMENTS_MODE',
                      'NONLIVINGAREA_AVG',
-                     'NONLIVINGAREA_MEDI',
-                     'NONLIVINGAREA_MODE',
                      'OBS_30_CNT_SOCIAL_CIRCLE',
-                     'OBS_60_CNT_SOCIAL_CIRCLE',
                      'OWN_CAR_AGE',
                      'REGION_POPULATION_RELATIVE',
                      'REGION_RATING_CLIENT',
-                     'REGION_RATING_CLIENT_W_CITY',
                      'TOTALAREA_MODE',
                      'YEARS_BEGINEXPLUATATION_AVG',
-                     'YEARS_BEGINEXPLUATATION_MEDI',
-                     'YEARS_BEGINEXPLUATATION_MODE',
-                     'YEARS_BUILD_AVG',
-                     'YEARS_BUILD_MEDI',
-                     'YEARS_BUILD_MODE']
+                     'YEARS_BUILD_AVG']
+
 USELESS_COLUMNS = ['FLAG_DOCUMENT_10',
                    'FLAG_DOCUMENT_12',
                    'FLAG_DOCUMENT_13',
@@ -136,43 +106,99 @@ USELESS_COLUMNS = ['FLAG_DOCUMENT_10',
                    'FLAG_DOCUMENT_20',
                    'FLAG_DOCUMENT_21']
 
-AGGREGATION_RECIPIES = []
-for group in [['CODE_GENDER'],
-              # ['CODE_GENDER', 'OCCUPATION_TYPE'],
-              # ['CODE_GENDER', 'FLAG_OWN_REALTY'],
-              # ['CODE_GENDER', 'ORGANIZATION_TYPE'],
-              # ['CODE_GENDER', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
-              # ['FLAG_OWN_REALTY', 'NAME_HOUSING_TYPE'],
-              # ['FLAG_OWN_REALTY', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
-              # ['OCCUPATION_TYPE', 'ORGANIZATION_TYPE'],
-              ]:
-    AGGREGATION_RECIPIES_GROUP = []
-    for agg in ['mean', ]:  # 'size', 'var', 'min', 'max']:
-        for select in NUMERICAL_COLUMNS:
-            AGGREGATION_RECIPIES_GROUP.append((select, agg))
-    AGGREGATION_RECIPIES.append((group, AGGREGATION_RECIPIES_GROUP))
+HIGHLY_CORRELATED_NUMERICAL_COLUMNS = ['AMT_GOODS_PRICE',
+                                       'APARTMENTS_MEDI',
+                                       'APARTMENTS_MODE',
+                                       'BASEMENTAREA_MEDI',
+                                       'BASEMENTAREA_MODE',
+                                       'COMMONAREA_MEDI',
+                                       'COMMONAREA_MODE',
+                                       'ELEVATORS_MEDI',
+                                       'ELEVATORS_MODE',
+                                       'ENTRANCES_MEDI',
+                                       'ENTRANCES_MODE',
+                                       'FLAG_EMP_PHONE',
+                                       'FLOORSMAX_MEDI',
+                                       'FLOORSMAX_MODE',
+                                       'FLOORSMIN_MEDI',
+                                       'FLOORSMIN_MODE',
+                                       'LANDAREA_MEDI',
+                                       'LANDAREA_MODE',
+                                       'LIVINGAPARTMENTS_MEDI',
+                                       'LIVINGAPARTMENTS_MODE',
+                                       'LIVINGAREA_MEDI',
+                                       'LIVINGAREA_MODE',
+                                       'NONLIVINGAPARTMENTS_MEDI',
+                                       'NONLIVINGAPARTMENTS_MODE',
+                                       'NONLIVINGAREA_MEDI',
+                                       'NONLIVINGAREA_MODE',
+                                       'OBS_60_CNT_SOCIAL_CIRCLE',
+                                       'REGION_RATING_CLIENT_W_CITY',
+                                       'YEARS_BEGINEXPLUATATION_MEDI',
+                                       'YEARS_BEGINEXPLUATATION_MODE',
+                                       'YEARS_BUILD_MEDI',
+                                       'YEARS_BUILD_MODE']
+
+APPLICATION_AGGREGATION_RECIPIES = [
+    (['CODE_GENDER', 'NAME_EDUCATION_TYPE'], [('AMT_ANNUITY', 'max'),
+                                              ('AMT_CREDIT', 'max'),
+                                              ('EXT_SOURCE_1', 'mean'),
+                                              ('EXT_SOURCE_2', 'mean'),
+                                              ('OWN_CAR_AGE', 'max'),
+                                              ('OWN_CAR_AGE', 'sum')]),
+    (['CODE_GENDER', 'ORGANIZATION_TYPE'], [('AMT_ANNUITY', 'mean'),
+                                            ('AMT_INCOME_TOTAL', 'mean'),
+                                            ('DAYS_REGISTRATION', 'mean'),
+                                            ('EXT_SOURCE_1', 'mean')]),
+    (['CODE_GENDER', 'REG_CITY_NOT_WORK_CITY'], [('AMT_ANNUITY', 'mean'),
+                                                 ('CNT_CHILDREN', 'mean'),
+                                                 ('DAYS_ID_PUBLISH', 'mean')]),
+    (['CODE_GENDER', 'NAME_EDUCATION_TYPE', 'OCCUPATION_TYPE', 'REG_CITY_NOT_WORK_CITY'], [('EXT_SOURCE_1', 'mean'),
+                                                                                           ('EXT_SOURCE_2', 'mean')]),
+    (['NAME_EDUCATION_TYPE', 'OCCUPATION_TYPE'], [('AMT_CREDIT', 'mean'),
+                                                  ('AMT_REQ_CREDIT_BUREAU_YEAR', 'mean'),
+                                                  ('APARTMENTS_AVG', 'mean'),
+                                                  ('BASEMENTAREA_AVG', 'mean'),
+                                                  ('EXT_SOURCE_1', 'mean'),
+                                                  ('EXT_SOURCE_2', 'mean'),
+                                                  ('EXT_SOURCE_3', 'mean'),
+                                                  ('NONLIVINGAREA_AVG', 'mean'),
+                                                  ('OWN_CAR_AGE', 'mean'),
+                                                  ('YEARS_BUILD_AVG', 'mean')]),
+    (['NAME_EDUCATION_TYPE', 'OCCUPATION_TYPE', 'REG_CITY_NOT_WORK_CITY'], [('ELEVATORS_AVG', 'mean'),
+                                                                            ('EXT_SOURCE_1', 'mean')]),
+    (['OCCUPATION_TYPE'], [('AMT_ANNUITY', 'mean'),
+                           ('CNT_CHILDREN', 'mean'),
+                           ('CNT_FAM_MEMBERS', 'mean'),
+                           ('DAYS_BIRTH', 'mean'),
+                           ('DAYS_EMPLOYED', 'mean'),
+                           ('DAYS_ID_PUBLISH', 'mean'),
+                           ('DAYS_REGISTRATION', 'mean'),
+                           ('EXT_SOURCE_1', 'mean'),
+                           ('EXT_SOURCE_2', 'mean'),
+                           ('EXT_SOURCE_3', 'mean')]),
+]
 
 BUREAU_AGGREGATION_RECIPIES = [('CREDIT_TYPE', 'count'),
                                ('CREDIT_ACTIVE', 'size')
                                ]
-for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
-    for select in ['AMT_ANNUITY',
-                   'AMT_CREDIT_SUM',
-                   'AMT_CREDIT_SUM_DEBT',
-                   'AMT_CREDIT_SUM_LIMIT',
-                   'AMT_CREDIT_SUM_OVERDUE',
-                   'AMT_CREDIT_MAX_OVERDUE',
-                   'CNT_CREDIT_PROLONG',
-                   'CREDIT_DAY_OVERDUE',
-                   'DAYS_CREDIT',
-                   'DAYS_CREDIT_ENDDATE',
-                   'DAYS_CREDIT_UPDATE'
-                   ]:
-        BUREAU_AGGREGATION_RECIPIES.append((select, agg))
+for agg, select in zip(['mean', 'min', 'max', 'sum', 'var'], ['AMT_ANNUITY',
+                                                              'AMT_CREDIT_SUM',
+                                                              'AMT_CREDIT_SUM_DEBT',
+                                                              'AMT_CREDIT_SUM_LIMIT',
+                                                              'AMT_CREDIT_SUM_OVERDUE',
+                                                              'AMT_CREDIT_MAX_OVERDUE',
+                                                              'CNT_CREDIT_PROLONG',
+                                                              'CREDIT_DAY_OVERDUE',
+                                                              'DAYS_CREDIT',
+                                                              'DAYS_CREDIT_ENDDATE',
+                                                              'DAYS_CREDIT_UPDATE'
+                                                              ]):
+    BUREAU_AGGREGATION_RECIPIES.append((select, agg))
 BUREAU_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], BUREAU_AGGREGATION_RECIPIES)]
 
 CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES = []
-for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
+for agg in ['mean', 'min', 'max', 'sum', 'var']:
     for select in ['AMT_BALANCE',
                    'AMT_CREDIT_LIMIT_ACTUAL',
                    'AMT_DRAWINGS_ATM_CURRENT',
@@ -192,7 +218,7 @@ for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
 CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES)]
 
 INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES = []
-for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
+for agg in ['mean', 'min', 'max', 'sum', 'var']:
     for select in ['AMT_INSTALMENT',
                    'AMT_PAYMENT',
                    'DAYS_ENTRY_PAYMENT',
@@ -204,7 +230,7 @@ for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
 INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES)]
 
 POS_CASH_BALANCE_AGGREGATION_RECIPIES = []
-for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
+for agg in ['mean', 'min', 'max', 'sum', 'var']:
     for select in ['MONTHS_BALANCE',
                    'SK_DPD',
                    'SK_DPD_DEF'
@@ -213,7 +239,7 @@ for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
 POS_CASH_BALANCE_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], POS_CASH_BALANCE_AGGREGATION_RECIPIES)]
 
 PREVIOUS_APPLICATION_AGGREGATION_RECIPIES = []
-for agg in ['mean']:  # , 'min', 'max', 'sum', 'var']:
+for agg in ['mean', 'min', 'max', 'sum', 'var']:
     for select in ['AMT_ANNUITY',
                    'AMT_APPLICATION',
                    'AMT_CREDIT',
@@ -237,8 +263,36 @@ SOLUTION_CONFIG = AttrDict({
                                               },
                       },
 
-    'feature_extraction': {'application': {'categorical_columns': CATEGORICAL_COLUMNS,
-                                           'numerical_columns': NUMERICAL_COLUMNS}
+    'feature_extraction': {'application': {'id_column': 'SK_ID_CURR',
+                                           'table_name': 'application',
+                                           'aggregation_recipes': APPLICATION_AGGREGATION_RECIPIES,
+                                           'categorical_columns': CATEGORICAL_COLUMNS,
+                                           'numerical_columns': NUMERICAL_COLUMNS},
+
+                           'bureau': {'id_column': 'SK_ID_CURR',
+                                      'table_name': 'bureau',
+                                      'aggregation_recipes': BUREAU_AGGREGATION_RECIPIES
+                                      },
+
+                           'credit_card_balance': {'table_name': 'credit_card_balance',
+                                                   'id_column': 'SK_ID_CURR',
+                                                   'aggregation_recipes': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES
+                                                   },
+
+                           'installments_payments': {'table_name': 'installments_payments',
+                                                     'id_column': 'SK_ID_CURR',
+                                                     'aggregation_recipes': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES
+                                                     },
+
+                           'pos_cash_balance': {'table_name': 'POS_CASH_balance',
+                                                'id_columns': 'SK_ID_CURR',
+                                                'aggregation_recipes': POS_CASH_BALANCE_AGGREGATION_RECIPIES
+                                                },
+
+                           'previous_applications': {'table_name': 'previous_application',
+                                                     'id_columns': 'SK_ID_CURR',
+                                                     'aggregation_recipes': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES
+                                                     },
                            },
 
     'light_gbm': {'device': parameter_eval(params.lgbm__device),
@@ -354,36 +408,4 @@ SOLUTION_CONFIG = AttrDict({
                                             },
                               },
                       },
-
-    'bureau': {'table_name': 'bureau',
-               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-               'groupby_aggregations': BUREAU_AGGREGATION_RECIPIES
-               },
-
-    'credit_card_balance': {'table_name': 'credit_card_balance',
-                            'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                            'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES
-                            },
-
-    'installments_payments': {'table_name': 'installments_payments',
-                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                              'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES
-                              },
-
-    'pos_cash_balance': {'table_name': 'POS_CASH_balance',
-                         'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                         'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES
-                         },
-
-    'previous_applications': {'table_name': 'previous_application',
-                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                              'groupby_aggregations': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES
-                              },
-
-    'clipper': {'min_val': 0,
-                'max_val': 1
-                },
-
-    'groupby_aggregation': {'groupby_aggregations': AGGREGATION_RECIPIES
-                            },
 })

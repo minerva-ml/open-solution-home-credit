@@ -10,51 +10,6 @@ from steppy.utils import get_logger
 logger = get_logger()
 
 
-class DataFrameByTypeSplitter(BaseTransformer):
-    def __init__(self, numerical_columns, categorical_columns, timestamp_columns):
-        super().__init__()
-        self.numerical_columns = numerical_columns
-        self.categorical_columns = categorical_columns
-        self.timestamp_columns = timestamp_columns
-
-    def transform(self, X, **kwargs):
-        outputs = {}
-
-        if self.numerical_columns is not None:
-            outputs['numerical_features'] = X[self.numerical_columns]
-
-        if self.categorical_columns is not None:
-            outputs['categorical_features'] = X[self.categorical_columns]
-
-        if self.timestamp_columns is not None:
-            outputs['timestamp_features'] = X[self.timestamp_columns]
-
-        return outputs
-
-
-class FeatureJoiner(BaseTransformer):
-    def transform(self, numerical_feature_list, categorical_feature_list, **kwargs):
-        features = numerical_feature_list + categorical_feature_list
-        for feature in features:
-            feature.reset_index(drop=True, inplace=True)
-        outputs = dict()
-        outputs['features'] = pd.concat(features, axis=1).astype(np.float32)
-        outputs['feature_names'] = self._get_feature_names(features)
-        outputs['categorical_features'] = self._get_feature_names(categorical_feature_list)
-        return outputs
-
-    def _get_feature_names(self, dataframes):
-        feature_names = []
-        for dataframe in dataframes:
-            try:
-                feature_names.extend(list(dataframe.columns))
-            except Exception as e:
-                print(e)
-                feature_names.append(dataframe.name)
-
-        return feature_names
-
-
 class CategoricalEncoder(BaseTransformer):
     def __init__(self, **kwargs):
         super().__init__()
@@ -84,14 +39,43 @@ class CategoricalEncoder(BaseTransformer):
         joblib.dump(self.categorical_encoder, filepath)
 
 
+class FeatureJoiner(BaseTransformer):
+    def transform(self, numerical_feature_list, categorical_feature_list, **kwargs):
+        features = numerical_feature_list + categorical_feature_list
+        for feature in features:
+            feature.reset_index(drop=True, inplace=True)
+        outputs = dict()
+        outputs['features'] = pd.concat(features, axis=1).astype(np.float32)
+        outputs['feature_names'] = self._get_feature_names(features)
+        outputs['categorical_features'] = self._get_feature_names(categorical_feature_list)
+        return outputs
+
+    def _get_feature_names(self, dataframes):
+        feature_names = []
+        for dataframe in dataframes:
+            try:
+                feature_names.extend(list(dataframe.columns))
+            except Exception as e:
+                print(e)
+                feature_names.append(dataframe.name)
+
+        return feature_names
+
+
 class GroupbyAggregate(BaseTransformer):
-    def __init__(self, groupby_aggregations):
+    def __init__(self, table_name, id_column, aggregation_recipes):
         super().__init__()
-        self.groupby_aggregations = groupby_aggregations
+        self.table_name = table_name
+        self.id_column = id_column
+        self.aggregation_recipes = aggregation_recipes
         self.groupby_aggregate_names = []
 
+    @property
+    def table_colnames(self):
+        return self.groupby_aggregate_names + [self.id_column]
+
     def transform(self, main_table, **kwargs):
-        for groupby_cols, specs in self.groupby_aggregations:
+        for groupby_cols, specs in self.aggregation_recipes:
             group_object = main_table.groupby(groupby_cols)
             for select, agg in specs:
                 groupby_aggregate_name = self._create_colname_from_specs(groupby_cols, select, agg)
@@ -104,38 +88,42 @@ class GroupbyAggregate(BaseTransformer):
                                               on=groupby_cols,
                                               how='left')
                 self.groupby_aggregate_names.append(groupby_aggregate_name)
-        return {'numerical_features': main_table[self.groupby_aggregate_names].astype(np.float32)}
+        return {'aggregated_table': main_table[self.table_colnames]}
 
     def _create_colname_from_specs(self, groupby_cols, agg, select):
-        return '{}_{}_{}'.format('_'.join(groupby_cols), agg, select)
+        return '{}_{}_{}_{}'.format(self.table_name, '_'.join(groupby_cols), agg, select)
 
 
-class GroupbyAggregateMerge(BaseTransformer):
-    def __init__(self, table_name, id_columns, groupby_aggregations):
-        super().__init__()
-        self.table_name = table_name
-        self.id_columns = id_columns
-        self.groupby_aggregations = groupby_aggregations
-        self.groupby_aggregate_names = []
+class Merge(BaseTransformer):
+    def __init__(self, left_on, right_on):
+        self.left_on = left_on
+        self.right_on = right_on
+
+    def transform(self, main_table, side_table, **kwargs):
+        main_table = main_table.merge(side_table,
+                                      left_on=self.left_on,
+                                      right_on=self.right_on,
+                                      how='left',
+                                      validate='one_to_one')
+        return {'merged_features': main_table}
+
+
+class MergeToNumerical(BaseTransformer):
+    def __init__(self, left_on, right_on,
+                 drop_index=False, output_name='merged_features'):
+        self.left_on = left_on
+        self.right_on = right_on
+        self.drop_index = drop_index
+        self.output_name = output_name
 
     def transform(self, main_table, side_table):
-        for groupby_cols, specs in self.groupby_aggregations:
-            group_object = side_table.groupby(groupby_cols)
-            for select, agg in specs:
-                groupby_aggregate_name = self._create_colname_from_specs(groupby_cols, select, agg)
-                main_table = main_table.merge(group_object[select]
-                                              .agg(agg)
-                                              .reset_index()
-                                              .rename(index=str,
-                                                      columns={select: groupby_aggregate_name})
-                                              [groupby_cols + [groupby_aggregate_name]],
-                                              on=groupby_cols,
-                                              how='left')
-                self.groupby_aggregate_names.append(groupby_aggregate_name)
-        return {'numerical_features': main_table[self.groupby_aggregate_names].astype(np.float32)}
-
-    def _create_colname_from_specs(self, groupby_cols, select, agg):
-        return '{}_{}_{}_{}'.format(self.table_name, '_'.join(groupby_cols), agg, select)
+        main_table = main_table.merge(side_table,
+                                      left_on=self.left_on,
+                                      right_on=self.right_on,
+                                      how='left',
+                                      validate='one_to_one')
+        main_table = main_table.drop(self.left_on, axis=1).astype(np.float32)
+        return {'numerical_features': main_table}
 
 
 class ApplicationFeatures(BaseTransformer):
@@ -180,10 +168,9 @@ class ApplicationFeatures(BaseTransformer):
                 }
 
 
-class BureauFeatures(BaseTransformer):
-    def __init__(self, id_columns, **kwargs):
+class BureauHandCrafted(BaseTransformer):
+    def __init__(self, **kwargs):
         super().__init__()
-        self.id_columns = id_columns
         self.bureau_names = ['bureau_number_of_past_loans',
                              'bureau_number_of_loan_types',
                              'bureau_average_of_past_loans_per_type',
@@ -199,7 +186,7 @@ class BureauFeatures(BaseTransformer):
                              'bureau_average_creditdays_prolonged'
                              ]
 
-    def fit(self, X, bureau):
+    def fit(self, bureau, **kwargs):
         bureau['bureau_number_of_past_loans'] = bureau.groupby(
             by=['SK_ID_CURR'])['DAYS_CREDIT'].agg('count').reset_index()['DAYS_CREDIT']
 
@@ -249,19 +236,12 @@ class BureauFeatures(BaseTransformer):
         bureau['bureau_average_creditdays_prolonged'] = bureau.groupby(
             by=['SK_ID_CURR'])['CNT_CREDIT_PROLONG'].agg('mean').reset_index()['CNT_CREDIT_PROLONG']
 
-        self.bureau_features = bureau[self.bureau_names +
-                                      [self.id_columns[1]]].drop_duplicates(subset=self.id_columns[1])
+        self.bureau_features = bureau[self.bureau_names + ['SK_ID_CURR']].drop_duplicates(subset=['SK_ID_CURR'])
 
         return self
 
-    def transform(self, X, **kwargs):
-        X = X.merge(self.bureau_features,
-                    left_on=self.id_columns[0],
-                    right_on=self.id_columns[1],
-                    how='left',
-                    validate='one_to_one')
-
-        return {'numerical_features': X[self.bureau_names]}
+    def transform(self, **kwargs):
+        return {'features': self.bureau_features}
 
     def load(self, filepath):
         self.bureau_features = joblib.load(filepath)
@@ -296,7 +276,7 @@ class CreditCardBalanceFeatures(BaseTransformer):
         credit_card['credit_card-total_instalments'] = credit_card.groupby(
             by=['SK_ID_CURR'])['number_of_instalments'].sum().reset_index()['number_of_instalments']
         credit_card['credit_card-installments_per_loan'] = (
-                credit_card['credit_card-total_instalments'] / credit_card['credit_card-number_of_loans'])
+            credit_card['credit_card-total_instalments'] / credit_card['credit_card-number_of_loans'])
 
         credit_card['credit_card-avg_loading_of_credit_limit'] = credit_card.groupby(
             by=['SK_ID_CURR', 'SK_ID_PREV', 'AMT_CREDIT_LIMIT_ACTUAL']).apply(
@@ -313,7 +293,7 @@ class CreditCardBalanceFeatures(BaseTransformer):
         credit_card['credit_card-drawings_total'] = credit_card.groupby(
             by=['SK_ID_CURR'])['AMT_DRAWINGS_CURRENT'].sum().reset_index()['AMT_DRAWINGS_CURRENT']
         credit_card['credit_card-cash_card_ratio'] = 100 * (
-                credit_card['credit_card-drawings_atm'] / credit_card['credit_card-drawings_total'])
+            credit_card['credit_card-drawings_atm'] / credit_card['credit_card-drawings_total'])
         credit_card['credit_card-cash_card_ratio'] = credit_card.groupby(
             by=['SK_ID_CURR'])['credit_card-cash_card_ratio'].agg('mean').reset_index()['credit_card-cash_card_ratio']
 
@@ -321,7 +301,7 @@ class CreditCardBalanceFeatures(BaseTransformer):
         credit_card['credit_card-number_of_drawings'] = credit_card.groupby(
             by=['SK_ID_CURR'])['CNT_DRAWINGS_CURRENT'].sum().reset_index()['CNT_DRAWINGS_CURRENT']
         credit_card['credit_card-drawing_ratio'] = 100 * (
-                credit_card['credit_card-drawings_total'] / credit_card['credit_card-number_of_drawings'])
+            credit_card['credit_card-drawings_total'] / credit_card['credit_card-number_of_drawings'])
         credit_card['credit_card-drawing_ratio'] = credit_card.groupby(
             by=['SK_ID_CURR'])['credit_card-drawing_ratio'].agg('mean').reset_index()['credit_card-drawing_ratio']
 
@@ -345,13 +325,3 @@ class CreditCardBalanceFeatures(BaseTransformer):
 
     def persist(self, filepath):
         joblib.dump(self.credit_card_features, filepath)
-
-
-class ConcatFeatures(BaseTransformer):
-    def transform(self, **kwargs):
-        features_concat = []
-        for _, feature in kwargs.items():
-            feature.reset_index(drop=True, inplace=True)
-            features_concat.append(feature)
-        features_concat = pd.concat(features_concat, axis=1)
-        return {'concatenated_features': features_concat}
