@@ -309,7 +309,7 @@ SOLUTION_CONFIG = AttrDict({
                   'reg_alpha': parameter_eval(params.lgbm__reg_alpha),
                   'subsample_freq': parameter_eval(params.lgbm__subsample_freq),
                   'max_bin': parameter_eval(params.lgbm__max_bin),
-                  'min_child_samples': parameter_eval(params.lgbm__min_child_samples),
+                  'min_split_gain': parameter_eval(params.lgbm__min_split_gain),
                   'num_leaves': parameter_eval(params.lgbm__num_leaves),
                   'nthread': parameter_eval(params.num_workers),
                   'number_boosting_rounds': parameter_eval(params.lgbm__number_boosting_rounds),

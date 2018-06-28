@@ -61,6 +61,7 @@ parameters:
   lgbm__num_leaves: '[20, 50]'
   lgbm__max_depth: '[7, 30]'
   lgbm__min_child_samples: '[20, 45]'
+  lgbm__min_split_gain: '[0.1, 0.5, "uniform"]'
   lgbm__max_bin: '[180, 500]' # at most 255 for device=gpu
   lgbm__subsample: '[0.8, 0.9, 0.99, 0.6, 0.7, "list"]'
   lgbm__subsample_freq: 0
@@ -121,4 +122,4 @@ parameters:
   svc__max_iter: '[-1, 100, 1000, 10000, 50000, "list"]'
 
 # Postprocessing
-  aggregation_method: mean
+  aggregation_method: rank_mean

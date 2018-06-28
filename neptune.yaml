@@ -57,17 +57,17 @@ parameters:
   lgbm__metric: auc
   lgbm__number_boosting_rounds: 10000
   lgbm__early_stopping_rounds: 100
-  lgbm__learning_rate: 0.005
-  lgbm__num_leaves: 50
-  lgbm__max_depth: 20
-  lgbm__min_child_samples: 20
+  lgbm__learning_rate: 0.02
+  lgbm__num_leaves: 34
+  lgbm__max_depth: 8
+  lgbm__min_split_gain: 0.2
   lgbm__max_bin: 300  # at most 255 for device=gpu
-  lgbm__subsample: 0.6
+  lgbm__subsample: 0.87
   lgbm__subsample_freq: 0
-  lgbm__colsample_bytree: 0.8
-  lgbm__min_child_weight: 4
-  lgbm__reg_lambda: 0.05
-  lgbm__reg_alpha: 0.05
+  lgbm__colsample_bytree: 0.95
+  lgbm__min_child_weight: 40
+  lgbm__reg_lambda: 0.04
+  lgbm__reg_alpha: 0.07
   lgbm__scale_pos_weight: 1
 
 # XGBoost
@@ -121,4 +121,4 @@ parameters:
   svc__max_iter: -1
 
 # Postprocessing
-  aggregation_method: mean
+  aggregation_method: rank_mean
