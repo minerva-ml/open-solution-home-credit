@@ -384,7 +384,15 @@ def _aggregate_test_prediction(out_of_fold_test_predictions):
                    'gmean': gmean}
     prediction_column = [col for col in out_of_fold_test_predictions.columns if '_prediction' in col]
     if params.aggregation_method == 'rank_mean':
-        raise NotImplementedError
+        rank_column = prediction_column.replace('_prediction', '_rank')
+        test_predictions_with_ranks = []
+        for fold_id, fold_df in out_of_fold_test_predictions.groupby('fold_id'):
+            fold_df[rank_column] = calculate_rank(fold_df[prediction_column])
+            test_predictions_with_ranks.append(fold_df)
+        test_predictions_with_ranks = pd.concat(test_predictions_with_ranks, axis=0)
+
+        test_prediction_aggregated = test_predictions_with_ranks.groupby(cfg.ID_COLUMNS)[rank_column].apply(
+            np.mean).reset_index()
     else:
         test_prediction_aggregated = out_of_fold_test_predictions.groupby(cfg.ID_COLUMNS)[prediction_column].apply(
             agg_methods[params.aggregation_method]).reset_index()

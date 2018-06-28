@@ -80,3 +80,7 @@ def persist_evaluation_predictions(experiment_directory, y_pred, raw_data, id_co
 def set_seed(seed=90210):
     random.seed(seed)
     np.random.seed(seed)
+
+def calculate_rank(predictions):
+    rank = (1 + predictions.rank().values) / (predictions.shape[0] + 1)
+    return rank
