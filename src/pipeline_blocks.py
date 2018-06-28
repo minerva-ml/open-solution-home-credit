@@ -140,8 +140,10 @@ def classifier_sklearn(sklearn_features, ClassifierClass, full_config, clf_name,
 def feature_extraction(config, train_mode, suffix, **kwargs):
     if train_mode:
         application, application_valid = _application(config, train_mode, suffix, **kwargs)
-        bureau, bureau_valid = _bureau_features(config, train_mode, suffix, **kwargs)
+        bureau, bureau_valid = _bureau(config, train_mode, suffix, **kwargs)
         credit_card_balance, credit_card_balance_valid = _credit_card_balance(config, train_mode, suffix, **kwargs)
+
+        bureau_agg, bureau_agg_valid = _bureau_groupby_agg(config, train_mode, suffix, **kwargs)
         credit_card_balance_agg, credit_card_balance_agg_valid = _credit_card_balance_groupby_agg(
             config,
             train_mode, suffix,
@@ -161,10 +163,14 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
 
         categorical_encoder, categorical_encoder_valid = _categorical_encoders(config, train_mode, suffix, **kwargs)
 
+        groupby_aggregation, groupby_aggregation_valid = _groupby_aggregations(config, train_mode, suffix, **kwargs)
+
         feature_combiner, feature_combiner_valid = _join_features(
             numerical_features=[application,
                                 bureau,
                                 credit_card_balance,
+                                groupby_aggregation,
+                                bureau_agg,
                                 credit_card_balance_agg,
                                 installments_payments_agg,
                                 pos_cash_balance_agg,
@@ -172,6 +178,8 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
             numerical_features_valid=[application_valid,
                                       bureau_valid,
                                       credit_card_balance_valid,
+                                      groupby_aggregation_valid,
+                                      bureau_agg_valid,
                                       credit_card_balance_agg_valid,
                                       installments_payments_agg_valid,
                                       pos_cash_balance_agg_valid,
@@ -186,16 +194,20 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         return feature_combiner, feature_combiner_valid
     else:
         application = _application(config, train_mode, suffix, **kwargs)
-        bureau = _bureau_features(config, train_mode, suffix, **kwargs)
+        bureau = _bureau(config, train_mode, suffix, **kwargs)
         credit_card_balance = _credit_card_balance(config, train_mode, suffix, **kwargs)
+        bureau_agg = _bureau_groupby_agg(config, train_mode, suffix, **kwargs)
         credit_card_balance_agg = _credit_card_balance_groupby_agg(config, train_mode, suffix, **kwargs)
         installments_payments_agg = _installments_payments_groupby_agg(config, train_mode, suffix, **kwargs)
         pos_cash_balance_agg = _pos_cash_balance_groupby_agg(config, train_mode, suffix, **kwargs)
         previous_applications_agg = _previous_applications_groupby_agg(config, train_mode, suffix, **kwargs)
         categorical_encoder = _categorical_encoders(config, train_mode, suffix, **kwargs)
+        groupby_aggregation = _groupby_aggregations(config, train_mode, suffix, **kwargs)
         feature_combiner = _join_features(numerical_features=[application,
                                                               bureau,
                                                               credit_card_balance,
+                                                              groupby_aggregation,
+                                                              bureau_agg,
                                                               credit_card_balance_agg,
                                                               installments_payments_agg,
                                                               pos_cash_balance_agg,
@@ -296,32 +308,18 @@ def _categorical_encoders(config, train_mode, suffix, **kwargs):
         return categorical_encoder
 
 
-def _application_features(config, train_mode, suffix, **kwargs):
-    application_cleaning = Step(name='application_cleaning{}'.format(suffix),
-                                transformer=dc.ApplicationCleaning(**config.preprocessing.impute_missing),
+def _groupby_aggregations(config, train_mode, suffix, **kwargs):
+    groupby_aggregations = Step(name='groupby_aggregations{}'.format(suffix),
+                                transformer=fe.GroupbyAggregate(**config.applications.aggregations),
                                 input_data=['application'],
-                                adapter=Adapter({'X': E('application', 'X')}),
+                                adapter=Adapter(
+                                    {'main_table': E('application', 'X')}),
                                 experiment_directory=config.pipeline.experiment_directory,
                                 **kwargs)
 
-    application_hand_crafted = Step(name='application_hand_crafted{}'.format(suffix),
-                                    transformer=fe.ApplicationFeatures(**config.feature_extraction.application),
-                                    input_steps=[application_cleaning],
-                                    adapter=Adapter({'X': E(application_cleaning.name, 'X')}),
-                                    experiment_directory=config.pipeline.experiment_directory,
-                                    **kwargs)
-
-    application_groupby_agg = Step(name='application_groupby_agg{}'.format(suffix),
-                                   transformer=fe.GroupbyAggregate(**config.groupby_aggregation),
-                                   input_steps=[application_cleaning],
-                                   adapter=Adapter(
-                                       {'main_table': E(application_cleaning.name, 'X')}),
-                                   experiment_directory=config.pipeline.experiment_directory,
-                                   **kwargs)
-
     if train_mode:
 
-        groupby_aggregations_valid = Step(name='application_groupby_agg_valid{}'.format(suffix),
+        groupby_aggregations_valid = Step(name='groupby_aggregations_valid{}'.format(suffix),
                                           transformer=groupby_aggregations,
                                           input_data=['application'],
                                           adapter=Adapter(
@@ -336,55 +334,26 @@ def _application_features(config, train_mode, suffix, **kwargs):
         return groupby_aggregations
 
 
-def _bureau_features(config, train_mode, suffix, **kwargs):
-    bureau_cleaning = Step(name='bureau_cleaning',
-                           transformer=dc.BureauCleaning(**config.preprocessing.impute_missing),
-                           input_data=['bureau'],
-                           adapter=Adapter({'bureau': E('bureau', 'X')}),
-                           experiment_directory=config.pipeline.experiment_directory,
-                           **kwargs)
-
-    bureau_groupby_agg = Step(name='bureau_groupby_agg',
-                              transformer=fe.GroupbyAggregate(**config.bureau),
-                              input_steps=[bureau_cleaning],
-                              adapter=Adapter({'main_table': E(bureau_cleaning.name, 'bureau')}),
-                              experiment_directory=config.pipeline.experiment_directory, **kwargs)
-
-    bureau_hand_crafted = Step(name='bureau_hand_crated',
-                               transformer=fe.BureauHandCrafted(),
-                               input_steps=[bureau_cleaning],
-                               adapter=Adapter({'bureau': E(bureau_cleaning.name, 'bureau')}),
-                               experiment_directory=config.pipeline.experiment_directory, **kwargs)
-
-    bureau_table = Step(name='bureau_table',
-                        transformer=fe.Merge(left_on=config.bureau.id_column,
-                                             right_on=config.bureau.id_column),
-                        input_steps=[bureau_groupby_agg, bureau_hand_crafted],
-                        adapter=Adapter({'main_table': E(bureau_groupby_agg.name, 'aggregated_table'),
-                                         'side_table': E(bureau_hand_crafted.name, 'features')}),
-                        experiment_directory=config.pipeline.experiment_directory, **kwargs)
-
-    bureau_features = Step(name='bureau_features{}'.format(suffix),
-                           transformer=fe.MergeToNumerical(left_on=config.application.id_column,
-                                                           right_on=config.bureau.id_column),
-                           input_data=['application'],
-                           input_steps=[bureau_table],
-                           adapter=Adapter({'main_table': E('application', 'X'),
-                                            'side_table': E(bureau_table.name, 'merged_features')}),
-                           experiment_directory=config.pipeline.experiment_directory, **kwargs)
+def _bureau_groupby_agg(config, train_mode, suffix, **kwargs):
+    bureau_groupby_agg = Step(name='bureau_groupby_agg{}'.format(suffix),
+                              transformer=fe.GroupbyAggregateMerge(**config.bureau),
+                              input_data=['application', 'bureau'],
+                              adapter=Adapter({'main_table': E('application', 'X'),
+                                               'side_table': E('bureau', 'X')}),
+                              experiment_directory=config.pipeline.experiment_directory,
+                              **kwargs)
 
     if train_mode:
-        bureau_features_valid = Step(name='bureau_features_valid{}'.format(suffix),
-                                     transformer=bureau_features,
-                                     input_data=['application'],
-                                     input_steps=[bureau_table],
-                                     adapter=Adapter({'main_table': E('application', 'X_valid'),
-                                                      'side_table': E(bureau_table.name, 'merged_features')}),
-                                     experiment_directory=config.pipeline.experiment_directory,
-                                     **kwargs)
-        return bureau_features, bureau_features_valid
+        bureau_groupby_agg_valid = Step(name='bureau_groupby_agg_valid{}'.format(suffix),
+                                        transformer=bureau_groupby_agg,
+                                        input_data=['application', 'bureau'],
+                                        adapter=Adapter({'main_table': E('application', 'X_valid'),
+                                                         'side_table': E('bureau', 'X')}),
+                                        experiment_directory=config.pipeline.experiment_directory,
+                                        **kwargs)
+        return bureau_groupby_agg, bureau_groupby_agg_valid
     else:
-        return bureau_features
+        return bureau_groupby_agg
 
 
 def _credit_card_balance_groupby_agg(config, train_mode, suffix, **kwargs):
@@ -502,7 +471,7 @@ def _application(config, train_mode, suffix, **kwargs):
         application_cleaning = _application_cleaning(config, train_mode, suffix, **kwargs)
 
     application = Step(name='application{}'.format(suffix),
-                       transformer=fe.ApplicationFeatures(**config.feature_extraction.application),
+                       transformer=fe.ApplicationFeatures(**config.applications.columns),
                        input_steps=[application_cleaning],
                        adapter=Adapter({'X': E(application_cleaning.name, 'X')}),
                        experiment_directory=config.pipeline.experiment_directory,
@@ -517,6 +486,40 @@ def _application(config, train_mode, suffix, **kwargs):
         return application, application_valid
     else:
         return application
+
+
+def _bureau_cleaning(config, suffix, **kwargs):
+    bureau_cleaning = Step(name='bureau_cleaning{}'.format(suffix),
+                           transformer=dc.BureauCleaning(**config.preprocessing.impute_missing),
+                           input_data=['bureau'],
+                           adapter=Adapter({'bureau': E('bureau', 'X')}),
+                           experiment_directory=config.pipeline.experiment_directory,
+                           **kwargs)
+
+    return bureau_cleaning
+
+
+def _bureau(config, train_mode, suffix, **kwargs):
+    bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+
+    bureau = Step(name='bureau{}'.format(suffix),
+                  transformer=fe.BureauFeatures(**config.bureau),
+                  input_data=['application'],
+                  input_steps=[bureau_cleaned],
+                  adapter=Adapter({'X': E('application', 'X'),
+                                   'bureau': E(bureau_cleaned.name, 'bureau')}),
+                  experiment_directory=config.pipeline.experiment_directory,
+                  **kwargs)
+    if train_mode:
+        bureau_valid = Step(name='bureau_valid{}'.format(suffix),
+                            transformer=bureau,
+                            input_data=['application'],
+                            adapter=Adapter({'X': E('application', 'X_valid')}),
+                            experiment_directory=config.pipeline.experiment_directory,
+                            **kwargs)
+        return bureau, bureau_valid
+    else:
+        return bureau
 
 
 def _credit_card_balance(config, train_mode, suffix, **kwargs):

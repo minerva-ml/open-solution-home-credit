@@ -182,19 +182,20 @@ APPLICATION_AGGREGATION_RECIPIES = [
 BUREAU_AGGREGATION_RECIPIES = [('CREDIT_TYPE', 'count'),
                                ('CREDIT_ACTIVE', 'size')
                                ]
-for agg, select in zip(['mean', 'min', 'max', 'sum', 'var'], ['AMT_ANNUITY',
-                                                              'AMT_CREDIT_SUM',
-                                                              'AMT_CREDIT_SUM_DEBT',
-                                                              'AMT_CREDIT_SUM_LIMIT',
-                                                              'AMT_CREDIT_SUM_OVERDUE',
-                                                              'AMT_CREDIT_MAX_OVERDUE',
-                                                              'CNT_CREDIT_PROLONG',
-                                                              'CREDIT_DAY_OVERDUE',
-                                                              'DAYS_CREDIT',
-                                                              'DAYS_CREDIT_ENDDATE',
-                                                              'DAYS_CREDIT_UPDATE'
-                                                              ]):
-    BUREAU_AGGREGATION_RECIPIES.append((select, agg))
+for agg in ['mean', 'min', 'max', 'sum', 'var']:
+    for select in ['AMT_ANNUITY',
+                   'AMT_CREDIT_SUM',
+                   'AMT_CREDIT_SUM_DEBT',
+                   'AMT_CREDIT_SUM_LIMIT',
+                   'AMT_CREDIT_SUM_OVERDUE',
+                   'AMT_CREDIT_MAX_OVERDUE',
+                   'CNT_CREDIT_PROLONG',
+                   'CREDIT_DAY_OVERDUE',
+                   'DAYS_CREDIT',
+                   'DAYS_CREDIT_ENDDATE',
+                   'DAYS_CREDIT_UPDATE'
+                   ]:
+        BUREAU_AGGREGATION_RECIPIES.append((select, agg))
 BUREAU_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], BUREAU_AGGREGATION_RECIPIES)]
 
 CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES = []
@@ -263,37 +264,37 @@ SOLUTION_CONFIG = AttrDict({
                                               },
                       },
 
-    'feature_extraction': {'application': {'id_column': 'SK_ID_CURR',
-                                           'table_name': 'application',
-                                           'aggregation_recipes': APPLICATION_AGGREGATION_RECIPIES,
-                                           'categorical_columns': CATEGORICAL_COLUMNS,
-                                           'numerical_columns': NUMERICAL_COLUMNS},
+    'applications': {'columns': {'categorical_columns': CATEGORICAL_COLUMNS,
+                                 'numerical_columns': NUMERICAL_COLUMNS
+                                 },
+                     'aggregations': {'groupby_aggregations': APPLICATION_AGGREGATION_RECIPIES
+                                      }
+                     },
 
-                           'bureau': {'id_column': 'SK_ID_CURR',
-                                      'table_name': 'bureau',
-                                      'aggregation_recipes': BUREAU_AGGREGATION_RECIPIES
-                                      },
+    'bureau': {'table_name': 'bureau',
+               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+               'groupby_aggregations': BUREAU_AGGREGATION_RECIPIES
+               },
 
-                           'credit_card_balance': {'table_name': 'credit_card_balance',
-                                                   'id_column': 'SK_ID_CURR',
-                                                   'aggregation_recipes': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES
-                                                   },
+    'credit_card_balance': {'table_name': 'credit_card_balance',
+                            'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                            'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES
+                            },
 
-                           'installments_payments': {'table_name': 'installments_payments',
-                                                     'id_column': 'SK_ID_CURR',
-                                                     'aggregation_recipes': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES
-                                                     },
+    'installments_payments': {'table_name': 'installments_payments',
+                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                              'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES
+                              },
 
-                           'pos_cash_balance': {'table_name': 'POS_CASH_balance',
-                                                'id_columns': 'SK_ID_CURR',
-                                                'aggregation_recipes': POS_CASH_BALANCE_AGGREGATION_RECIPIES
-                                                },
+    'pos_cash_balance': {'table_name': 'POS_CASH_balance',
+                         'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                         'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES
+                         },
 
-                           'previous_applications': {'table_name': 'previous_application',
-                                                     'id_columns': 'SK_ID_CURR',
-                                                     'aggregation_recipes': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES
-                                                     },
-                           },
+    'previous_applications': {'table_name': 'previous_application',
+                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                              'groupby_aggregations': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES
+                              },
 
     'light_gbm': {'device': parameter_eval(params.lgbm__device),
                   'boosting_type': parameter_eval(params.lgbm__boosting_type),
@@ -408,4 +409,5 @@ SOLUTION_CONFIG = AttrDict({
                                             },
                               },
                       },
+
 })
