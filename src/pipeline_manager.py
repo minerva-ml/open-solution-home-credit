@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
 
 from . import pipeline_config as cfg
 from .pipelines import PIPELINES
-from .utils import init_logger, read_params, set_seed, create_submission, verify_submission
+from .utils import init_logger, read_params, set_seed, create_submission, verify_submission, calculate_rank
 
 set_seed(cfg.RANDOM_SEED)
 logger = init_logger()
@@ -382,7 +382,7 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
 def _aggregate_test_prediction(out_of_fold_test_predictions):
     agg_methods = {'mean': np.mean,
                    'gmean': gmean}
-    prediction_column = [col for col in out_of_fold_test_predictions.columns if '_prediction' in col]
+    prediction_column = [col for col in out_of_fold_test_predictions.columns if '_prediction' in col][0]
     if params.aggregation_method == 'rank_mean':
         rank_column = prediction_column.replace('_prediction', '_rank')
         test_predictions_with_ranks = []
