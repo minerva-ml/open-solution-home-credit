@@ -1,7 +1,7 @@
 project: ORGANIZATION/home-credit
 
 name: home-credit-default-risk
-tags: [solution-2]
+tags: [solution-3]
 
 metric:
   channel: 'ROC_AUC'
@@ -9,20 +9,19 @@ metric:
 
 exclude:
   - output
-  - imgs
+  - notebooks
   - neptune.log
   - offline_job.log
   - .git
   - .github
   - .idea
   - .ipynb_checkpoints
-  - Untitled.ipynb
 
 parameters:
 # Data
   train_filepath:                 YOUR/PATH/TO/application_train.csv
   test_filepath:                  YOUR/PATH/TO/application_test.csv
-  bureau_balance_filepath:        YOUR/PATH/TO/bureau_balance_filepath.csv
+  bureau_balance_filepath:        YOUR/PATH/TO/bureau_balance.csv
   bureau_filepath:                YOUR/PATH/TO/bureau.csv
   credit_card_balance_filepath:   YOUR/PATH/TO/credit_card_balance.csv
   installments_payments_filepath: YOUR/PATH/TO/installments_payments.csv
@@ -33,10 +32,12 @@ parameters:
 
 # Kaggle
   kaggle_api: 0
-  kaggle_message: 'solution-2'
+  kaggle_message: 'solution-3'
 
 # Data preparation
+  n_cv_splits: 5
   validation_size: 0.2
+  stratified_cv: True
   shuffle: 1
 
 # Execution
@@ -45,7 +46,8 @@ parameters:
   verbose: 1
 
 # Preprocessing
-  fillna_value: -1
+  fill_missing: False
+  fill_value: None
 
 # Light GBM
   lgbm_random_search_runs: 50
@@ -58,7 +60,7 @@ parameters:
   lgbm__learning_rate: '[0.0005, 0.1, "log-uniform"]'
   lgbm__num_leaves: '[20, 50]'
   lgbm__max_depth: '[7, 30]'
-  lgbm__min_child_samples: '[20, 45]'
+  lgbm__min_child_samples: '[20, 50]'
   lgbm__max_bin: '[180, 500]' # at most 255 for device=gpu
   lgbm__subsample: '[0.8, 0.9, 0.99, 0.6, 0.7, "list"]'
   lgbm__subsample_freq: 0
@@ -117,3 +119,6 @@ parameters:
   svc__probability: True
   svc__tol: '[0.00001, 0.01, "log-uniform"]'
   svc__max_iter: '[-1, 100, 1000, 10000, 50000, "list"]'
+
+# Postprocessing
+  aggregation_method: rank_mean

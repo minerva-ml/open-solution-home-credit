@@ -1,7 +1,7 @@
 project: ORGANIZATION/home-credit
 
 name: home-credit-default-risk
-tags: [solution-2]
+tags: [solution-3, dev]
 
 metric:
   channel: 'ROC_AUC'
@@ -9,20 +9,19 @@ metric:
 
 exclude:
   - output
-  - imgs
+  - notebooks
   - neptune.log
   - offline_job.log
   - .git
   - .github
   - .idea
   - .ipynb_checkpoints
-  - Untitled.ipynb
 
 parameters:
 # Data
   train_filepath:                 YOUR/PATH/TO/application_train.csv
   test_filepath:                  YOUR/PATH/TO/application_test.csv
-  bureau_balance_filepath:        YOUR/PATH/TO/bureau_balance_filepath.csv
+  bureau_balance_filepath:        YOUR/PATH/TO/bureau_balance.csv
   bureau_filepath:                YOUR/PATH/TO/bureau.csv
   credit_card_balance_filepath:   YOUR/PATH/TO/credit_card_balance.csv
   installments_payments_filepath: YOUR/PATH/TO/installments_payments.csv
@@ -33,19 +32,22 @@ parameters:
 
 # Kaggle
   kaggle_api: 0
-  kaggle_message: 'solution-2'
+  kaggle_message: 'solution-3'
 
 # Data preparation
+  n_cv_splits: 5
   validation_size: 0.2
+  stratified_cv: True
   shuffle: 1
 
 # Execution
   clean_experiment_directory_before_training: 1
-  num_workers: 16
+  num_workers: 1
   verbose: 1
 
 # Preprocessing
-  fillna_value: -1
+  fill_missing: False
+  fill_value: None
 
 # Light GBM
   lgbm_random_search_runs: 0
@@ -117,3 +119,6 @@ parameters:
   svc__probability: True
   svc__tol: 0.00001
   svc__max_iter: -1
+
+# Postprocessing
+  aggregation_method: mean

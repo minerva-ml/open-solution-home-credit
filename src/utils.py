@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 import yaml
 from attrdict import AttrDict
-from steppy.base import BaseTransformer
 
 
 def create_submission(meta, predictions):
@@ -18,7 +17,6 @@ def create_submission(meta, predictions):
 
 
 def verify_submission(submission, sample_submission):
-
     assert submission.shape == sample_submission.shape, \
         'Expected submission to have shape {} but got {}'.format(sample_submission.shape, submission.shape)
 
@@ -49,12 +47,9 @@ def init_logger():
     return logger
 
 
-def read_params(ctx):
+def read_params(ctx, fallback_file):
     if ctx.params.__class__.__name__ == 'OfflineContextParams':
-        try:
-            neptune_config = read_yaml('neptune.yaml')
-        except FileNotFoundError:
-            neptune_config = read_yaml('../neptune.yaml')
+        neptune_config = read_yaml(fallback_file)
         params = neptune_config.parameters
     else:
         params = ctx.params
@@ -86,17 +81,6 @@ def set_seed(seed=90210):
     random.seed(seed)
     np.random.seed(seed)
 
-
-class ToNumpyLabel(BaseTransformer):
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.y = None
-
-    def fit(self, y, **kwargs):
-        self.y = y[0].values.reshape(-1)
-        return self
-
-    def transform(self, **kwargs):
-        if self.y.any():
-            return {'y': self.y}
-        return {}
+def calculate_rank(predictions):
+    rank = (1 + predictions.rank().values) / (predictions.shape[0] + 1)
+    return rank
