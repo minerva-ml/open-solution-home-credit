@@ -6,7 +6,7 @@ logger = get_logger()
 
 
 class ApplicationCleaning(BaseTransformer):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
 
     def transform(self, X):
@@ -16,13 +16,15 @@ class ApplicationCleaning(BaseTransformer):
 
 
 class BureauCleaning(BaseTransformer):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, fill_missing=False, fill_value=0, **kwargs):
+        self.fill_missing = fill_missing
+        self.fill_value = fill_value
 
     def transform(self, bureau):
-        bureau['AMT_CREDIT_SUM'].fillna(0, inplace=True)
-        bureau['AMT_CREDIT_SUM_DEBT'].fillna(0, inplace=True)
-        bureau['AMT_CREDIT_SUM_OVERDUE'].fillna(0, inplace=True)
-        bureau['CNT_CREDIT_PROLONG'].fillna(0, inplace=True)
+        if self.fill_missing:
+            bureau['AMT_CREDIT_SUM'].fillna(self.fill_value, inplace=True)
+            bureau['AMT_CREDIT_SUM_DEBT'].fillna(self.fill_value, inplace=True)
+            bureau['AMT_CREDIT_SUM_OVERDUE'].fillna(self.fill_value, inplace=True)
+            bureau['CNT_CREDIT_PROLONG'].fillna(self.fill_value, inplace=True)
 
         return {'bureau': bureau}

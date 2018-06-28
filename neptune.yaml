@@ -9,14 +9,13 @@ metric:
 
 exclude:
   - output
-  - imgs
+  - notebooks
   - neptune.log
   - offline_job.log
   - .git
   - .github
   - .idea
   - .ipynb_checkpoints
-  - Untitled.ipynb
 
 parameters:
 # Data
@@ -47,7 +46,8 @@ parameters:
   verbose: 1
 
 # Preprocessing
-  fillna_value: -1
+  fill_missing: False
+  fill_value: None
 
 # Light GBM
   lgbm_random_search_runs: 0

@@ -6,7 +6,7 @@ from deepsense import neptune
 from .utils import read_params, parameter_eval
 
 ctx = neptune.Context()
-params = read_params(ctx, fallback_file='neptune.yaml')
+params = read_params(ctx, fallback_file='../neptune.yaml')
 
 RANDOM_SEED = 90210
 DEV_SAMPLE_SIZE = 1000
@@ -139,7 +139,7 @@ HIGHLY_CORRELATED_NUMERICAL_COLUMNS = ['AMT_GOODS_PRICE',
                                        'YEARS_BUILD_MEDI',
                                        'YEARS_BUILD_MODE']
 
-AGGREGATION_RECIPIES = [
+APPLICATION_AGGREGATION_RECIPIES = [
     (['CODE_GENDER', 'NAME_EDUCATION_TYPE'], [('AMT_ANNUITY', 'max'),
                                               ('AMT_CREDIT', 'max'),
                                               ('EXT_SOURCE_1', 'mean'),
@@ -258,12 +258,43 @@ SOLUTION_CONFIG = AttrDict({
     'pipeline': {'experiment_directory': params.experiment_directory
                  },
 
-    'preprocessing': {'fillna_value': params.fillna_value},
+    'preprocessing': {'impute_missing': {'fill_missing': params.fill_missing,
+                                         'fill_value': params.fill_value},
+                      'categorical_encoder': {'categorical_columns': CATEGORICAL_COLUMNS
+                                              },
+                      },
 
-    'dataframe_by_type_splitter': {'numerical_columns': NUMERICAL_COLUMNS,
-                                   'categorical_columns': CATEGORICAL_COLUMNS,
-                                   'timestamp_columns': [],
-                                   },
+    'applications': {'columns': {'categorical_columns': CATEGORICAL_COLUMNS,
+                                 'numerical_columns': NUMERICAL_COLUMNS
+                                 },
+                     'aggregations': {'groupby_aggregations': APPLICATION_AGGREGATION_RECIPIES
+                                      }
+                     },
+
+    'bureau': {'table_name': 'bureau',
+               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+               'groupby_aggregations': BUREAU_AGGREGATION_RECIPIES
+               },
+
+    'credit_card_balance': {'table_name': 'credit_card_balance',
+                            'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                            'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES
+                            },
+
+    'installments_payments': {'table_name': 'installments_payments',
+                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                              'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES
+                              },
+
+    'pos_cash_balance': {'table_name': 'POS_CASH_balance',
+                         'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                         'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES
+                         },
+
+    'previous_applications': {'table_name': 'previous_application',
+                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                              'groupby_aggregations': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES
+                              },
 
     'light_gbm': {'device': parameter_eval(params.lgbm__device),
                   'boosting_type': parameter_eval(params.lgbm__boosting_type),
@@ -379,35 +410,4 @@ SOLUTION_CONFIG = AttrDict({
                               },
                       },
 
-    'bureau': {'table_name': 'bureau',
-               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-               'groupby_aggregations': BUREAU_AGGREGATION_RECIPIES
-               },
-
-    'credit_card_balance': {'table_name': 'credit_card_balance',
-                            'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                            'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES
-                            },
-
-    'installments_payments': {'table_name': 'installments_payments',
-                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                              'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES
-                              },
-
-    'pos_cash_balance': {'table_name': 'POS_CASH_balance',
-                         'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                         'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES
-                         },
-
-    'previous_applications': {'table_name': 'previous_application',
-                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                              'groupby_aggregations': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES
-                              },
-
-    'clipper': {'min_val': 0,
-                'max_val': 1
-                },
-
-    'groupby_aggregation': {'groupby_aggregations': AGGREGATION_RECIPIES
-                            },
 })
