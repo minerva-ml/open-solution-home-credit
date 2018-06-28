@@ -168,7 +168,7 @@ class BureauFeatures(BaseTransformer):
         feature_names.remove('SK_ID_CURR')
         return feature_names
 
-    def fit(self, X, bureau):
+    def fit(self, X, bureau, **kwargs):
         bureau['bureau_credit_active_binary'] = (bureau['CREDIT_ACTIVE'] != 'Closed').astype(int)
         bureau['bureau_credit_enddate_binary'] = (bureau['DAYS_CREDIT_ENDDATE'] > 0).astype(int)
         groupby_SK_ID_CURR = bureau.groupby(by=['SK_ID_CURR'])
@@ -238,79 +238,77 @@ class BureauFeatures(BaseTransformer):
 
 
 class CreditCardBalanceFeatures(BaseTransformer):
-    def __init__(self, id_columns, **kwargs):
-        super().__init__()
-        self.id_columns = id_columns
-        self.credit_card_names = ['credit_card-number_of_loans',
-                                  'credit_card-total_instalments',
-                                  'credit_card-installments_per_loan',
-                                  'credit_card-avg_loading_of_credit_limit',
-                                  'credit_card-average_of_days_past_due',
-                                  'credit_card-drawings_atm',
-                                  'credit_card-drawings_total',
-                                  'credit_card-cash_card_ratio',
-                                  'credit_card-drawing_ratio',
-                                  ]
+    def __init__(self, **kwargs):
+        self.features = None
 
-    def fit(self, X, credit_card):
-        credit_card['credit_card-number_of_loans'] = credit_card.groupby(
-            by=['SK_ID_CURR'])['SK_ID_PREV'].nunique().reset_index()['SK_ID_PREV']
+    @property
+    def feature_names(self):
+        feature_names = list(self.features.columns)
+        feature_names.remove('SK_ID_CURR')
+        return feature_names
 
+    def fit(self, X, credit_card, **kwargs):
         credit_card['number_of_instalments'] = credit_card.groupby(
             by=['SK_ID_CURR', 'SK_ID_PREV'])['CNT_INSTALMENT_MATURE_CUM'].agg('max').reset_index()[
             'CNT_INSTALMENT_MATURE_CUM']
-        credit_card['credit_card-total_instalments'] = credit_card.groupby(
-            by=['SK_ID_CURR'])['number_of_instalments'].sum().reset_index()['number_of_instalments']
-        credit_card['credit_card-installments_per_loan'] = (
-            credit_card['credit_card-total_instalments'] / credit_card['credit_card-number_of_loans'])
 
-        credit_card['credit_card-avg_loading_of_credit_limit'] = credit_card.groupby(
+        credit_card['credit_card_max_loading_of_credit_limit'] = credit_card.groupby(
             by=['SK_ID_CURR', 'SK_ID_PREV', 'AMT_CREDIT_LIMIT_ACTUAL']).apply(
             lambda x: x.AMT_BALANCE.max() / x.AMT_CREDIT_LIMIT_ACTUAL.max()).reset_index()[0]
-        credit_card['credit_card-avg_loading_of_credit_limit'] = credit_card.groupby(
-            by=['SK_ID_CURR'])['credit_card-avg_loading_of_credit_limit'].agg('mean').reset_index()[
-            'credit_card-avg_loading_of_credit_limit']
 
-        credit_card['credit_card-average_of_days_past_due'] = credit_card.groupby(
-            by=['SK_ID_CURR'])['SK_DPD'].agg('mean').reset_index()['SK_DPD']
+        features = pd.DataFrame({'SK_ID_CURR': credit_card['SK_ID_CURR'].unique()})
 
-        credit_card['credit_card-drawings_atm'] = credit_card.groupby(
-            by=['SK_ID_CURR'])['AMT_DRAWINGS_ATM_CURRENT'].sum().reset_index()['AMT_DRAWINGS_ATM_CURRENT']
-        credit_card['credit_card-drawings_total'] = credit_card.groupby(
-            by=['SK_ID_CURR'])['AMT_DRAWINGS_CURRENT'].sum().reset_index()['AMT_DRAWINGS_CURRENT']
-        credit_card['credit_card-cash_card_ratio'] = 100 * (
-            credit_card['credit_card-drawings_atm'] / credit_card['credit_card-drawings_total'])
-        credit_card['credit_card-cash_card_ratio'] = credit_card.groupby(
-            by=['SK_ID_CURR'])['credit_card-cash_card_ratio'].agg('mean').reset_index()['credit_card-cash_card_ratio']
+        group_object = credit_card.groupby(by=['SK_ID_CURR'])['SK_ID_PREV'].agg('nunique').reset_index()
+        group_object.rename(index=str, columns={'SK_ID_PREV': 'credit_card_number_of_loans'}, inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
 
-        # AVERAGE DRAWING PER CUSTOMER
-        credit_card['credit_card-number_of_drawings'] = credit_card.groupby(
-            by=['SK_ID_CURR'])['CNT_DRAWINGS_CURRENT'].sum().reset_index()['CNT_DRAWINGS_CURRENT']
-        credit_card['credit_card-drawing_ratio'] = 100 * (
-            credit_card['credit_card-drawings_total'] / credit_card['credit_card-number_of_drawings'])
-        credit_card['credit_card-drawing_ratio'] = credit_card.groupby(
-            by=['SK_ID_CURR'])['credit_card-drawing_ratio'].agg('mean').reset_index()['credit_card-drawing_ratio']
+        group_object = credit_card.groupby(by=['SK_ID_CURR'])['number_of_instalments'].sum().reset_index()
+        group_object.rename(index=str, columns={'number_of_instalments': 'credit_card_total_instalments'}, inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
 
-        self.credit_card_features = credit_card[self.credit_card_names +
-                                                [self.id_columns[1]]].drop_duplicates(subset=self.id_columns[1])
+        features['credit_card_installments_per_loan'] = (
+            features['credit_card_total_instalments'] / features['credit_card_number_of_loans'])
 
+        group_object = credit_card.groupby(by=['SK_ID_CURR'])['credit_card_max_loading_of_credit_limit'].agg(
+            'mean').reset_index()
+        group_object.rename(index=str, columns={
+            'credit_card_max_loading_of_credit_limit': 'credit_card_avg_loading_of_credit_limit'}, inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = credit_card.groupby(
+            by=['SK_ID_CURR'])['SK_DPD'].agg('mean').reset_index()
+        group_object.rename(index=str, columns={'SK_DPD': 'credit_card_average_of_days_past_due'}, inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = credit_card.groupby(by=['SK_ID_CURR'])['AMT_DRAWINGS_ATM_CURRENT'].agg('sum').reset_index()
+        group_object.rename(index=str, columns={'AMT_DRAWINGS_ATM_CURRENT': 'credit_card_drawings_atm'}, inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = credit_card.groupby(by=['SK_ID_CURR'])['AMT_DRAWINGS_CURRENT'].agg('sum').reset_index()
+        group_object.rename(index=str, columns={'AMT_DRAWINGS_CURRENT': 'credit_card_drawings_total'}, inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        features['credit_card_cash_card_ratio'] = features['credit_card_drawings_atm'] / features[
+            'credit_card_drawings_total']
+
+        self.features = features
         return self
 
     def transform(self, X, **kwargs):
-        X = X.merge(self.credit_card_features,
-                    left_on=self.id_columns[0],
-                    right_on=self.id_columns[1],
+        X = X.merge(self.features,
+                    left_on=['SK_ID_CURR'],
+                    right_on=['SK_ID_CURR'],
                     how='left',
                     validate='one_to_one')
 
-        return {'numerical_features': X[self.credit_card_names]}
+        return {'numerical_features': X[self.feature_names]}
 
     def load(self, filepath):
-        self.credit_card_features = joblib.load(filepath)
+        self.features = joblib.load(filepath)
         return self
 
     def persist(self, filepath):
-        joblib.dump(self.credit_card_features, filepath)
+        joblib.dump(self.features, filepath)
 
 
 class ConcatFeatures(BaseTransformer):
