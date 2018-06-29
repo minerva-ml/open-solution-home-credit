@@ -10,8 +10,11 @@ class ApplicationCleaning(BaseTransformer):
         super().__init__()
 
     def transform(self, X):
-        X['DAYS_EMPLOYED'].replace(365243, np.nan, inplace=True)
         X['CODE_GENDER'].replace('XNA', np.nan, inplace=True)
+        X['DAYS_EMPLOYED'].replace(365243, np.nan, inplace=True)
+        X['NAME_FAMILY_STATUS'].replace('Unknown', np.nan, inplace=True)
+        X['ORGANIZATION_TYPE'].replace('XNA', np.nan, inplace=True)
+
         return {'X': X}
 
 
