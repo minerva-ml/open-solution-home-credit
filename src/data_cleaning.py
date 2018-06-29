@@ -11,7 +11,7 @@ class ApplicationCleaning(BaseTransformer):
 
     def transform(self, X):
         X['DAYS_EMPLOYED'].replace(365243, np.nan, inplace=True)
-
+        X['CODE_GENDER'].replace('XNA', np.nan, inplace=True)
         return {'X': X}
 
 
