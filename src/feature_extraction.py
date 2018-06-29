@@ -94,23 +94,46 @@ class GroupbyAggregateMerge(BaseTransformer):
         self.table_name = table_name
         self.id_columns = id_columns
         self.groupby_aggregations = groupby_aggregations
-        self.groupby_aggregate_names = []
 
-    def transform(self, main_table, side_table):
+    @property
+    def feature_names(self):
+        feature_names = list(self.features.columns)
+        feature_names.remove(self.id_columns[0])
+        return feature_names
+
+    def fit(self, main_table, side_table, **kwargs):
+        features = pd.DataFrame({self.id_columns[0]: side_table[self.id_columns[0]].unique()})
+
         for groupby_cols, specs in self.groupby_aggregations:
             group_object = side_table.groupby(groupby_cols)
             for select, agg in specs:
                 groupby_aggregate_name = self._create_colname_from_specs(groupby_cols, select, agg)
-                main_table = main_table.merge(group_object[select]
-                                              .agg(agg)
-                                              .reset_index()
-                                              .rename(index=str,
-                                                      columns={select: groupby_aggregate_name})
-                                              [groupby_cols + [groupby_aggregate_name]],
-                                              on=groupby_cols,
-                                              how='left')
-                self.groupby_aggregate_names.append(groupby_aggregate_name)
-        return {'numerical_features': main_table[self.groupby_aggregate_names].astype(np.float32)}
+                features = features.merge(group_object[select]
+                                          .agg(agg)
+                                          .reset_index()
+                                          .rename(index=str,
+                                                  columns={select: groupby_aggregate_name})
+                                          [groupby_cols + [groupby_aggregate_name]],
+                                          on=groupby_cols,
+                                          how='left')
+        self.features = features
+        return self
+
+    def transform(self, main_table, side_table, **kwargs):
+        main_table = main_table.merge(self.features,
+                                      left_on=[self.id_columns[0]],
+                                      right_on=[self.id_columns[1]],
+                                      how='left',
+                                      validate='one_to_one')
+
+        return {'numerical_features': main_table[self.feature_names].astype(np.float32)}
+
+    def load(self, filepath):
+        self.features = joblib.load(filepath)
+        return self
+
+    def persist(self, filepath):
+        joblib.dump(self.features, filepath)
 
     def _create_colname_from_specs(self, groupby_cols, select, agg):
         return '{}_{}_{}_{}'.format(self.table_name, '_'.join(groupby_cols), agg, select)
@@ -267,7 +290,7 @@ class CreditCardBalanceFeatures(BaseTransformer):
         features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
 
         features['credit_card_installments_per_loan'] = (
-            features['credit_card_total_instalments'] / features['credit_card_number_of_loans'])
+                features['credit_card_total_instalments'] / features['credit_card_number_of_loans'])
 
         group_object = credit_card.groupby(by=['SK_ID_CURR'])['credit_card_max_loading_of_credit_limit'].agg(
             'mean').reset_index()
