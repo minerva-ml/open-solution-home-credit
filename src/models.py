@@ -78,13 +78,13 @@ class XGBoost(BaseTransformer):
 
 
 class LightGBM(BaseTransformer):
-    def __init__(self, **params):
+    def __init__(self, name=None, **params):
         super().__init__()
         logger.info('initializing LightGBM...')
         self.params = params
         self.training_params = ['number_boosting_rounds', 'early_stopping_rounds']
         self.evaluation_function = None
-        self.callbacks = None
+        self.callbacks = callbacks(channel_prefix=name)
 
     @property
     def model_config(self):
@@ -189,3 +189,20 @@ def get_sklearn_classifier(ClassifierClass, normalize=False, **kwargs):
                                                  ('classifier', ClassifierClass(**kwargs))]))
 
     return SklearnBinaryClassifier(ClassifierClass(**kwargs))
+
+
+def callbacks(channel_prefix):
+    neptune_monitor = neptune_monitor_lgbm(channel_prefix)
+    return [neptune_monitor]
+
+
+def neptune_monitor_lgbm(channel_prefix=''):
+    def callback(env):
+        for name, loss_name, loss_value, _ in env.evaluation_result_list:
+            if channel_prefix != '':
+                channel_name = '{}_{}_{}'.format(channel_prefix, name, loss_name)
+            else:
+                channel_name = '{}_{}'.format(name, loss_name)
+            ctx.channel_send(channel_name, x=env.iteration, y=loss_value)
+
+    return callback
