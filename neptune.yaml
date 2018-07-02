@@ -55,20 +55,20 @@ parameters:
   lgbm__boosting_type: gbdt
   lgbm__objective: binary
   lgbm__metric: auc
-  lgbm__number_boosting_rounds: 10000
-  lgbm__early_stopping_rounds: 100
-  lgbm__learning_rate: 0.005
-  lgbm__num_leaves: 50
-  lgbm__max_depth: 20
-  lgbm__min_child_samples: 20
-  lgbm__max_bin: 300  # at most 255 for device=gpu
-  lgbm__subsample: 0.6
-  lgbm__subsample_freq: 0
-  lgbm__colsample_bytree: 0.8
-  lgbm__min_child_weight: 4
-  lgbm__reg_lambda: 0.05
+  lgbm__number_boosting_rounds: 200
+  lgbm__early_stopping_rounds: 20
+  lgbm__learning_rate: 0.05
+  lgbm__max_bin: 600
+  lgbm__max_depth: -1
+  lgbm__num_leaves: 100
+  lgbm__min_child_samples: 500
+  lgbm__subsample: 0.85
+  lgbm__subsample_freq: 1
+  lgbm__colsample_bytree: 0.2
+  lgbm__min_gain_to_split: 0.02
+  lgbm__reg_lambda: 0.1
   lgbm__reg_alpha: 0.05
-  lgbm__scale_pos_weight: 1
+  lgbm__scale_pos_weight: 10
 
 # XGBoost
   xgb_random_search_runs: 0

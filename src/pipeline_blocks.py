@@ -11,6 +11,8 @@ from .models import get_sklearn_classifier, XGBoost, LightGBM
 
 
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
+    model_name = 'light_gbm{}'.format(suffix)
+
     if train_mode:
         features_train, features_valid = features
         if config.random_search.light_gbm.n_runs:
@@ -28,9 +30,9 @@ def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
                                                         **config.random_search.light_gbm.callbacks.persist_results)]
                                                 )
         else:
-            transformer = LightGBM(**config.light_gbm)
+            transformer = LightGBM(name=model_name, **config.light_gbm)
 
-        light_gbm = Step(name='light_gbm{}'.format(suffix),
+        light_gbm = Step(name=model_name,
                          transformer=transformer,
                          input_data=['application'],
                          input_steps=[features_train, features_valid],
@@ -44,8 +46,8 @@ def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
                          experiment_directory=config.pipeline.experiment_directory,
                          **kwargs)
     else:
-        light_gbm = Step(name='light_gbm{}'.format(suffix),
-                         transformer=LightGBM(**config.light_gbm),
+        light_gbm = Step(name=model_name,
+                         transformer=LightGBM(name=model_name, **config.light_gbm),
                          input_steps=[features],
                          adapter=Adapter({'X': E(features.name, 'features')}),
                          experiment_directory=config.pipeline.experiment_directory,
@@ -166,23 +168,25 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
 
         feature_combiner, feature_combiner_valid = _join_features(
             numerical_features=[application,
+                                application_agg,
                                 bureau,
                                 credit_card_balance,
-                                application_agg,
                                 bureau_agg,
                                 credit_card_balance_agg,
                                 installments_payments_agg,
                                 pos_cash_balance_agg,
-                                previous_applications_agg],
+                                previous_applications_agg
+                                ],
             numerical_features_valid=[application_valid,
+                                      application_agg_valid,
                                       bureau_valid,
                                       credit_card_balance_valid,
-                                      application_agg_valid,
                                       bureau_agg_valid,
                                       credit_card_balance_agg_valid,
                                       installments_payments_agg_valid,
                                       pos_cash_balance_agg_valid,
-                                      previous_applications_agg_valid],
+                                      previous_applications_agg_valid
+                                      ],
             categorical_features=[categorical_encoder],
             categorical_features_valid=[categorical_encoder_valid],
             config=config,
@@ -204,14 +208,15 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         previous_applications_agg = _previous_applications_groupby_agg(config, train_mode, suffix, **kwargs)
         categorical_encoder = _categorical_encoders(config, train_mode, suffix, **kwargs)
         feature_combiner = _join_features(numerical_features=[application,
+                                                              application_agg,
                                                               bureau,
                                                               credit_card_balance,
-                                                              application_agg,
                                                               bureau_agg,
                                                               credit_card_balance_agg,
                                                               installments_payments_agg,
                                                               pos_cash_balance_agg,
-                                                              previous_applications_agg],
+                                                              previous_applications_agg
+                                                              ],
                                           numerical_features_valid=[],
                                           categorical_features=[categorical_encoder],
                                           categorical_features_valid=[],
