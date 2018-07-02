@@ -377,7 +377,7 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
     score = roc_auc_score(y_valid_true, y_valid_pred)
 
     return score, y_valid_pred, pipeline
-
+    # return None, None, None
 
 def _aggregate_test_prediction(out_of_fold_test_predictions):
     agg_methods = {'mean': np.mean,
