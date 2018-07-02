@@ -378,7 +378,6 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
 
     return score, y_valid_pred, pipeline
 
-
 def _aggregate_test_prediction(out_of_fold_test_predictions):
     agg_methods = {'mean': np.mean,
                    'gmean': gmean}
