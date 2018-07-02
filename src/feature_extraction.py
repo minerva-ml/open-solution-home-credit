@@ -157,15 +157,12 @@ class ApplicationFeatures(BaseTransformer):
                                              'payment_rate',
                                              'phone_to_birth_ratio',
                                              'phone_to_employ_ratio',
+                                             'external_sources_weighted',
                                              'external_sources_min',
                                              'external_sources_max',
                                              'external_sources_sum',
                                              'external_sources_mean',
-                                             'external_sources_var',
-                                             'external_sources_median',
-                                             'external_sources_std',
-                                             'external_sources_nanmedian',
-                                             'external_sources_nanmean']
+                                             'external_sources_nanmedian']
 
     def transform(self, X, **kwargs):
         X['annuity_income_percentage'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
@@ -182,8 +179,8 @@ class ApplicationFeatures(BaseTransformer):
         X['payment_rate'] = X['AMT_ANNUITY'] / X['AMT_CREDIT']
         X['phone_to_birth_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_BIRTH']
         X['phone_to_employ_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_EMPLOYED']
-
-        for function_name in ['min', 'max', 'sum', 'mean', 'var', 'median', 'std', 'nanmedian', 'nanmean']:
+        X['external_sources_weighted'] = X.EXT_SOURCE_1 * 2 + X.EXT_SOURCE_2 * 3 + X.EXT_SOURCE_3 * 4
+        for function_name in ['min', 'max', 'sum', 'mean', 'nanmedian']:
             X['external_sources_{}'.format(function_name)] = eval('np.{}'.format(function_name))(
                 X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
 
