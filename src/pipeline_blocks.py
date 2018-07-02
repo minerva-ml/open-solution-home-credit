@@ -169,7 +169,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
 
         feature_combiner, feature_combiner_valid = _join_features(
             numerical_features=[application,
-                                # application_agg,
+                                application_agg,
                                 previous_applications_agg,
                                 bureau,
                                 bureau_agg,
@@ -179,7 +179,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                 pos_cash_balance_agg,
                                 ],
             numerical_features_valid=[application_valid,
-                                      # application_agg_valid,
+                                      application_agg_valid,
                                       previous_applications_agg_valid,
                                       bureau_valid,
                                       bureau_agg_valid,
@@ -211,7 +211,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         previous_applications_agg = _previous_applications_groupby_agg(config, train_mode, suffix, **kwargs)
         categorical_encoder = _categorical_encoders(config, train_mode, suffix, **kwargs)
         feature_combiner = _join_features(numerical_features=[application,
-                                                              # application_agg,
+                                                              application_agg,
                                                               previous_applications_agg,
                                                               bureau,
                                                               bureau_agg,

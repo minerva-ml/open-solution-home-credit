@@ -121,4 +121,4 @@ parameters:
   svc__max_iter: -1
 
 # Postprocessing
-  aggregation_method: mean
+  aggregation_method: rank_mean
