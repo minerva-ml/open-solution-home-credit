@@ -63,9 +63,8 @@ class CategoricalEncoder(BaseTransformer):
 
 
 class GroupbyAggregate(BaseTransformer):
-    def __init__(self, id_column, groupby_aggregations):
+    def __init__(self, groupby_aggregations):
         super().__init__()
-        self.id_column = id_column
         self.groupby_aggregations = groupby_aggregations
         self.features = []
         self.feature_names = []

@@ -43,7 +43,6 @@ def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
                                           'X_valid': E(features_valid.name, 'features'),
                                           'y_valid': E('application', 'y_valid'),
                                           }),
-                         force_fitting=True,
                          experiment_directory=config.pipeline.experiment_directory,
                          **kwargs)
     else:
