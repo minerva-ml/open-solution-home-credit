@@ -13,7 +13,7 @@ def lightGBM(config, train_mode, suffix=''):
         features, features_valid = feature_extraction(config,
                                                       train_mode,
                                                       suffix,
-                                                      persist_output=False,
+                                                      persist_output=True,
                                                       cache_output=False,
                                                       load_persisted_output=False)
         light_gbm = classifier_light_gbm((features, features_valid),

@@ -43,6 +43,7 @@ def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
                                           'X_valid': E(features_valid.name, 'features'),
                                           'y_valid': E('application', 'y_valid'),
                                           }),
+                         force_fitting=True,
                          experiment_directory=config.pipeline.experiment_directory,
                          **kwargs)
     else:
@@ -168,27 +169,29 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
 
         feature_combiner, feature_combiner_valid = _join_features(
             numerical_features=[application,
-                                application_agg,
+                                # application_agg,
+                                previous_applications_agg,
                                 bureau,
-                                credit_card_balance,
                                 bureau_agg,
+                                credit_card_balance,
                                 credit_card_balance_agg,
                                 installments_payments_agg,
                                 pos_cash_balance_agg,
-                                previous_applications_agg
                                 ],
             numerical_features_valid=[application_valid,
-                                      application_agg_valid,
+                                      # application_agg_valid,
+                                      previous_applications_agg_valid,
                                       bureau_valid,
-                                      credit_card_balance_valid,
                                       bureau_agg_valid,
+                                      credit_card_balance_valid,
                                       credit_card_balance_agg_valid,
                                       installments_payments_agg_valid,
                                       pos_cash_balance_agg_valid,
-                                      previous_applications_agg_valid
                                       ],
-            categorical_features=[categorical_encoder],
-            categorical_features_valid=[categorical_encoder_valid],
+            categorical_features=[categorical_encoder
+                                  ],
+            categorical_features_valid=[categorical_encoder_valid
+                                        ],
             config=config,
             train_mode=train_mode,
             suffix=suffix,
@@ -208,17 +211,18 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         previous_applications_agg = _previous_applications_groupby_agg(config, train_mode, suffix, **kwargs)
         categorical_encoder = _categorical_encoders(config, train_mode, suffix, **kwargs)
         feature_combiner = _join_features(numerical_features=[application,
-                                                              application_agg,
+                                                              # application_agg,
+                                                              previous_applications_agg,
                                                               bureau,
-                                                              credit_card_balance,
                                                               bureau_agg,
+                                                              credit_card_balance,
                                                               credit_card_balance_agg,
                                                               installments_payments_agg,
                                                               pos_cash_balance_agg,
-                                                              previous_applications_agg
                                                               ],
                                           numerical_features_valid=[],
-                                          categorical_features=[categorical_encoder],
+                                          categorical_features=[categorical_encoder
+                                                                ],
                                           categorical_features_valid=[],
                                           config=config,
                                           train_mode=train_mode,

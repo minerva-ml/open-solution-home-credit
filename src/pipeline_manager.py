@@ -279,12 +279,14 @@ def _read_data(dev_mode, read_train=True, read_test=False):
     if read_test:
         raw_data['application_test'] = pd.read_csv(params.test_filepath, nrows=nrows)
 
-    raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath, nrows=nrows)
+    nrows = nrows
+
     raw_data['bureau'] = pd.read_csv(params.bureau_filepath, nrows=nrows)
     raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows)
     raw_data['installments_payments'] = pd.read_csv(params.installments_payments_filepath, nrows=nrows)
     raw_data['pos_cash_balance'] = pd.read_csv(params.POS_CASH_balance_filepath, nrows=nrows)
     raw_data['previous_application'] = pd.read_csv(params.previous_application_filepath, nrows=nrows)
+    raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath, nrows=nrows)
 
     return AttrDict(raw_data)
 
@@ -377,6 +379,7 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
     score = roc_auc_score(y_valid_true, y_valid_pred)
 
     return score, y_valid_pred, pipeline
+
 
 def _aggregate_test_prediction(out_of_fold_test_predictions):
     agg_methods = {'mean': np.mean,
