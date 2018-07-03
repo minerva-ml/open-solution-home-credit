@@ -103,15 +103,16 @@ class GroupbyAggregateDiffs(BaseTransformer):
         self.diff_feature_names = []
         for groupby_cols, specs in self.groupby_aggregations:
             for select, agg in specs:
-                groupby_aggregate_name = self._create_colname_from_specs(groupby_cols, select, agg)
-                diff_feature_name = '{}_diff'.format(groupby_aggregate_name)
-                abs_diff_feature_name = '{}_abs_diff'.format(groupby_aggregate_name)
+                if agg in ['mean', 'median', 'max', 'min']:
+                    groupby_aggregate_name = self._create_colname_from_specs(groupby_cols, select, agg)
+                    diff_feature_name = '{}_diff'.format(groupby_aggregate_name)
+                    abs_diff_feature_name = '{}_abs_diff'.format(groupby_aggregate_name)
 
-                main_table[diff_feature_name] = main_table[select] - main_table[groupby_aggregate_name]
-                main_table[abs_diff_feature_name] = np.abs(main_table[select] - main_table[groupby_aggregate_name])
+                    main_table[diff_feature_name] = main_table[select] - main_table[groupby_aggregate_name]
+                    main_table[abs_diff_feature_name] = np.abs(main_table[select] - main_table[groupby_aggregate_name])
 
-                self.diff_feature_names.append(diff_feature_name)
-                self.diff_feature_names.append(abs_diff_feature_name)
+                    self.diff_feature_names.append(diff_feature_name)
+                    self.diff_feature_names.append(abs_diff_feature_name)
 
         return main_table
 
