@@ -169,13 +169,18 @@ class ApplicationFeatures(BaseTransformer):
                                              'credit_to_goods_ratio',
                                              'credit_to_income_ratio',
                                              'days_employed_percentage',
-                                             'ext_sources_mean',
                                              'income_credit_percentage',
                                              'income_per_child',
                                              'income_per_person',
                                              'payment_rate',
                                              'phone_to_birth_ratio',
-                                             'phone_to_employ_ratio']
+                                             'phone_to_employ_ratio',
+                                             'external_sources_weighted',
+                                             'external_sources_min',
+                                             'external_sources_max',
+                                             'external_sources_sum',
+                                             'external_sources_mean',
+                                             'external_sources_nanmedian']
 
     def transform(self, X, **kwargs):
         X['annuity_income_percentage'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
@@ -186,13 +191,16 @@ class ApplicationFeatures(BaseTransformer):
         X['credit_to_goods_ratio'] = X['AMT_CREDIT'] / X['AMT_GOODS_PRICE']
         X['credit_to_income_ratio'] = X['AMT_CREDIT'] / X['AMT_INCOME_TOTAL']
         X['days_employed_percentage'] = X['DAYS_EMPLOYED'] / X['DAYS_BIRTH']
-        X['ext_sources_mean'] = X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']].mean(axis=1)
         X['income_credit_percentage'] = X['AMT_INCOME_TOTAL'] / X['AMT_CREDIT']
         X['income_per_child'] = X['AMT_INCOME_TOTAL'] / (1 + X['CNT_CHILDREN'])
         X['income_per_person'] = X['AMT_INCOME_TOTAL'] / X['CNT_FAM_MEMBERS']
         X['payment_rate'] = X['AMT_ANNUITY'] / X['AMT_CREDIT']
         X['phone_to_birth_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_BIRTH']
         X['phone_to_employ_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_EMPLOYED']
+        X['external_sources_weighted'] = X.EXT_SOURCE_1 * 2 + X.EXT_SOURCE_2 * 3 + X.EXT_SOURCE_3 * 4
+        for function_name in ['min', 'max', 'sum', 'mean', 'nanmedian']:
+            X['external_sources_{}'.format(function_name)] = eval('np.{}'.format(function_name))(
+                X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
 
         return {'numerical_features': X[self.engineered_numerical_columns + self.numerical_columns],
                 'categorical_features': X[self.categorical_columns]
