@@ -150,6 +150,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         application, application_valid = _application(config, train_mode, suffix, **kwargs)
         bureau, bureau_valid = _bureau(config, train_mode, suffix, **kwargs)
         credit_card_balance, credit_card_balance_valid = _credit_card_balance(config, train_mode, suffix, **kwargs)
+        pos_cash_balance, pos_cash_balance_valid = _pos_cash_balance(config, train_mode, suffix, **kwargs)
 
         application_agg, application_agg_valid = _application_groupby_agg(config, train_mode, suffix, **kwargs)
         bureau_agg, bureau_agg_valid = _bureau_groupby_agg(config, train_mode, suffix, **kwargs)
@@ -181,6 +182,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                 credit_card_balance,
                                 credit_card_balance_agg,
                                 installments_payments_agg,
+                                pos_cash_balance,
                                 pos_cash_balance_agg,
                                 ],
             numerical_features_valid=[application_valid,
@@ -191,6 +193,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                       credit_card_balance_valid,
                                       credit_card_balance_agg_valid,
                                       installments_payments_agg_valid,
+                                      pos_cash_balance_valid,
                                       pos_cash_balance_agg_valid,
                                       ],
             categorical_features=[categorical_encoder
@@ -207,6 +210,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         application = _application(config, train_mode, suffix, **kwargs)
         bureau = _bureau(config, train_mode, suffix, **kwargs)
         credit_card_balance = _credit_card_balance(config, train_mode, suffix, **kwargs)
+        pos_cash_balance = _pos_cash_balance(config, train_mode, suffix, **kwargs)
 
         application_agg = _application_groupby_agg(config, train_mode, suffix, **kwargs)
         bureau_agg = _bureau_groupby_agg(config, train_mode, suffix, **kwargs)
@@ -223,6 +227,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                                               credit_card_balance,
                                                               credit_card_balance_agg,
                                                               installments_payments_agg,
+                                                              pos_cash_balance,
                                                               pos_cash_balance_agg,
                                                               ],
                                           numerical_features_valid=[],
@@ -569,6 +574,28 @@ def _credit_card_balance(config, train_mode, suffix, **kwargs):
 
     else:
         return credit_card_balance
+
+
+def _pos_cash_balance(config, train_mode, suffix, **kwargs):
+    pos_cash_balance = Step(name='pos_cash_balance_hand_crafted{}'.format(suffix),
+                            transformer=fe.POSCASHBalanceFeatures(**config.pos_cash_balance),
+                            input_data=['application', 'pos_cash_balance'],
+                            adapter=Adapter({'X': E('application', 'X'),
+                                             'pos_cash': E('pos_cash_balance', 'X')}),
+                            experiment_directory=config.pipeline.experiment_directory,
+                            **kwargs)
+    if train_mode:
+        pos_cash_balance_valid = Step(name='pos_cash_balance__hand_crafted_valid{}'.format(suffix),
+                                      transformer=pos_cash_balance,
+                                      input_data=['application'],
+                                      adapter=Adapter({'X': E('application', 'X_valid')}),
+                                      experiment_directory=config.pipeline.experiment_directory,
+                                      **kwargs)
+
+        return pos_cash_balance, pos_cash_balance_valid
+
+    else:
+        return pos_cash_balance
 
 
 def _fillna(fillna_value):
