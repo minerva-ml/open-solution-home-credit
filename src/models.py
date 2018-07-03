@@ -178,7 +178,7 @@ class LightGBM(BaseTransformer):
                 '"target" must be "numpy.ndarray" or "Pandas.Series" or "list", got {} instead.'.format(type(target)))
 
 
-def get_sklearn_classifier(ClassifierClass, normalize=False, **kwargs):
+def get_sklearn_classifier(ClassifierClass, normalize, **kwargs):
     class SklearnBinaryClassifier(SklearnClassifier):
         def transform(self, X, y=None, target=1, **kwargs):
             prediction = self.estimator.predict_proba(X)[:, target]

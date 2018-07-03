@@ -97,7 +97,13 @@ def classifier_xgb(features, config, train_mode, suffix, **kwargs):
     return xgboost
 
 
-def classifier_sklearn(sklearn_features, ClassifierClass, full_config, clf_name, train_mode, suffix, normalize,
+def classifier_sklearn(sklearn_features,
+                       ClassifierClass,
+                       full_config,
+                       clf_name,
+                       train_mode,
+                       suffix,
+                       normalize,
                        **kwargs):
     config, model_params, rs_config = full_config
     if train_mode:
@@ -118,7 +124,7 @@ def classifier_sklearn(sklearn_features, ClassifierClass, full_config, clf_name,
         else:
             transformer = get_sklearn_classifier(ClassifierClass, normalize, **model_params)
 
-        sklearn_clf = Step(name=clf_name,
+        sklearn_clf = Step(name='{}{}'.format(clf_name, suffix),
                            transformer=transformer,
                            input_data=['application'],
                            input_steps=[sklearn_features],
@@ -130,7 +136,7 @@ def classifier_sklearn(sklearn_features, ClassifierClass, full_config, clf_name,
                            experiment_directory=config.pipeline.experiment_directory,
                            **kwargs)
     else:
-        sklearn_clf = Step(name=clf_name,
+        sklearn_clf = Step(name='{}{}'.format(clf_name, suffix),
                            transformer=get_sklearn_classifier(ClassifierClass, normalize, **model_params),
                            input_steps=[sklearn_features],
                            adapter=Adapter({'X': E(sklearn_features.name, 'X')}),

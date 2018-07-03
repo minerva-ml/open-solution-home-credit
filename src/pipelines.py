@@ -21,7 +21,8 @@ def lightGBM(config, train_mode, suffix=''):
                                          train_mode, suffix)
     else:
         features = feature_extraction(config,
-                                      train_mode, suffix,
+                                      train_mode,
+                                      suffix,
                                       cache_output=False)
         light_gbm = classifier_light_gbm(features,
                                          config,
@@ -33,20 +34,24 @@ def lightGBM(config, train_mode, suffix=''):
 def xgboost(config, train_mode, suffix=''):
     if train_mode:
         features, features_valid = feature_extraction(config,
-                                                      train_mode, suffix,
+                                                      train_mode,
+                                                      suffix,
                                                       persist_output=True,
                                                       cache_output=True,
                                                       load_persisted_output=True)
         xgb = classifier_xgb((features, features_valid),
                              config,
-                             train_mode, suffix)
+                             train_mode,
+                             suffix)
     else:
         features = feature_extraction(config,
-                                      train_mode, suffix,
+                                      train_mode,
+                                      suffix,
                                       cache_output=True)
         xgb = classifier_xgb(features,
                              config,
-                             train_mode, suffix)
+                             train_mode,
+                             suffix)
 
     return xgb
 
@@ -58,22 +63,25 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, suffix='', norma
     if train_mode:
         features, features_valid = feature_extraction(config,
                                                       train_mode,
+                                                      suffix,
                                                       persist_output=True,
                                                       cache_output=True,
                                                       load_persisted_output=True)
 
-        sklearn_preproc = preprocessing_fillna((features, features_valid), config, train_mode)
+        sklearn_preproc = preprocessing_fillna((features, features_valid), config, train_mode, suffix)
     else:
         features = feature_extraction(config,
                                       train_mode,
+                                      suffix,
                                       cache_output=True)
-        sklearn_preproc = preprocessing_fillna(features, config, train_mode)
+        sklearn_preproc = preprocessing_fillna(features, config, train_mode, suffix)
 
     sklearn_clf = classifier_sklearn(sklearn_preproc,
                                      ClassifierClass,
                                      full_config,
                                      clf_name,
                                      train_mode,
+                                     suffix,
                                      normalize)
     return sklearn_clf
 
