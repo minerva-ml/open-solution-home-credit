@@ -66,23 +66,41 @@ class GroupbyAggregate(BaseTransformer):
     def __init__(self, groupby_aggregations):
         super().__init__()
         self.groupby_aggregations = groupby_aggregations
-        self.groupby_aggregate_names = []
+        self.features = []
+        self.feature_names = []
 
-    def transform(self, main_table, **kwargs):
+    def fit(self, main_table, **kwargs):
         for groupby_cols, specs in self.groupby_aggregations:
             group_object = main_table.groupby(groupby_cols)
             for select, agg in specs:
                 groupby_aggregate_name = self._create_colname_from_specs(groupby_cols, select, agg)
-                main_table = main_table.merge(group_object[select]
-                                              .agg(agg)
-                                              .reset_index()
-                                              .rename(index=str,
-                                                      columns={select: groupby_aggregate_name})
-                                              [groupby_cols + [groupby_aggregate_name]],
-                                              on=groupby_cols,
-                                              how='left')
-                self.groupby_aggregate_names.append(groupby_aggregate_name)
-        return {'numerical_features': main_table[self.groupby_aggregate_names].astype(np.float32)}
+
+                group_features = group_object[select].agg(agg).reset_index() \
+                    .rename(index=str,
+                            columns={select: groupby_aggregate_name})[groupby_cols + [groupby_aggregate_name]]
+
+                self.features.append((groupby_cols, group_features))
+                self.feature_names.append(groupby_aggregate_name)
+        return self
+
+    def transform(self, main_table, **kwargs):
+        for groupby_cols, groupby_features in self.features:
+            main_table = main_table.merge(groupby_features,
+                                          on=groupby_cols,
+                                          how='left')
+
+        return {'numerical_features': main_table[self.feature_names].astype(np.float32)}
+
+    def load(self, filepath):
+        params = joblib.load(filepath)
+        self.features = params['features']
+        self.feature_names = params['feature_names']
+        return self
+
+    def persist(self, filepath):
+        params = {'features': self.features,
+                  'feature_names': self.feature_names}
+        joblib.dump(params, filepath)
 
     def _create_colname_from_specs(self, groupby_cols, agg, select):
         return '{}_{}_{}'.format('_'.join(groupby_cols), agg, select)
