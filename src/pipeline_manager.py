@@ -259,7 +259,7 @@ def train_evaluate_predict_cv(pipeline_name, dev_mode, submit_predictions):
 
 def make_submission(submission_filepath):
     logger.info('making Kaggle submit...')
-    os.system('kaggle competitions submit -c santander-value-prediction-challenge -f {} -m {}'
+    os.system('kaggle competitions submit -c home-credit-default-risk -f {} -m {}'
               .format(submission_filepath, params.kaggle_message))
 
 
