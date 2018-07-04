@@ -297,6 +297,32 @@ class CreditCardBalanceFeatures(BaseTransformer):
         return feature_names
 
     def fit(self, X, credit_card, **kwargs):
+        static_features = self._static_features(X, credit_card, **kwargs)
+        dynamic_features = self._dynamic_features(X, credit_card, **kwargs)
+
+        self.features = pd.merge(static_features,
+                                 dynamic_features,
+                                 on=['SK_ID_CURR'],
+                                 validate='one_to_one')
+        return self
+
+    def transform(self, X, **kwargs):
+        X = X.merge(self.features,
+                    left_on=['SK_ID_CURR'],
+                    right_on=['SK_ID_CURR'],
+                    how='left',
+                    validate='one_to_one')
+
+        return {'numerical_features': X[self.feature_names]}
+
+    def load(self, filepath):
+        self.features = joblib.load(filepath)
+        return self
+
+    def persist(self, filepath):
+        joblib.dump(self.features, filepath)
+
+    def _static_features(self, X, credit_card, **kwargs):
         credit_card['number_of_instalments'] = credit_card.groupby(
             by=['SK_ID_CURR', 'SK_ID_PREV'])['CNT_INSTALMENT_MATURE_CUM'].agg('max').reset_index()[
             'CNT_INSTALMENT_MATURE_CUM']
@@ -340,6 +366,11 @@ class CreditCardBalanceFeatures(BaseTransformer):
         features['credit_card_cash_card_ratio'] = features['credit_card_drawings_atm'] / features[
             'credit_card_drawings_total']
 
+        return features
+
+    def _dynamic_features(self, X, credit_card, **kwargs):
+        features = pd.DataFrame({'SK_ID_CURR': credit_card['SK_ID_CURR'].unique()})
+
         credit_card_sorted = credit_card.sort_values(['SK_ID_CURR', 'MONTHS_BALANCE'])
         credit_card_sorted['credit_card_monthly_diff'] = credit_card_sorted.groupby(
             by='SK_ID_CURR')['AMT_BALANCE'].diff()
@@ -349,24 +380,7 @@ class CreditCardBalanceFeatures(BaseTransformer):
                             inplace=True)
         features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
 
-        self.features = features
-        return self
-
-    def transform(self, X, **kwargs):
-        X = X.merge(self.features,
-                    left_on=['SK_ID_CURR'],
-                    right_on=['SK_ID_CURR'],
-                    how='left',
-                    validate='one_to_one')
-
-        return {'numerical_features': X[self.feature_names]}
-
-    def load(self, filepath):
-        self.features = joblib.load(filepath)
-        return self
-
-    def persist(self, filepath):
-        joblib.dump(self.features, filepath)
+        return features
 
 
 class POSCASHBalanceFeatures(BaseTransformer):
