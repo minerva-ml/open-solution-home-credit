@@ -15,9 +15,12 @@ class FeatureJoiner(BaseTransformer):
         features = numerical_feature_list + categorical_feature_list
         for feature in features:
             feature.reset_index(drop=True, inplace=True)
+        features = pd.concat(features, axis=1).astype(np.float32)
+        features['nan_count'] = features.isnull().sum(axis=1)
+
         outputs = dict()
-        outputs['features'] = pd.concat(features, axis=1).astype(np.float32)
-        outputs['feature_names'] = self._get_feature_names(features)
+        outputs['features'] = features
+        outputs['feature_names'] = list(features.columns)
         outputs['categorical_features'] = self._get_feature_names(categorical_feature_list)
         return outputs
 
