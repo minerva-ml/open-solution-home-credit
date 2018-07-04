@@ -62,44 +62,73 @@ class CategoricalEncoder(BaseTransformer):
         joblib.dump(self.categorical_encoder, filepath)
 
 
-class GroupbyAggregate(BaseTransformer):
-    def __init__(self, groupby_aggregations):
+class GroupbyAggregateDiffs(BaseTransformer):
+    def __init__(self, groupby_aggregations, use_diffs_only=False):
         super().__init__()
         self.groupby_aggregations = groupby_aggregations
+        self.use_diffs_only = use_diffs_only
         self.features = []
-        self.feature_names = []
+        self.groupby_feature_names = []
+
+    @property
+    def feature_names(self):
+        if self.use_diffs_only:
+            return self.diff_feature_names
+        else:
+            return self.groupby_feature_names + self.diff_feature_names
 
     def fit(self, main_table, **kwargs):
         for groupby_cols, specs in self.groupby_aggregations:
             group_object = main_table.groupby(groupby_cols)
             for select, agg in specs:
                 groupby_aggregate_name = self._create_colname_from_specs(groupby_cols, select, agg)
-
                 group_features = group_object[select].agg(agg).reset_index() \
                     .rename(index=str,
                             columns={select: groupby_aggregate_name})[groupby_cols + [groupby_aggregate_name]]
 
                 self.features.append((groupby_cols, group_features))
-                self.feature_names.append(groupby_aggregate_name)
+                self.groupby_feature_names.append(groupby_aggregate_name)
         return self
 
     def transform(self, main_table, **kwargs):
+        main_table = self._merge_grouby_features(main_table)
+        main_table = self._add_diff_features(main_table)
+
+        return {'numerical_features': main_table[self.feature_names].astype(np.float32)}
+
+    def _merge_grouby_features(self, main_table):
         for groupby_cols, groupby_features in self.features:
             main_table = main_table.merge(groupby_features,
                                           on=groupby_cols,
                                           how='left')
+        return main_table
 
-        return {'numerical_features': main_table[self.feature_names].astype(np.float32)}
+    def _add_diff_features(self, main_table):
+        self.diff_feature_names = []
+        for groupby_cols, specs in self.groupby_aggregations:
+            for select, agg in specs:
+                if agg in ['mean', 'median', 'max', 'min']:
+                    groupby_aggregate_name = self._create_colname_from_specs(groupby_cols, select, agg)
+                    diff_feature_name = '{}_diff'.format(groupby_aggregate_name)
+                    abs_diff_feature_name = '{}_abs_diff'.format(groupby_aggregate_name)
+
+                    main_table[diff_feature_name] = main_table[select] - main_table[groupby_aggregate_name]
+                    main_table[abs_diff_feature_name] = np.abs(main_table[select] - main_table[groupby_aggregate_name])
+
+                    self.diff_feature_names.append(diff_feature_name)
+                    self.diff_feature_names.append(abs_diff_feature_name)
+
+        return main_table
 
     def load(self, filepath):
         params = joblib.load(filepath)
         self.features = params['features']
-        self.feature_names = params['feature_names']
+        self.groupby_feature_names = params['groupby_feature_names']
         return self
 
     def persist(self, filepath):
         params = {'features': self.features,
-                  'feature_names': self.feature_names}
+                  'groupby_feature_names': self.groupby_feature_names}
         joblib.dump(params, filepath)
 
     def _create_colname_from_specs(self, groupby_cols, agg, select):

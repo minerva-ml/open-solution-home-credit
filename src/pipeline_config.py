@@ -267,7 +267,8 @@ SOLUTION_CONFIG = AttrDict({
     'applications': {'columns': {'categorical_columns': CATEGORICAL_COLUMNS,
                                  'numerical_columns': NUMERICAL_COLUMNS
                                  },
-                     'aggregations': {'groupby_aggregations': APPLICATION_AGGREGATION_RECIPIES
+                     'aggregations': {'groupby_aggregations': APPLICATION_AGGREGATION_RECIPIES,
+                                      'use_diffs_only': params.application_aggregation__use_diffs_only
                                       }
                      },
 

@@ -337,7 +337,7 @@ def _categorical_encoders(config, train_mode, suffix, **kwargs):
 
 def _application_groupby_agg(config, train_mode, suffix, **kwargs):
     application_groupby_agg = Step(name='application_groupby_agg{}'.format(suffix),
-                                   transformer=fe.GroupbyAggregate(**config.applications.aggregations),
+                                   transformer=fe.GroupbyAggregateDiffs(**config.applications.aggregations),
                                    input_data=['application'],
                                    adapter=Adapter(
                                        {'main_table': E('application', 'X')}),
