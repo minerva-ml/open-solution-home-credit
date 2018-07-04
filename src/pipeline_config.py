@@ -258,6 +258,9 @@ SOLUTION_CONFIG = AttrDict({
     'pipeline': {'experiment_directory': params.experiment_directory
                  },
 
+    'feature_joiner': {'use_nan_count': params.use_nan_count
+                       },
+
     'preprocessing': {'impute_missing': {'fill_missing': params.fill_missing,
                                          'fill_value': params.fill_value},
                       'categorical_encoder': {'categorical_columns': CATEGORICAL_COLUMNS

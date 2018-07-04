@@ -11,13 +11,21 @@ logger = get_logger()
 
 
 class FeatureJoiner(BaseTransformer):
+    def __init__(self, use_nan_count=False, **kwargs):
+        super().__init__()
+        self.use_nan_count = use_nan_count
+
     def transform(self, numerical_feature_list, categorical_feature_list, **kwargs):
         features = numerical_feature_list + categorical_feature_list
         for feature in features:
             feature.reset_index(drop=True, inplace=True)
+        features = pd.concat(features, axis=1).astype(np.float32)
+        if self.use_nan_count:
+            features['nan_count'] = features.isnull().sum(axis=1)
+
         outputs = dict()
-        outputs['features'] = pd.concat(features, axis=1).astype(np.float32)
-        outputs['feature_names'] = self._get_feature_names(features)
+        outputs['features'] = features
+        outputs['feature_names'] = list(features.columns)
         outputs['categorical_features'] = self._get_feature_names(categorical_feature_list)
         return outputs
 
