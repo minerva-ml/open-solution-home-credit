@@ -180,7 +180,9 @@ class ApplicationFeatures(BaseTransformer):
                                              'external_sources_max',
                                              'external_sources_sum',
                                              'external_sources_mean',
-                                             'external_sources_nanmedian']
+                                             'external_sources_nanmedian',
+                                             'short_employment',
+                                             'young_age']
 
     def transform(self, X, **kwargs):
         X['annuity_income_percentage'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
@@ -201,6 +203,9 @@ class ApplicationFeatures(BaseTransformer):
         for function_name in ['min', 'max', 'sum', 'mean', 'nanmedian']:
             X['external_sources_{}'.format(function_name)] = eval('np.{}'.format(function_name))(
                 X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
+
+        X['short_employment'] = (X['DAYS_EMPLOYED'] > -2000).astype(int)
+        X['young_age'] = (X['DAYS_BIRTH'] > -14000).astype(int)
 
         return {'numerical_features': X[self.engineered_numerical_columns + self.numerical_columns],
                 'categorical_features': X[self.categorical_columns]
@@ -316,7 +321,7 @@ class CreditCardBalanceFeatures(BaseTransformer):
         features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
 
         features['credit_card_installments_per_loan'] = (
-            features['credit_card_total_instalments'] / features['credit_card_number_of_loans'])
+                features['credit_card_total_instalments'] / features['credit_card_number_of_loans'])
 
         group_object = credit_card.groupby(by=['SK_ID_CURR'])['credit_card_max_loading_of_credit_limit'].agg(
             'mean').reset_index()
