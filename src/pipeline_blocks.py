@@ -151,6 +151,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         bureau, bureau_valid = _bureau(config, train_mode, suffix, **kwargs)
         credit_card_balance, credit_card_balance_valid = _credit_card_balance(config, train_mode, suffix, **kwargs)
         pos_cash_balance, pos_cash_balance_valid = _pos_cash_balance(config, train_mode, suffix, **kwargs)
+        installment_payments, installment_payments_valid = _installment_payments(config, train_mode, suffix, **kwargs)
 
         application_agg, application_agg_valid = _application_groupby_agg(config, train_mode, suffix, **kwargs)
         bureau_agg, bureau_agg_valid = _bureau_groupby_agg(config, train_mode, suffix, **kwargs)
@@ -181,6 +182,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                 bureau_agg,
                                 credit_card_balance,
                                 credit_card_balance_agg,
+                                installment_payments,
                                 installments_payments_agg,
                                 pos_cash_balance,
                                 pos_cash_balance_agg,
@@ -192,6 +194,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                       bureau_agg_valid,
                                       credit_card_balance_valid,
                                       credit_card_balance_agg_valid,
+                                      installment_payments_valid,
                                       installments_payments_agg_valid,
                                       pos_cash_balance_valid,
                                       pos_cash_balance_agg_valid,
@@ -211,6 +214,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         bureau = _bureau(config, train_mode, suffix, **kwargs)
         credit_card_balance = _credit_card_balance(config, train_mode, suffix, **kwargs)
         pos_cash_balance = _pos_cash_balance(config, train_mode, suffix, **kwargs)
+        installment_payments = _installment_payments(config, train_mode, suffix, **kwargs)
 
         application_agg = _application_groupby_agg(config, train_mode, suffix, **kwargs)
         bureau_agg = _bureau_groupby_agg(config, train_mode, suffix, **kwargs)
@@ -226,6 +230,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                                               bureau_agg,
                                                               credit_card_balance,
                                                               credit_card_balance_agg,
+                                                              installment_payments,
                                                               installments_payments_agg,
                                                               pos_cash_balance,
                                                               pos_cash_balance_agg,
@@ -585,7 +590,7 @@ def _pos_cash_balance(config, train_mode, suffix, **kwargs):
                             experiment_directory=config.pipeline.experiment_directory,
                             **kwargs)
     if train_mode:
-        pos_cash_balance_valid = Step(name='pos_cash_balance__hand_crafted_valid{}'.format(suffix),
+        pos_cash_balance_valid = Step(name='pos_cash_balance_hand_crafted_valid{}'.format(suffix),
                                       transformer=pos_cash_balance,
                                       input_data=['application'],
                                       adapter=Adapter({'X': E('application', 'X_valid')}),
@@ -596,6 +601,28 @@ def _pos_cash_balance(config, train_mode, suffix, **kwargs):
 
     else:
         return pos_cash_balance
+
+
+def _installment_payments(config, train_mode, suffix, **kwargs):
+    installment_payments = Step(name='installment_payments_hand_crafted{}'.format(suffix),
+                                transformer=fe.InstallmentPaymentsFeatures(**config.installments_payments),
+                                input_data=['application', 'installments_payments'],
+                                adapter=Adapter({'X': E('application', 'X'),
+                                                 'installments': E('installments_payments', 'X')}),
+                                experiment_directory=config.pipeline.experiment_directory,
+                                **kwargs)
+    if train_mode:
+        installment_payments_valid = Step(name='installment_payments_hand_crafted_valid{}'.format(suffix),
+                                          transformer=installment_payments,
+                                          input_data=['application'],
+                                          adapter=Adapter({'X': E('application', 'X_valid')}),
+                                          experiment_directory=config.pipeline.experiment_directory,
+                                          **kwargs)
+
+        return installment_payments, installment_payments_valid
+
+    else:
+        return installment_payments
 
 
 def _fillna(fillna_value):

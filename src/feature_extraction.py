@@ -384,7 +384,7 @@ class CreditCardBalanceFeatures(BaseTransformer):
         features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
 
         features['credit_card_installments_per_loan'] = (
-                features['credit_card_total_instalments'] / features['credit_card_number_of_loans'])
+            features['credit_card_total_instalments'] / features['credit_card_number_of_loans'])
 
         group_object = credit_card.groupby(by=['SK_ID_CURR'])['credit_card_max_loading_of_credit_limit'].agg(
             'mean').reset_index()
@@ -463,6 +463,106 @@ class POSCASHBalanceFeatures(BaseTransformer):
                     validate='one_to_one')
 
         return {'numerical_features': X[self.feature_names]}
+
+    def load(self, filepath):
+        self.features = joblib.load(filepath)
+        return self
+
+    def persist(self, filepath):
+        joblib.dump(self.features, filepath)
+
+
+class InstallmentPaymentsFeatures(BaseTransformer):
+    def __init__(self, **kwargs):
+        self.features = None
+
+    @property
+    def feature_names(self):
+        feature_names = list(self.features.columns)
+        feature_names.remove('SK_ID_CURR')
+        return feature_names
+
+    def fit(self, X, installments, **kwargs):
+        installments['instalment_paid_late_in_days'] = installments['DAYS_ENTRY_PAYMENT'] - installments[
+            'DAYS_INSTALMENT']
+        installments['instalment_paid_late'] = (installments['instalment_paid_late_in_days'] > 0).astype(int)
+        installments['instalment_paid_over_amount'] = installments['AMT_PAYMENT'] - installments['AMT_INSTALMENT']
+        installments['instalment_paid_over'] = (installments['instalment_paid_over_amount'] > 0).astype(int)
+
+        features = pd.DataFrame({'SK_ID_CURR': installments['SK_ID_CURR'].unique()})
+        groupby = installments.groupby(['SK_ID_CURR'])
+
+        feature_names = []
+
+        features, feature_names = self._add_features('instalment_paid_late_in_days',
+                                                     ['sum', 'mean', 'max', 'min', 'std'],
+                                                     features, feature_names, groupby)
+
+        features, feature_names = self._add_features('instalment_paid_late', ['sum', 'mean'],
+                                                     features, feature_names, groupby)
+
+        features, feature_names = self._add_features('instalment_paid_over_amount',
+                                                     ['sum', 'mean', 'max', 'min', 'std'],
+                                                     features, feature_names, groupby)
+
+        features, feature_names = self._add_features('instalment_paid_over', ['sum', 'mean'],
+                                                     features, feature_names, groupby)
+
+        # g = groupby.apply(self._last_installment_features).reset_index()
+        # features = features.merge(g, on='SK_ID_CURR', how='left')
+
+        self.features = features
+        return self
+
+    def transform(self, X, **kwargs):
+        X = X.merge(self.features,
+                    left_on=['SK_ID_CURR'],
+                    right_on=['SK_ID_CURR'],
+                    how='left',
+                    validate='one_to_one')
+
+        return {'numerical_features': X[self.feature_names]}
+
+    def _add_features(self, feature_name, aggs, features, feature_names, groupby):
+        feature_names.extend(['{}_{}'.format(feature_name, agg) for agg in aggs])
+
+        for agg in aggs:
+            g = groupby[feature_name].agg(agg).reset_index().rename(index=str,
+                                                                    columns={feature_name: '{}_{}'.format(feature_name,
+                                                                                                          agg)})
+            features = features.merge(g, on='SK_ID_CURR', how='left')
+        return features, feature_names
+
+    def _last_installment_features(self, gr):
+        gr_ = gr.copy()
+        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
+        last_instalment_id = gr['SK_ID_PREV'].iloc[0]
+        gr_ = gr_[gr_['SK_ID_PREV'] == last_instalment_id]
+
+        features = {}
+        feature_name = 'instalment_paid_late_in_days'
+        features['last_{}_sum'.format(feature_name)] = gr_[feature_name].sum()
+        features['last_{}_mean'.format(feature_name)] = gr_[feature_name].mean()
+        features['last_{}_max'.format(feature_name)] = gr_[feature_name].max()
+        features['last_{}_min'.format(feature_name)] = gr_[feature_name].min()
+        features['last_{}_std'.format(feature_name)] = gr_[feature_name].std()
+
+        feature_name = 'instalment_paid_late'
+        features['last_{}_count'.format(feature_name)] = gr_[feature_name].count()
+        features['last_{}_mean'.format(feature_name)] = gr_[feature_name].mean()
+
+        feature_name = 'instalment_paid_over_amount'
+        features['last_{}_sum'.format(feature_name)] = gr_[feature_name].sum()
+        features['last_{}_mean'.format(feature_name)] = gr_[feature_name].mean()
+        features['last_{}_max'.format(feature_name)] = gr_[feature_name].max()
+        features['last_{}_min'.format(feature_name)] = gr_[feature_name].min()
+        features['last_{}_std'.format(feature_name)] = gr_[feature_name].std()
+
+        feature_name = 'instalment_paid_over'
+        features['last_{}_count'.format(feature_name)] = gr_[feature_name].count()
+        features['last_{}_mean'.format(feature_name)] = gr_[feature_name].mean()
+
+        return pd.Series(features)
 
     def load(self, filepath):
         self.features = joblib.load(filepath)
