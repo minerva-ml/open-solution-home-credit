@@ -49,6 +49,7 @@ parameters:
   fill_missing: False
   fill_value: None
   use_nan_count: True
+  application_aggregation__use_diffs_only: True
 
 # Light GBM
   lgbm_random_search_runs: 0
