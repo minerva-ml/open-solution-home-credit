@@ -1,7 +1,7 @@
 project: ORGANIZATION/home-credit
 
 name: home-credit-default-risk
-tags: [solution-3]
+tags: [solution-4]
 
 metric:
   channel: 'ROC_AUC'
@@ -32,7 +32,7 @@ parameters:
 
 # Kaggle
   kaggle_api: 0
-  kaggle_message: 'solution-3'
+  kaggle_message: 'solution-4'
 
 # Data preparation
   n_cv_splits: 5

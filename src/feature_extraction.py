@@ -331,6 +331,32 @@ class CreditCardBalanceFeatures(BaseTransformer):
         return feature_names
 
     def fit(self, X, credit_card, **kwargs):
+        static_features = self._static_features(X, credit_card, **kwargs)
+        dynamic_features = self._dynamic_features(X, credit_card, **kwargs)
+
+        self.features = pd.merge(static_features,
+                                 dynamic_features,
+                                 on=['SK_ID_CURR'],
+                                 validate='one_to_one')
+        return self
+
+    def transform(self, X, **kwargs):
+        X = X.merge(self.features,
+                    left_on=['SK_ID_CURR'],
+                    right_on=['SK_ID_CURR'],
+                    how='left',
+                    validate='one_to_one')
+
+        return {'numerical_features': X[self.feature_names]}
+
+    def load(self, filepath):
+        self.features = joblib.load(filepath)
+        return self
+
+    def persist(self, filepath):
+        joblib.dump(self.features, filepath)
+
+    def _static_features(self, X, credit_card, **kwargs):
         credit_card['number_of_instalments'] = credit_card.groupby(
             by=['SK_ID_CURR', 'SK_ID_PREV'])['CNT_INSTALMENT_MATURE_CUM'].agg('max').reset_index()[
             'CNT_INSTALMENT_MATURE_CUM']
@@ -373,6 +399,50 @@ class CreditCardBalanceFeatures(BaseTransformer):
 
         features['credit_card_cash_card_ratio'] = features['credit_card_drawings_atm'] / features[
             'credit_card_drawings_total']
+
+        return features
+
+    def _dynamic_features(self, X, credit_card, **kwargs):
+        features = pd.DataFrame({'SK_ID_CURR': credit_card['SK_ID_CURR'].unique()})
+
+        credit_card_sorted = credit_card.sort_values(['SK_ID_CURR', 'MONTHS_BALANCE'])
+        credit_card_sorted['credit_card_monthly_diff'] = credit_card_sorted.groupby(
+            by='SK_ID_CURR')['AMT_BALANCE'].diff()
+        group_object = credit_card_sorted.groupby(['SK_ID_CURR'])['credit_card_monthly_diff'].agg('mean').reset_index()
+        group_object.rename(index=str,
+                            columns={'credit_card_monthly_diff': 'credit_card_monthly_diff_mean'},
+                            inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        return features
+
+
+class POSCASHBalanceFeatures(BaseTransformer):
+    def __init__(self, **kwargs):
+        self.features = None
+
+    @property
+    def feature_names(self):
+        feature_names = list(self.features.columns)
+        feature_names.remove('SK_ID_CURR')
+        return feature_names
+
+    def fit(self, X, pos_cash, **kwargs):
+        features = pd.DataFrame({'SK_ID_CURR': pos_cash['SK_ID_CURR'].unique()})
+
+        pos_cash_sorted = pos_cash.sort_values(['SK_ID_CURR', 'MONTHS_BALANCE'])
+        group_object = pos_cash_sorted.groupby('SK_ID_CURR')['CNT_INSTALMENT_FUTURE'].last().reset_index()
+        group_object.rename(index=str,
+                            columns={'CNT_INSTALMENT_FUTURE': 'pos_cash_remaining_installments'},
+                            inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        pos_cash['is_contract_status_completed'] = pos_cash['NAME_CONTRACT_STATUS'] == 'Completed'
+        group_object = pos_cash.groupby(['SK_ID_CURR'])['is_contract_status_completed'].sum().reset_index()
+        group_object.rename(index=str,
+                            columns={'is_contract_status_completed': 'pos_cash_completed_contracts'},
+                            inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
 
         self.features = features
         return self
