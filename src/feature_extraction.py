@@ -11,12 +11,17 @@ logger = get_logger()
 
 
 class FeatureJoiner(BaseTransformer):
+    def __init__(self, use_nan_count=False, **kwargs):
+        super().__init__()
+        self.use_nan_count = use_nan_count
+
     def transform(self, numerical_feature_list, categorical_feature_list, **kwargs):
         features = numerical_feature_list + categorical_feature_list
         for feature in features:
             feature.reset_index(drop=True, inplace=True)
         features = pd.concat(features, axis=1).astype(np.float32)
-        features['nan_count'] = features.isnull().sum(axis=1)
+        if self.use_nan_count:
+            features['nan_count'] = features.isnull().sum(axis=1)
 
         outputs = dict()
         outputs['features'] = features
@@ -319,7 +324,7 @@ class CreditCardBalanceFeatures(BaseTransformer):
         features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
 
         features['credit_card_installments_per_loan'] = (
-            features['credit_card_total_instalments'] / features['credit_card_number_of_loans'])
+                features['credit_card_total_instalments'] / features['credit_card_number_of_loans'])
 
         group_object = credit_card.groupby(by=['SK_ID_CURR'])['credit_card_max_loading_of_credit_limit'].agg(
             'mean').reset_index()

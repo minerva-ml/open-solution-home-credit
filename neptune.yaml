@@ -48,6 +48,7 @@ parameters:
 # Preprocessing
   fill_missing: False
   fill_value: None
+  use_nan_count: True
 
 # Light GBM
   lgbm_random_search_runs: 0

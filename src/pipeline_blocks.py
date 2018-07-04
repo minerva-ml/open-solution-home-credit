@@ -276,7 +276,7 @@ def _join_features(numerical_features,
         load_persisted_output = False
 
     feature_joiner = Step(name='feature_joiner{}'.format(suffix),
-                          transformer=fe.FeatureJoiner(),
+                          transformer=fe.FeatureJoiner(**config.feature_joiner),
                           input_steps=numerical_features + categorical_features,
                           adapter=Adapter({
                               'numerical_feature_list': [
