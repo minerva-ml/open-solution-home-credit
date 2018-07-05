@@ -288,6 +288,8 @@ SOLUTION_CONFIG = AttrDict({
     'installments_payments': {'table_name': 'installments_payments',
                               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                               'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES,
+                              'last_k_agg_periods': parameter_eval(params.installments__last_k_agg_periods),
+                              'last_k_trend_periods': parameter_eval(params.installments__last_k_trend_periods),
                               'num_workers': params.num_workers
                               },
 
