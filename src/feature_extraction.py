@@ -7,6 +7,8 @@ from sklearn.externals import joblib
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
+from .utils import parallel_apply
+
 logger = get_logger()
 
 
@@ -71,7 +73,7 @@ class CategoricalEncoder(BaseTransformer):
 
 
 class GroupbyAggregateDiffs(BaseTransformer):
-    def __init__(self, groupby_aggregations, use_diffs_only=False):
+    def __init__(self, groupby_aggregations, use_diffs_only=False, **kwargs):
         super().__init__()
         self.groupby_aggregations = groupby_aggregations
         self.use_diffs_only = use_diffs_only
@@ -144,7 +146,7 @@ class GroupbyAggregateDiffs(BaseTransformer):
 
 
 class GroupbyAggregateMerge(BaseTransformer):
-    def __init__(self, table_name, id_columns, groupby_aggregations):
+    def __init__(self, table_name, id_columns, groupby_aggregations, **kwargs):
         super().__init__()
         self.table_name = table_name
         self.id_columns = id_columns
@@ -384,7 +386,7 @@ class CreditCardBalanceFeatures(BaseTransformer):
         features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
 
         features['credit_card_installments_per_loan'] = (
-                features['credit_card_total_instalments'] / features['credit_card_number_of_loans'])
+            features['credit_card_total_instalments'] / features['credit_card_number_of_loans'])
 
         group_object = credit_card.groupby(by=['SK_ID_CURR'])['credit_card_max_loading_of_credit_limit'].agg(
             'mean').reset_index()
@@ -472,6 +474,113 @@ class POSCASHBalanceFeatures(BaseTransformer):
         joblib.dump(self.features, filepath)
 
 
+class InstallmentPaymentsFeatures(BaseTransformer):
+    def __init__(self, num_workers=1, **kwargs):
+        self.features = None
+        self.num_workers = num_workers
+
+    @property
+    def feature_names(self):
+        feature_names = list(self.features.columns)
+        feature_names.remove('SK_ID_CURR')
+        return feature_names
+
+    def fit(self, X, installments, **kwargs):
+        installments['instalment_paid_late_in_days'] = installments['DAYS_ENTRY_PAYMENT'] - installments[
+            'DAYS_INSTALMENT']
+        installments['instalment_paid_late'] = (installments['instalment_paid_late_in_days'] > 0).astype(int)
+        installments['instalment_paid_over_amount'] = installments['AMT_PAYMENT'] - installments['AMT_INSTALMENT']
+        installments['instalment_paid_over'] = (installments['instalment_paid_over_amount'] > 0).astype(int)
+
+        features = pd.DataFrame({'SK_ID_CURR': installments['SK_ID_CURR'].unique()})
+        groupby = installments.groupby(['SK_ID_CURR'])
+
+        feature_names = []
+
+        features, feature_names = add_features('instalment_paid_late_in_days',
+                                               ['sum', 'mean', 'max', 'min', 'std'],
+                                               features, feature_names, groupby)
+
+        features, feature_names = add_features('instalment_paid_late', ['sum', 'mean'],
+                                               features, feature_names, groupby)
+
+        features, feature_names = add_features('instalment_paid_over_amount',
+                                               ['sum', 'mean', 'max', 'min', 'std'],
+                                               features, feature_names, groupby)
+
+        features, feature_names = add_features('instalment_paid_over', ['sum', 'mean'],
+                                               features, feature_names, groupby)
+
+        g = parallel_apply(groupby, InstallmentPaymentsFeatures.last_loan_instalment_features,
+                           index_name='SK_ID_CURR',
+                           num_workers=self.num_workers).reset_index()
+
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+
+        g = parallel_apply(groupby, InstallmentPaymentsFeatures.very_last_instalment_features,
+                           index_name='SK_ID_CURR',
+                           num_workers=self.num_workers).reset_index()
+
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+
+        self.features = features
+        return self
+
+    def transform(self, X, **kwargs):
+        X = X.merge(self.features,
+                    left_on=['SK_ID_CURR'],
+                    right_on=['SK_ID_CURR'],
+                    how='left',
+                    validate='one_to_one')
+
+        return {'numerical_features': X[self.feature_names]}
+
+    @staticmethod
+    def last_loan_instalment_features(gr):
+        gr_ = gr.copy()
+        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
+        last_instalment_id = gr_['SK_ID_PREV'].iloc[0]
+        gr_ = gr_[gr_['SK_ID_PREV'] == last_instalment_id]
+        features = {}
+
+        features = add_features_in_group(features, gr_,
+                                         'instalment_paid_late_in_days',
+                                         ['sum', 'mean', 'max', 'min', 'std'],
+                                         'last_loan_')
+        features = add_features_in_group(features, gr_,
+                                         'instalment_paid_late',
+                                         ['count', 'mean'],
+                                         'last_loan_')
+        features = add_features_in_group(features, gr_,
+                                         'instalment_paid_over_amount',
+                                         ['sum', 'mean', 'max', 'min', 'std'],
+                                         'last_loan_')
+        features = add_features_in_group(features, gr_,
+                                         'instalment_paid_over',
+                                         ['count', 'mean'],
+                                         'last_loan_')
+
+        return pd.Series(features)
+
+    @staticmethod
+    def very_last_installment_features(gr):
+        gr_ = gr.copy()
+        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
+
+        cols = ['instalment_paid_late_in_days', 'instalment_paid_late',
+                'instalment_paid_over_amount', 'instalment_paid_over']
+
+        rename_cols = {col: 'very_last_{}'.format(col) for col in cols}
+        return gr_[cols].rename(columns=rename_cols).iloc[0]
+
+    def load(self, filepath):
+        self.features = joblib.load(filepath)
+        return self
+
+    def persist(self, filepath):
+        joblib.dump(self.features, filepath)
+
+
 class ConcatFeatures(BaseTransformer):
     def transform(self, **kwargs):
         features_concat = []
@@ -480,3 +589,31 @@ class ConcatFeatures(BaseTransformer):
             features_concat.append(feature)
         features_concat = pd.concat(features_concat, axis=1)
         return {'concatenated_features': features_concat}
+
+
+def add_features(feature_name, aggs, features, feature_names, groupby):
+    feature_names.extend(['{}_{}'.format(feature_name, agg) for agg in aggs])
+
+    for agg in aggs:
+        g = groupby[feature_name].agg(agg).reset_index().rename(index=str,
+                                                                columns={feature_name: '{}_{}'.format(feature_name,
+                                                                                                      agg)})
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+    return features, feature_names
+
+
+def add_features_in_group(features, gr_, feature_name, aggs, prefix):
+    for agg in aggs:
+        if agg == 'sum':
+            features['{}{}_sum'.format(prefix, feature_name)] = gr_[feature_name].sum()
+        elif agg == 'mean':
+            features['{}{}_mean'.format(prefix, feature_name)] = gr_[feature_name].mean()
+        elif agg == 'max':
+            features['{}{}_max'.format(prefix, feature_name)] = gr_[feature_name].max()
+        elif agg == 'min':
+            features['{}{}_min'.format(prefix, feature_name)] = gr_[feature_name].min()
+        elif agg == 'std':
+            features['{}{}_std'.format(prefix, feature_name)] = gr_[feature_name].std()
+        elif agg == 'count':
+            features['{}{}_count'.format(prefix, feature_name)] = gr_[feature_name].count()
+    return features

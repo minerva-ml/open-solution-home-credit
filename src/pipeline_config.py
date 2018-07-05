@@ -287,7 +287,8 @@ SOLUTION_CONFIG = AttrDict({
 
     'installments_payments': {'table_name': 'installments_payments',
                               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                              'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES
+                              'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES,
+                              'num_workers': params.num_workers
                               },
 
     'pos_cash_balance': {'table_name': 'POS_CASH_balance',
