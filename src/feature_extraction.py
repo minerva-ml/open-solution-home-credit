@@ -511,7 +511,13 @@ class InstallmentPaymentsFeatures(BaseTransformer):
         features, feature_names = add_features('instalment_paid_over', ['sum', 'mean'],
                                                features, feature_names, groupby)
 
-        g = parallel_apply(groupby, InstallmentPaymentsFeatures.last_installment_features,
+        g = parallel_apply(groupby, InstallmentPaymentsFeatures.last_loan_instalment_features,
+                           index_name='SK_ID_CURR',
+                           num_workers=self.num_workers).reset_index()
+
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+
+        g = parallel_apply(groupby, InstallmentPaymentsFeatures.very_last_instalment_features,
                            index_name='SK_ID_CURR',
                            num_workers=self.num_workers).reset_index()
 
@@ -530,7 +536,7 @@ class InstallmentPaymentsFeatures(BaseTransformer):
         return {'numerical_features': X[self.feature_names]}
 
     @staticmethod
-    def last_installment_features(gr):
+    def last_loan_instalment_features(gr):
         gr_ = gr.copy()
         gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
         last_instalment_id = gr_['SK_ID_PREV'].iloc[0]
@@ -540,21 +546,32 @@ class InstallmentPaymentsFeatures(BaseTransformer):
         features = add_features_in_group(features, gr_,
                                          'instalment_paid_late_in_days',
                                          ['sum', 'mean', 'max', 'min', 'std'],
-                                         'last_')
+                                         'last_loan_')
         features = add_features_in_group(features, gr_,
                                          'instalment_paid_late',
                                          ['count', 'mean'],
-                                         'last_')
+                                         'last_loan_')
         features = add_features_in_group(features, gr_,
                                          'instalment_paid_over_amount',
                                          ['sum', 'mean', 'max', 'min', 'std'],
-                                         'last_')
+                                         'last_loan_')
         features = add_features_in_group(features, gr_,
                                          'instalment_paid_over',
                                          ['count', 'mean'],
-                                         'last_')
+                                         'last_loan_')
 
         return pd.Series(features)
+
+    @staticmethod
+    def very_last_installment_features(gr):
+        gr_ = gr.copy()
+        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
+
+        cols = ['instalment_paid_late_in_days', 'instalment_paid_late',
+                'instalment_paid_over_amount', 'instalment_paid_over']
+
+        rename_cols = {col: 'very_last_{}'.format(col) for col in cols}
+        return gr_[cols].rename(columns=rename_cols).iloc[0]
 
     def load(self, filepath):
         self.features = joblib.load(filepath)
