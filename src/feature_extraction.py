@@ -1,4 +1,5 @@
 from copy import deepcopy
+from functools import partial
 
 import category_encoders as ce
 import numpy as np
@@ -475,9 +476,12 @@ class POSCASHBalanceFeatures(BaseTransformer):
 
 
 class InstallmentPaymentsFeatures(BaseTransformer):
-    def __init__(self, num_workers=1, **kwargs):
-        self.features = None
+    def __init__(self, last_k_agg_periods, last_k_trend_periods, num_workers=1, **kwargs):
+        self.last_k_agg_periods = last_k_agg_periods
+        self.last_k_trend_periods = last_k_trend_periods
+
         self.num_workers = num_workers
+        self.features = None
 
     @property
     def feature_names(self):
@@ -511,16 +515,14 @@ class InstallmentPaymentsFeatures(BaseTransformer):
         features, feature_names = add_features('instalment_paid_over', ['sum', 'mean'],
                                                features, feature_names, groupby)
 
-        g = parallel_apply(groupby, InstallmentPaymentsFeatures.last_loan_instalment_features,
-                           index_name='SK_ID_CURR',
-                           num_workers=self.num_workers).reset_index()
-
+        func = partial(InstallmentPaymentsFeatures.last_k_instalment_features,
+                       periods=self.last_k_agg_periods)
+        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
         features = features.merge(g, on='SK_ID_CURR', how='left')
 
-        g = parallel_apply(groupby, InstallmentPaymentsFeatures.very_last_instalment_features,
-                           index_name='SK_ID_CURR',
-                           num_workers=self.num_workers).reset_index()
-
+        func = partial(InstallmentPaymentsFeatures.trend_in_last_k_instalment_features,
+                       periods=self.last_k_trend_periods)
+        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
         features = features.merge(g, on='SK_ID_CURR', how='left')
 
         self.features = features
@@ -536,42 +538,43 @@ class InstallmentPaymentsFeatures(BaseTransformer):
         return {'numerical_features': X[self.feature_names]}
 
     @staticmethod
-    def last_loan_instalment_features(gr):
+    def last_k_instalment_features(gr, periods):
         gr_ = gr.copy()
         gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
-        last_instalment_id = gr_['SK_ID_PREV'].iloc[0]
-        gr_ = gr_[gr_['SK_ID_PREV'] == last_instalment_id]
+
         features = {}
 
-        features = add_features_in_group(features, gr_,
-                                         'instalment_paid_late_in_days',
-                                         ['sum', 'mean', 'max', 'min', 'std'],
-                                         'last_loan_')
-        features = add_features_in_group(features, gr_,
-                                         'instalment_paid_late',
-                                         ['count', 'mean'],
-                                         'last_loan_')
-        features = add_features_in_group(features, gr_,
-                                         'instalment_paid_over_amount',
-                                         ['sum', 'mean', 'max', 'min', 'std'],
-                                         'last_loan_')
-        features = add_features_in_group(features, gr_,
-                                         'instalment_paid_over',
-                                         ['count', 'mean'],
-                                         'last_loan_')
+        for period in periods:
+            gr_period = gr_.iloc[:period]
 
-        return pd.Series(features)
+            features = add_features_in_group(features, gr_period, 'instalment_paid_late_in_days',
+                                             ['sum', 'mean', 'max', 'min', 'std'], 'last_{}_'.format(period))
+            features = add_features_in_group(features, gr_period, 'instalment_paid_late',
+                                             ['count', 'mean'], 'last_{}_'.format(period))
+            features = add_features_in_group(features, gr_period, 'instalment_paid_over_amount',
+                                             ['sum', 'mean', 'max', 'min', 'std'], 'last_{}_'.format(period))
+            features = add_features_in_group(features, gr_period, 'instalment_paid_over',
+                                             ['count', 'mean'], 'last_{}_'.format(period))
+
+        return features
 
     @staticmethod
-    def very_last_installment_features(gr):
+    def trend_in_last_k_instalment_features(gr, periods):
         gr_ = gr.copy()
         gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
 
-        cols = ['instalment_paid_late_in_days', 'instalment_paid_late',
-                'instalment_paid_over_amount', 'instalment_paid_over']
+        features = {}
 
-        rename_cols = {col: 'very_last_{}'.format(col) for col in cols}
-        return gr_[cols].rename(columns=rename_cols).iloc[0]
+        for period in periods:
+            gr_period = gr_.iloc[:period]
+
+            features = add_trend_feature(features, gr_period,
+                                         'instalment_paid_late_in_days', '{}_period_trend_'.format(period)
+                                         )
+            features = add_trend_feature(features, gr_period,
+                                         'instalment_paid_over_amount', '{}_period_trend_'.format(period)
+                                         )
+        return features
 
     def load(self, filepath):
         self.features = joblib.load(filepath)
@@ -616,4 +619,12 @@ def add_features_in_group(features, gr_, feature_name, aggs, prefix):
             features['{}{}_std'.format(prefix, feature_name)] = gr_[feature_name].std()
         elif agg == 'count':
             features['{}{}_count'.format(prefix, feature_name)] = gr_[feature_name].count()
+    return features
+
+
+def add_trend_feature(features, gr, feature_name, prefix):
+    y = gr[feature_name].values
+    x = np.arange(0, len(y))
+    z = np.polyfit(x, y, 1)
+    features['{}{}'.format(prefix, feature_name)] = z[0]
     return features
