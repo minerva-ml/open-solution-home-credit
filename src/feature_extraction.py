@@ -7,6 +7,8 @@ from sklearn.externals import joblib
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
+from .utils import parallel_apply
+
 logger = get_logger()
 
 
@@ -71,7 +73,7 @@ class CategoricalEncoder(BaseTransformer):
 
 
 class GroupbyAggregateDiffs(BaseTransformer):
-    def __init__(self, groupby_aggregations, use_diffs_only=False):
+    def __init__(self, groupby_aggregations, use_diffs_only=False, **kwargs):
         super().__init__()
         self.groupby_aggregations = groupby_aggregations
         self.use_diffs_only = use_diffs_only
@@ -144,7 +146,7 @@ class GroupbyAggregateDiffs(BaseTransformer):
 
 
 class GroupbyAggregateMerge(BaseTransformer):
-    def __init__(self, table_name, id_columns, groupby_aggregations):
+    def __init__(self, table_name, id_columns, groupby_aggregations, **kwargs):
         super().__init__()
         self.table_name = table_name
         self.id_columns = id_columns
@@ -473,8 +475,9 @@ class POSCASHBalanceFeatures(BaseTransformer):
 
 
 class InstallmentPaymentsFeatures(BaseTransformer):
-    def __init__(self, **kwargs):
+    def __init__(self, num_workers=1, **kwargs):
         self.features = None
+        self.num_workers = num_workers
 
     @property
     def feature_names(self):
@@ -494,22 +497,25 @@ class InstallmentPaymentsFeatures(BaseTransformer):
 
         feature_names = []
 
-        features, feature_names = self._add_features('instalment_paid_late_in_days',
-                                                     ['sum', 'mean', 'max', 'min', 'std'],
-                                                     features, feature_names, groupby)
+        features, feature_names = add_features('instalment_paid_late_in_days',
+                                               ['sum', 'mean', 'max', 'min', 'std'],
+                                               features, feature_names, groupby)
 
-        features, feature_names = self._add_features('instalment_paid_late', ['sum', 'mean'],
-                                                     features, feature_names, groupby)
+        features, feature_names = add_features('instalment_paid_late', ['sum', 'mean'],
+                                               features, feature_names, groupby)
 
-        features, feature_names = self._add_features('instalment_paid_over_amount',
-                                                     ['sum', 'mean', 'max', 'min', 'std'],
-                                                     features, feature_names, groupby)
+        features, feature_names = add_features('instalment_paid_over_amount',
+                                               ['sum', 'mean', 'max', 'min', 'std'],
+                                               features, feature_names, groupby)
 
-        features, feature_names = self._add_features('instalment_paid_over', ['sum', 'mean'],
-                                                     features, feature_names, groupby)
+        features, feature_names = add_features('instalment_paid_over', ['sum', 'mean'],
+                                               features, feature_names, groupby)
 
-        # g = groupby.apply(self._last_installment_features).reset_index()
-        # features = features.merge(g, on='SK_ID_CURR', how='left')
+        g = parallel_apply(groupby, InstallmentPaymentsFeatures.last_installment_features,
+                           index_name='SK_ID_CURR',
+                           num_workers=self.num_workers).reset_index()
+
+        features = features.merge(g, on='SK_ID_CURR', how='left')
 
         self.features = features
         return self
@@ -523,44 +529,30 @@ class InstallmentPaymentsFeatures(BaseTransformer):
 
         return {'numerical_features': X[self.feature_names]}
 
-    def _add_features(self, feature_name, aggs, features, feature_names, groupby):
-        feature_names.extend(['{}_{}'.format(feature_name, agg) for agg in aggs])
-
-        for agg in aggs:
-            g = groupby[feature_name].agg(agg).reset_index().rename(index=str,
-                                                                    columns={feature_name: '{}_{}'.format(feature_name,
-                                                                                                          agg)})
-            features = features.merge(g, on='SK_ID_CURR', how='left')
-        return features, feature_names
-
-    def _last_installment_features(self, gr):
+    @staticmethod
+    def last_installment_features(gr):
         gr_ = gr.copy()
         gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
-        last_instalment_id = gr['SK_ID_PREV'].iloc[0]
+        last_instalment_id = gr_['SK_ID_PREV'].iloc[0]
         gr_ = gr_[gr_['SK_ID_PREV'] == last_instalment_id]
-
         features = {}
-        feature_name = 'instalment_paid_late_in_days'
-        features['last_{}_sum'.format(feature_name)] = gr_[feature_name].sum()
-        features['last_{}_mean'.format(feature_name)] = gr_[feature_name].mean()
-        features['last_{}_max'.format(feature_name)] = gr_[feature_name].max()
-        features['last_{}_min'.format(feature_name)] = gr_[feature_name].min()
-        features['last_{}_std'.format(feature_name)] = gr_[feature_name].std()
 
-        feature_name = 'instalment_paid_late'
-        features['last_{}_count'.format(feature_name)] = gr_[feature_name].count()
-        features['last_{}_mean'.format(feature_name)] = gr_[feature_name].mean()
-
-        feature_name = 'instalment_paid_over_amount'
-        features['last_{}_sum'.format(feature_name)] = gr_[feature_name].sum()
-        features['last_{}_mean'.format(feature_name)] = gr_[feature_name].mean()
-        features['last_{}_max'.format(feature_name)] = gr_[feature_name].max()
-        features['last_{}_min'.format(feature_name)] = gr_[feature_name].min()
-        features['last_{}_std'.format(feature_name)] = gr_[feature_name].std()
-
-        feature_name = 'instalment_paid_over'
-        features['last_{}_count'.format(feature_name)] = gr_[feature_name].count()
-        features['last_{}_mean'.format(feature_name)] = gr_[feature_name].mean()
+        features = add_features_in_group(features, gr_,
+                                         'instalment_paid_late_in_days',
+                                         ['sum', 'mean', 'max', 'min', 'std'],
+                                         'last_')
+        features = add_features_in_group(features, gr_,
+                                         'instalment_paid_late',
+                                         ['count', 'mean'],
+                                         'last_')
+        features = add_features_in_group(features, gr_,
+                                         'instalment_paid_over_amount',
+                                         ['sum', 'mean', 'max', 'min', 'std'],
+                                         'last_')
+        features = add_features_in_group(features, gr_,
+                                         'instalment_paid_over',
+                                         ['count', 'mean'],
+                                         'last_')
 
         return pd.Series(features)
 
@@ -580,3 +572,31 @@ class ConcatFeatures(BaseTransformer):
             features_concat.append(feature)
         features_concat = pd.concat(features_concat, axis=1)
         return {'concatenated_features': features_concat}
+
+
+def add_features(feature_name, aggs, features, feature_names, groupby):
+    feature_names.extend(['{}_{}'.format(feature_name, agg) for agg in aggs])
+
+    for agg in aggs:
+        g = groupby[feature_name].agg(agg).reset_index().rename(index=str,
+                                                                columns={feature_name: '{}_{}'.format(feature_name,
+                                                                                                      agg)})
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+    return features, feature_names
+
+
+def add_features_in_group(features, gr_, feature_name, aggs, prefix):
+    for agg in aggs:
+        if agg == 'sum':
+            features['{}{}_sum'.format(prefix, feature_name)] = gr_[feature_name].sum()
+        elif agg == 'mean':
+            features['{}{}_mean'.format(prefix, feature_name)] = gr_[feature_name].mean()
+        elif agg == 'max':
+            features['{}{}_max'.format(prefix, feature_name)] = gr_[feature_name].max()
+        elif agg == 'min':
+            features['{}{}_min'.format(prefix, feature_name)] = gr_[feature_name].min()
+        elif agg == 'std':
+            features['{}{}_std'.format(prefix, feature_name)] = gr_[feature_name].std()
+        elif agg == 'count':
+            features['{}{}_count'.format(prefix, feature_name)] = gr_[feature_name].count()
+    return features
