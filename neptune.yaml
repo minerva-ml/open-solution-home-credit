@@ -50,8 +50,8 @@ parameters:
   fill_value: None
 
 # Feature Extraction
-  installments__last_k_trend_periods: '[10,50,100,500]'
-  installments__last_k_agg_periods: '[1,10,50,100,1000]'
+  installments__last_k_trend_periods: '[10, 50, 100, 500]'
+  installments__last_k_agg_periods: '[1, 5, 10, 50, 100, 500]'
   application_aggregation__use_diffs_only: True
   use_nan_count: True
 
