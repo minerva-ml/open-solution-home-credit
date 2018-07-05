@@ -474,6 +474,100 @@ class POSCASHBalanceFeatures(BaseTransformer):
         joblib.dump(self.features, filepath)
 
 
+class PreviousApplicationFeatures(BaseTransformer):
+    def __init__(self, **kwargs):
+        self.features = None
+
+    @property
+    def feature_names(self):
+        feature_names = list(self.features.columns)
+        feature_names.remove('SK_ID_CURR')
+        return feature_names
+
+    def fit(self, X, prev_applications, **kwargs):
+        features = pd.DataFrame({'SK_ID_CURR': prev_applications['SK_ID_CURR'].unique()})
+
+        prev_applications_sorted = prev_applications.sort_values(['SK_ID_CURR', 'DAYS_DECISION'])
+        prev_applications_last_3 = prev_applications_sorted.groupby(by=['SK_ID_CURR']).tail(3)
+        prev_applications_last_5 = prev_applications_sorted.groupby(by=['SK_ID_CURR']).tail(5)
+
+        group_object = prev_applications_sorted.groupby(by=['SK_ID_CURR'])['SK_ID_PREV'].count().reset_index()
+        group_object.rename(index=str,
+                            columns={'SK_ID_PREV': 'previous_application_number_of_prev_application'},
+                            inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = prev_applications_sorted.groupby(by=['SK_ID_CURR'])['CNT_PAYMENT'].last().reset_index()
+        group_object.rename(index=str,
+                            columns={'CNT_PAYMENT': 'previous_application_term_of_previous_credit'},
+                            inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = prev_applications_last_3.groupby(by=['SK_ID_CURR'])['CNT_PAYMENT'].mean().reset_index()
+        group_object.rename(index=str,
+                            columns={'CNT_PAYMENT': 'previous_application_term_of_last_3_credit_mean'},
+                            inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = prev_applications_last_5.groupby(by=['SK_ID_CURR'])['CNT_PAYMENT'].mean().reset_index()
+        group_object.rename(index=str,
+                            columns={'CNT_PAYMENT': 'previous_application_term_of_last_5_credit_mean'},
+                            inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = prev_applications_sorted.groupby(by=['SK_ID_CURR'])['DAYS_DECISION'].last().reset_index()
+        group_object.rename(index=str,
+                            columns={'DAYS_DECISION': 'previous_application_days_decision_about_prev_credit'},
+                            inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = prev_applications_last_3.groupby(by=['SK_ID_CURR'])['DAYS_DECISION'].mean().reset_index()
+        group_object.rename(index=str,
+                            columns={'DAYS_DECISION': 'previous_application_days_decision_about_last_3_credit_mean'},
+                            inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = prev_applications_last_5.groupby(by=['SK_ID_CURR'])['DAYS_DECISION'].mean().reset_index()
+        group_object.rename(index=str,
+                            columns={'DAYS_DECISION': 'previous_application_days_decision_about_last_5_credit_mean'},
+                            inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = prev_applications_sorted.groupby(by=['SK_ID_CURR'])['DAYS_FIRST_DRAWING'].last().reset_index()
+        group_object.rename(index=str, columns={
+            'DAYS_FIRST_DRAWING': 'previous_application_days_first_disbursement_of_prev_application'}, inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = prev_applications_last_3.groupby(by=['SK_ID_CURR'])['DAYS_FIRST_DRAWING'].mean().reset_index()
+        group_object.rename(index=str, columns={
+            'DAYS_FIRST_DRAWING': 'previous_application_days_first_disbursement_last_3_credit_mean'}, inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        group_object = prev_applications_last_5.groupby(by=['SK_ID_CURR'])['DAYS_FIRST_DRAWING'].mean().reset_index()
+        group_object.rename(index=str, columns={
+            'DAYS_FIRST_DRAWING': 'previous_application_days_first_disbursement_last_5_credit_mean'}, inplace=True)
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        self.features = features
+        return self
+
+    def transform(self, X, **kwargs):
+        X = X.merge(self.features,
+                    left_on=['SK_ID_CURR'],
+                    right_on=['SK_ID_CURR'],
+                    how='left',
+                    validate='one_to_one')
+
+        return {'numerical_features': X[self.feature_names]}
+
+    def load(self, filepath):
+        self.features = joblib.load(filepath)
+        return self
+
+    def persist(self, filepath):
+        joblib.dump(self.features, filepath)
+
+
 class InstallmentPaymentsFeatures(BaseTransformer):
     def __init__(self, num_workers=1, **kwargs):
         self.features = None
@@ -517,7 +611,7 @@ class InstallmentPaymentsFeatures(BaseTransformer):
 
         features = features.merge(g, on='SK_ID_CURR', how='left')
 
-        g = parallel_apply(groupby, InstallmentPaymentsFeatures.very_last_instalment_features,
+        g = parallel_apply(groupby, InstallmentPaymentsFeatures.very_last_installment_features,
                            index_name='SK_ID_CURR',
                            num_workers=self.num_workers).reset_index()
 

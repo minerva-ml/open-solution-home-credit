@@ -151,6 +151,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         bureau, bureau_valid = _bureau(config, train_mode, suffix, **kwargs)
         credit_card_balance, credit_card_balance_valid = _credit_card_balance(config, train_mode, suffix, **kwargs)
         pos_cash_balance, pos_cash_balance_valid = _pos_cash_balance(config, train_mode, suffix, **kwargs)
+        previous_application, previous_application_valid = _previous_application(config, train_mode, suffix, **kwargs)
         installment_payments, installment_payments_valid = _installment_payments(config, train_mode, suffix, **kwargs)
 
         application_agg, application_agg_valid = _application_groupby_agg(config, train_mode, suffix, **kwargs)
@@ -177,7 +178,6 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         feature_combiner, feature_combiner_valid = _join_features(
             numerical_features=[application,
                                 application_agg,
-                                previous_applications_agg,
                                 bureau,
                                 bureau_agg,
                                 credit_card_balance,
@@ -186,10 +186,11 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                 installments_payments_agg,
                                 pos_cash_balance,
                                 pos_cash_balance_agg,
+                                previous_application,
+                                previous_applications_agg,
                                 ],
             numerical_features_valid=[application_valid,
                                       application_agg_valid,
-                                      previous_applications_agg_valid,
                                       bureau_valid,
                                       bureau_agg_valid,
                                       credit_card_balance_valid,
@@ -198,6 +199,8 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                       installments_payments_agg_valid,
                                       pos_cash_balance_valid,
                                       pos_cash_balance_agg_valid,
+                                      previous_application_valid,
+                                      previous_applications_agg_valid,
                                       ],
             categorical_features=[categorical_encoder
                                   ],
@@ -214,6 +217,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         bureau = _bureau(config, train_mode, suffix, **kwargs)
         credit_card_balance = _credit_card_balance(config, train_mode, suffix, **kwargs)
         pos_cash_balance = _pos_cash_balance(config, train_mode, suffix, **kwargs)
+        previous_application = _previous_application(config, train_mode, suffix, **kwargs)
         installment_payments = _installment_payments(config, train_mode, suffix, **kwargs)
 
         application_agg = _application_groupby_agg(config, train_mode, suffix, **kwargs)
@@ -225,7 +229,6 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         categorical_encoder = _categorical_encoders(config, train_mode, suffix, **kwargs)
         feature_combiner = _join_features(numerical_features=[application,
                                                               application_agg,
-                                                              previous_applications_agg,
                                                               bureau,
                                                               bureau_agg,
                                                               credit_card_balance,
@@ -234,6 +237,8 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                                               installments_payments_agg,
                                                               pos_cash_balance,
                                                               pos_cash_balance_agg,
+                                                              previous_application,
+                                                              previous_applications_agg,
                                                               ],
                                           numerical_features_valid=[],
                                           categorical_features=[categorical_encoder
@@ -601,6 +606,28 @@ def _pos_cash_balance(config, train_mode, suffix, **kwargs):
 
     else:
         return pos_cash_balance
+
+
+def _previous_application(config, train_mode, suffix, **kwargs):
+    previous_application = Step(name='previous_applications_hand_crafted{}'.format(suffix),
+                                transformer=fe.PreviousApplicationFeatures(**config.previous_applications),
+                                input_data=['application', 'previous_application'],
+                                adapter=Adapter({'X': E('application', 'X'),
+                                                 'prev_applications': E('previous_application', 'X')}),
+                                experiment_directory=config.pipeline.experiment_directory,
+                                **kwargs)
+    if train_mode:
+        previous_application_valid = Step(name='previous_applications_hand_crafted_valid{}'.format(suffix),
+                                          transformer=previous_application,
+                                          input_data=['application'],
+                                          adapter=Adapter({'X': E('application', 'X_valid')}),
+                                          experiment_directory=config.pipeline.experiment_directory,
+                                          **kwargs)
+
+        return previous_application, previous_application_valid
+
+    else:
+        return previous_application
 
 
 def _installment_payments(config, train_mode, suffix, **kwargs):
