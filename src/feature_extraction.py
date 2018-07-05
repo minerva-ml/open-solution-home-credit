@@ -503,6 +503,10 @@ class InstallmentPaymentsFeatures(BaseTransformer):
 
         feature_names = []
 
+        features, feature_names = add_features('NUM_INSTALMENT_VERSION',
+                                               ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
+                                               features, feature_names, groupby)
+
         features, feature_names = add_features('instalment_paid_late_in_days',
                                                ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
                                                features, feature_names, groupby)
@@ -552,6 +556,10 @@ class InstallmentPaymentsFeatures(BaseTransformer):
 
         for period in periods:
             gr_period = gr_.iloc[:period]
+
+            features = add_features_in_group(features, gr_period, 'NUM_INSTALMENT_VERSION',
+                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
+                                             'last_{}_'.format(period))
 
             features = add_features_in_group(features, gr_period, 'instalment_paid_late_in_days',
                                              ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
