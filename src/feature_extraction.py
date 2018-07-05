@@ -548,6 +548,18 @@ class PreviousApplicationFeatures(BaseTransformer):
             'DAYS_FIRST_DRAWING': 'previous_application_days_first_disbursement_last_5_credit_mean'}, inplace=True)
         features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
 
+        prev_applications_sorted['previous_application_prev_was_approved'] = (
+                prev_applications_sorted['NAME_CONTRACT_STATUS'] == 'Approved').astype('int')
+        group_object = prev_applications_sorted.groupby(by=['SK_ID_CURR'])[
+            'previous_application_prev_was_approved'].last().reset_index()
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
+        prev_applications_sorted['previous_application_prev_was_refused'] = (
+                prev_applications_sorted['NAME_CONTRACT_STATUS'] == 'Refused').astype('int')
+        group_object = prev_applications_sorted.groupby(by=['SK_ID_CURR'])[
+            'previous_application_prev_was_refused'].last().reset_index()
+        features = features.merge(group_object, on=['SK_ID_CURR'], how='left')
+
         self.features = features
         return self
 

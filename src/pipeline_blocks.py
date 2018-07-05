@@ -608,12 +608,27 @@ def _pos_cash_balance(config, train_mode, suffix, **kwargs):
         return pos_cash_balance
 
 
+def _previous_application_cleaning(config, suffix, **kwargs):
+    bureau_cleaning = Step(name='previous_application_cleaning{}'.format(suffix),
+                           transformer=dc.PreviousApplicationCleaning(**config.preprocessing.impute_missing),
+                           input_data=['previous_application'],
+                           adapter=Adapter({'previous_application': E('previous_application', 'X')}),
+                           experiment_directory=config.pipeline.experiment_directory,
+                           **kwargs)
+
+    return bureau_cleaning
+
+
 def _previous_application(config, train_mode, suffix, **kwargs):
+    previous_application_cleaned = _previous_application_cleaning(config, suffix, **kwargs)
+
     previous_application = Step(name='previous_applications_hand_crafted{}'.format(suffix),
                                 transformer=fe.PreviousApplicationFeatures(**config.previous_applications),
-                                input_data=['application', 'previous_application'],
+                                input_data=['application'],
+                                input_steps=[previous_application_cleaned],
                                 adapter=Adapter({'X': E('application', 'X'),
-                                                 'prev_applications': E('previous_application', 'X')}),
+                                                 'prev_applications': E(previous_application_cleaned.name,
+                                                                        'previous_application')}),
                                 experiment_directory=config.pipeline.experiment_directory,
                                 **kwargs)
     if train_mode:
