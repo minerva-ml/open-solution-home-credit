@@ -1,9 +1,12 @@
 from copy import deepcopy
+from functools import partial
 
 import category_encoders as ce
 import numpy as np
 import pandas as pd
+from scipy.stats import kurtosis, iqr, skew
 from sklearn.externals import joblib
+from sklearn.linear_model import LinearRegression
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
@@ -581,9 +584,12 @@ class PreviousApplicationFeatures(BaseTransformer):
 
 
 class InstallmentPaymentsFeatures(BaseTransformer):
-    def __init__(self, num_workers=1, **kwargs):
-        self.features = None
+    def __init__(self, last_k_agg_periods, last_k_trend_periods, num_workers=1, **kwargs):
+        self.last_k_agg_periods = last_k_agg_periods
+        self.last_k_trend_periods = last_k_trend_periods
+
         self.num_workers = num_workers
+        self.features = None
 
     @property
     def feature_names(self):
@@ -604,29 +610,31 @@ class InstallmentPaymentsFeatures(BaseTransformer):
         feature_names = []
 
         features, feature_names = add_features('instalment_paid_late_in_days',
-                                               ['sum', 'mean', 'max', 'min', 'std'],
+                                               ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
                                                features, feature_names, groupby)
 
         features, feature_names = add_features('instalment_paid_late', ['sum', 'mean'],
                                                features, feature_names, groupby)
 
         features, feature_names = add_features('instalment_paid_over_amount',
-                                               ['sum', 'mean', 'max', 'min', 'std'],
+                                               ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
                                                features, feature_names, groupby)
 
         features, feature_names = add_features('instalment_paid_over', ['sum', 'mean'],
                                                features, feature_names, groupby)
 
-        g = parallel_apply(groupby, InstallmentPaymentsFeatures.last_loan_instalment_features,
-                           index_name='SK_ID_CURR',
-                           num_workers=self.num_workers).reset_index()
-
+        func = partial(InstallmentPaymentsFeatures.last_k_instalment_features,
+                       periods=self.last_k_agg_periods)
+        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
         features = features.merge(g, on='SK_ID_CURR', how='left')
 
-        g = parallel_apply(groupby, InstallmentPaymentsFeatures.very_last_installment_features,
-                           index_name='SK_ID_CURR',
-                           num_workers=self.num_workers).reset_index()
+        func = partial(InstallmentPaymentsFeatures.trend_in_last_k_instalment_features,
+                       periods=self.last_k_trend_periods)
+        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        features = features.merge(g, on='SK_ID_CURR', how='left')
 
+        func = InstallmentPaymentsFeatures.last_loan_instalment_features
+        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
         features = features.merge(g, on='SK_ID_CURR', how='left')
 
         self.features = features
@@ -640,6 +648,49 @@ class InstallmentPaymentsFeatures(BaseTransformer):
                     validate='one_to_one')
 
         return {'numerical_features': X[self.feature_names]}
+
+    @staticmethod
+    def last_k_instalment_features(gr, periods):
+        gr_ = gr.copy()
+        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
+
+        features = {}
+
+        for period in periods:
+            gr_period = gr_.iloc[:period]
+
+            features = add_features_in_group(features, gr_period, 'instalment_paid_late_in_days',
+                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
+                                             'last_{}_'.format(period))
+            features = add_features_in_group(features, gr_period, 'instalment_paid_late',
+                                             ['count', 'mean'],
+                                             'last_{}_'.format(period))
+            features = add_features_in_group(features, gr_period, 'instalment_paid_over_amount',
+                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
+                                             'last_{}_'.format(period))
+            features = add_features_in_group(features, gr_period, 'instalment_paid_over',
+                                             ['count', 'mean'],
+                                             'last_{}_'.format(period))
+
+        return features
+
+    @staticmethod
+    def trend_in_last_k_instalment_features(gr, periods):
+        gr_ = gr.copy()
+        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
+
+        features = {}
+
+        for period in periods:
+            gr_period = gr_.iloc[:period]
+
+            features = add_trend_feature(features, gr_period,
+                                         'instalment_paid_late_in_days', '{}_period_trend_'.format(period)
+                                         )
+            features = add_trend_feature(features, gr_period,
+                                         'instalment_paid_over_amount', '{}_period_trend_'.format(period)
+                                         )
+        return features
 
     @staticmethod
     def last_loan_instalment_features(gr):
@@ -668,17 +719,6 @@ class InstallmentPaymentsFeatures(BaseTransformer):
 
         return pd.Series(features)
 
-    @staticmethod
-    def very_last_installment_features(gr):
-        gr_ = gr.copy()
-        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
-
-        cols = ['instalment_paid_late_in_days', 'instalment_paid_late',
-                'instalment_paid_over_amount', 'instalment_paid_over']
-
-        rename_cols = {col: 'very_last_{}'.format(col) for col in cols}
-        return gr_[cols].rename(columns=rename_cols).iloc[0]
-
     def load(self, filepath):
         self.features = joblib.load(filepath)
         return self
@@ -701,9 +741,16 @@ def add_features(feature_name, aggs, features, feature_names, groupby):
     feature_names.extend(['{}_{}'.format(feature_name, agg) for agg in aggs])
 
     for agg in aggs:
-        g = groupby[feature_name].agg(agg).reset_index().rename(index=str,
-                                                                columns={feature_name: '{}_{}'.format(feature_name,
-                                                                                                      agg)})
+        if agg == 'kurt':
+            agg_func = kurtosis
+        elif agg == 'iqr':
+            agg_func = iqr
+        else:
+            agg_func = agg
+
+        g = groupby[feature_name].agg(agg_func).reset_index().rename(index=str,
+                                                                     columns={feature_name: '{}_{}'.format(feature_name,
+                                                                                                           agg)})
         features = features.merge(g, on='SK_ID_CURR', how='left')
     return features, feature_names
 
@@ -722,4 +769,25 @@ def add_features_in_group(features, gr_, feature_name, aggs, prefix):
             features['{}{}_std'.format(prefix, feature_name)] = gr_[feature_name].std()
         elif agg == 'count':
             features['{}{}_count'.format(prefix, feature_name)] = gr_[feature_name].count()
+        elif agg == 'skew':
+            features['{}{}_skew'.format(prefix, feature_name)] = skew(gr_[feature_name])
+        elif agg == 'kurt':
+            features['{}{}_kurt'.format(prefix, feature_name)] = kurtosis(gr_[feature_name])
+        elif agg == 'iqr':
+            features['{}{}_iqr'.format(prefix, feature_name)] = iqr(gr_[feature_name])
+        elif agg == 'median':
+            features['{}{}_median'.format(prefix, feature_name)] = gr_[feature_name].median()
+        return features
+
+
+def add_trend_feature(features, gr, feature_name, prefix):
+    y = gr[feature_name].values
+    try:
+        x = np.arange(0, len(y)).reshape(-1, 1)
+        lr = LinearRegression()
+        lr.fit(x, y)
+        trend = lr.coef_[0]
+    except:
+        trend = np.nan
+    features['{}{}'.format(prefix, feature_name)] = trend
     return features
