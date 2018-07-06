@@ -218,7 +218,7 @@ for agg in ['mean', 'min', 'max', 'sum', 'var']:
         CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES.append((select, agg))
 CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES)]
 
-installmentS_PAYMENTS_AGGREGATION_RECIPIES = []
+INSTALMENTS_PAYMENTS_AGGREGATION_RECIPIES = []
 for agg in ['mean', 'min', 'max', 'sum', 'var']:
     for select in ['AMT_INSTALMENT',
                    'AMT_PAYMENT',
@@ -227,8 +227,8 @@ for agg in ['mean', 'min', 'max', 'sum', 'var']:
                    'NUM_INSTALMENT_NUMBER',
                    'NUM_INSTALMENT_VERSION'
                    ]:
-        installmentS_PAYMENTS_AGGREGATION_RECIPIES.append((select, agg))
-installmentS_PAYMENTS_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], installmentS_PAYMENTS_AGGREGATION_RECIPIES)]
+        INSTALMENTS_PAYMENTS_AGGREGATION_RECIPIES.append((select, agg))
+INSTALMENTS_PAYMENTS_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], INSTALMENTS_PAYMENTS_AGGREGATION_RECIPIES)]
 
 POS_CASH_BALANCE_AGGREGATION_RECIPIES = []
 for agg in ['mean', 'min', 'max', 'sum', 'var']:
@@ -289,7 +289,7 @@ SOLUTION_CONFIG = AttrDict({
 
     'installments_payments': {'table_name': 'installments_payments',
                               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                              'groupby_aggregations': installmentS_PAYMENTS_AGGREGATION_RECIPIES,
+                              'groupby_aggregations': INSTALMENTS_PAYMENTS_AGGREGATION_RECIPIES,
                               'last_k_agg_periods': parameter_eval(params.installments__last_k_agg_periods),
                               'last_k_trend_periods': parameter_eval(params.installments__last_k_trend_periods),
                               'num_workers': params.num_workers
