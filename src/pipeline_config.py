@@ -300,7 +300,8 @@ SOLUTION_CONFIG = AttrDict({
 
     'previous_applications': {'table_name': 'previous_application',
                               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                              'groupby_aggregations': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES
+                              'groupby_aggregations': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES,
+                              'numbers_of_applications': [1, 2, 3, 4, 5]
                               },
 
     'light_gbm': {'device': parameter_eval(params.lgbm__device),

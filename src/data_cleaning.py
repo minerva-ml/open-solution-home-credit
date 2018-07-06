@@ -31,3 +31,17 @@ class BureauCleaning(BaseTransformer):
             bureau['CNT_CREDIT_PROLONG'].fillna(self.fill_value, inplace=True)
 
         return {'bureau': bureau}
+
+
+class PreviousApplicationCleaning(BaseTransformer):
+    def __init__(self, **kwargs):
+        super().__init__()
+
+    def transform(self, previous_application):
+        previous_application['DAYS_FIRST_DRAWING'].replace(365243, np.nan, inplace=True)
+        previous_application['DAYS_FIRST_DUE'].replace(365243, np.nan, inplace=True)
+        previous_application['DAYS_LAST_DUE_1ST_VERSION'].replace(365243, np.nan, inplace=True)
+        previous_application['DAYS_LAST_DUE'].replace(365243, np.nan, inplace=True)
+        previous_application['DAYS_TERMINATION'].replace(365243, np.nan, inplace=True)
+
+        return {'previous_application': previous_application}
