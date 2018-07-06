@@ -609,14 +609,14 @@ def _pos_cash_balance(config, train_mode, suffix, **kwargs):
 
 
 def _previous_application_cleaning(config, suffix, **kwargs):
-    bureau_cleaning = Step(name='previous_application_cleaning{}'.format(suffix),
-                           transformer=dc.PreviousApplicationCleaning(**config.preprocessing.impute_missing),
-                           input_data=['previous_application'],
-                           adapter=Adapter({'previous_application': E('previous_application', 'X')}),
-                           experiment_directory=config.pipeline.experiment_directory,
-                           **kwargs)
+    previous_application_cleaning = Step(name='previous_application_cleaning{}'.format(suffix),
+                                         transformer=dc.PreviousApplicationCleaning(**config.preprocessing.impute_missing),
+                                         input_data=['previous_application'],
+                                         adapter=Adapter({'previous_application': E('previous_application', 'X')}),
+                                         experiment_directory=config.pipeline.experiment_directory,
+                                         **kwargs)
 
-    return bureau_cleaning
+    return previous_application_cleaning
 
 
 def _previous_application(config, train_mode, suffix, **kwargs):
