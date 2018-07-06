@@ -6,10 +6,10 @@ from deepsense import neptune
 from .utils import read_params, parameter_eval
 
 ctx = neptune.Context()
-params = read_params(ctx, fallback_file='../neptune.yaml')
+params = read_params(ctx, fallback_file='neptune.yaml')
 
 RANDOM_SEED = 90210
-DEV_SAMPLE_SIZE = 10000
+DEV_SAMPLE_SIZE = 1000
 
 ID_COLUMNS = ['SK_ID_CURR']
 TARGET_COLUMNS = ['TARGET']

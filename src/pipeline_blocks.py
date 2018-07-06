@@ -592,7 +592,7 @@ def _bureau(config, train_mode, suffix, **kwargs):
     bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
 
     bureau_hand_crafted = Step(name='bureau_hand_crafted',
-                               transformer=fe.BureauFeatures(),
+                               transformer=fe.BureauFeatures(**config.bureau),
                                input_steps=[bureau_cleaned],
                                adapter=Adapter({'bureau': E(bureau_cleaned.name, 'bureau')}),
                                experiment_directory=config.pipeline.experiment_directory,
