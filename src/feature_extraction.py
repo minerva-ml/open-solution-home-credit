@@ -7,6 +7,7 @@ import pandas as pd
 from scipy.stats import kurtosis, iqr, skew
 from sklearn.externals import joblib
 from sklearn.linear_model import LinearRegression
+from swifter import swiftapply
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
@@ -207,6 +208,28 @@ class GroupbyMerge(BaseTransformer):
         return {'numerical_features': table[self._feature_names(features)].astype(np.float32)}
 
 
+class BasicHandCraftedFeatures(BaseTransformer):
+    def __init__(self, num_workers=1, **kwargs):
+        self.num_workers = num_workers
+        self.features = None
+
+    @property
+    def feature_names(self):
+        feature_names = list(self.features.columns)
+        feature_names.remove('SK_ID_CURR')
+        return feature_names
+
+    def transform(self, **kwargs):
+        return {'features_table': self.features}
+
+    def load(self, filepath):
+        self.features = joblib.load(filepath)
+        return self
+
+    def persist(self, filepath):
+        joblib.dump(self.features, filepath)
+
+
 class ApplicationFeatures(BaseTransformer):
     def __init__(self, categorical_columns, numerical_columns):
         self.categorical_columns = categorical_columns
@@ -262,28 +285,6 @@ class ApplicationFeatures(BaseTransformer):
                 }
 
 
-class BasicHandCraftedFeatures(BaseTransformer):
-    def __init__(self, num_workers=1, **kwargs):
-        self.num_workers = num_workers
-        self.features = None
-
-    @property
-    def feature_names(self):
-        feature_names = list(self.features.columns)
-        feature_names.remove('SK_ID_CURR')
-        return feature_names
-
-    def transform(self, **kwargs):
-        return {'features_table': self.features}
-
-    def load(self, filepath):
-        self.features = joblib.load(filepath)
-        return self
-
-    def persist(self, filepath):
-        joblib.dump(self.features, filepath)
-
-
 class BureauFeatures(BasicHandCraftedFeatures):
     def fit(self, bureau, **kwargs):
         bureau['bureau_credit_active_binary'] = (bureau['CREDIT_ACTIVE'] != 'Closed').astype(int)
@@ -292,8 +293,38 @@ class BureauFeatures(BasicHandCraftedFeatures):
 
         groupby = bureau.groupby(by=['SK_ID_CURR'])
 
-        func = BureauFeatures.generate_features
-        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        g = groupby['DAYS_CREDIT'].agg('count').reset_index()
+        g.rename(index=str, columns={'DAYS_CREDIT': 'bureau_number_of_past_loans'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['CREDIT_TYPE'].agg('nunique').reset_index()
+        g.rename(index=str, columns={'CREDIT_TYPE': 'bureau_number_of_loan_types'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['bureau_credit_active_binary'].agg('mean').reset_index()
+        g.rename(index=str, columns={'bureau_credit_active_binary': 'bureau_credit_active_binary'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['AMT_CREDIT_SUM_DEBT'].agg('sum').reset_index()
+        g.rename(index=str, columns={'AMT_CREDIT_SUM_DEBT': 'bureau_total_customer_debt'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['AMT_CREDIT_SUM'].agg('sum').reset_index()
+        g.rename(index=str, columns={'AMT_CREDIT_SUM': 'bureau_total_customer_credit'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['AMT_CREDIT_SUM_OVERDUE'].agg('sum').reset_index()
+        g.rename(index=str, columns={'AMT_CREDIT_SUM_OVERDUE': 'bureau_total_customer_overdue'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['CNT_CREDIT_PROLONG'].agg('sum').reset_index()
+        g.rename(index=str, columns={'CNT_CREDIT_PROLONG': 'bureau_average_creditdays_prolonged'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['bureau_credit_enddate_binary'].agg('mean').reset_index()
+        g.rename(index=str, columns={'bureau_credit_enddate_binary': 'bureau_credit_enddate_percentage'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
         features['bureau_average_of_past_loans_per_type'] = \
@@ -307,23 +338,6 @@ class BureauFeatures(BasicHandCraftedFeatures):
 
         self.features = features
         return self
-
-    @staticmethod
-    def generate_features(gr):
-        gr_ = gr.copy()
-
-        features = {}
-        features['bureau_number_of_past_loans'] = gr_['DAYS_CREDIT'].agg('count')
-        features['bureau_number_of_loan_types'] = gr_['CREDIT_TYPE'].agg('nunique')
-        features['bureau_credit_active_binary'] = gr_['bureau_credit_active_binary'].agg('mean')
-        features['bureau_total_customer_debt'] = gr_['AMT_CREDIT_SUM_DEBT'].agg('sum')
-        features['bureau_total_customer_credit'] = gr_['AMT_CREDIT_SUM'].agg('sum')
-        features['bureau_total_customer_overdue'] = gr_['AMT_CREDIT_SUM_OVERDUE'].agg('sum')
-        features['bureau_average_creditdays_prolonged'] = gr_['CNT_CREDIT_PROLONG'].agg('sum')
-        features['bureau_total_customer_overdue'] = gr_['AMT_CREDIT_SUM_OVERDUE'].agg('sum')
-        features['bureau_credit_enddate_percentage'] = gr_['bureau_credit_enddate_binary'].agg('mean')
-        features['bureau_total_customer_overdue'] = gr_['AMT_CREDIT_SUM_OVERDUE'].agg('sum')
-        return pd.Series(features)
 
 
 class CreditCardBalanceFeatures(BasicHandCraftedFeatures):
@@ -350,8 +364,30 @@ class CreditCardBalanceFeatures(BasicHandCraftedFeatures):
 
         groupby = credit_card.groupby(by=['SK_ID_CURR'])
 
-        func = CreditCardBalanceFeatures.generate_features
-        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        g = groupby['SK_ID_PREV'].agg('nunique').reset_index()
+        g.rename(index=str, columns={'SK_ID_PREV': 'credit_card_number_of_loans'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['SK_DPD'].agg('mean').reset_index()
+        g.rename(index=str, columns={'SK_DPD': 'credit_card_average_of_days_past_due'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['AMT_DRAWINGS_ATM_CURRENT'].agg('sum').reset_index()
+        g.rename(index=str, columns={'AMT_DRAWINGS_ATM_CURRENT': 'credit_card_drawings_atm'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['AMT_DRAWINGS_CURRENT'].agg('sum').reset_index()
+        g.rename(index=str, columns={'AMT_DRAWINGS_CURRENT': 'credit_card_drawings_total'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['number_of_installments'].agg('sum').reset_index()
+        g.rename(index=str, columns={'number_of_installments': 'credit_card_total_installments'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['credit_card_max_loading_of_credit_limit'].agg('mean').reset_index()
+        g.rename(index=str,
+                 columns={'credit_card_max_loading_of_credit_limit': 'credit_card_avg_loading_of_credit_limit'},
+                 inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
         features['credit_card_cash_card_ratio'] = features['credit_card_drawings_atm'] / features[
@@ -371,30 +407,10 @@ class CreditCardBalanceFeatures(BasicHandCraftedFeatures):
         credit_card_sorted['credit_card_monthly_diff'] = groupby['AMT_BALANCE'].diff()
         groupby = credit_card_sorted.groupby(by=['SK_ID_CURR'])
 
-        func = CreditCardBalanceFeatures.credit_card_monthly_diff
-        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
-        g.rename(index=str, columns={0: 'credit_card_monthly_diff_mean'}, inplace=True)
+        g = groupby['credit_card_monthly_diff'].agg('mean').reset_index()
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
         return features
-
-    @staticmethod
-    def generate_features(gr):
-        gr_ = gr.copy()
-
-        features = {}
-        features['credit_card_number_of_loans'] = gr_['SK_ID_PREV'].agg('nunique')
-        features['credit_card_average_of_days_past_due'] = gr_['SK_DPD'].agg('mean')
-        features['credit_card_drawings_atm'] = gr_['AMT_DRAWINGS_ATM_CURRENT'].agg('sum')
-        features['credit_card_drawings_total'] = gr_['AMT_DRAWINGS_CURRENT'].agg('sum')
-        features['credit_card_total_installments'] = gr_['number_of_installments'].sum()
-        features['credit_card_avg_loading_of_credit_limit'] = gr_['credit_card_max_loading_of_credit_limit'].agg('mean')
-        return pd.Series(features)
-
-    @staticmethod
-    def credit_card_monthly_diff(gr):
-        gr_ = gr.copy()
-        return gr_['credit_card_monthly_diff'].agg('mean')
 
 
 class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
@@ -411,20 +427,11 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
         groupby = pos_cash.groupby(['SK_ID_CURR'])
-        func = POSCASHBalanceFeatures.is_contract_status_completed
-        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        g = groupby['is_contract_status_completed'].agg('sum').reset_index()
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
         self.features = features
         return self
-
-    @staticmethod
-    def is_contract_status_completed(gr):
-        gr_ = gr.copy()
-
-        features = {}
-        features['is_contract_status_completed'] = gr_['is_contract_status_completed'].sum()
-        return pd.Series(features)
 
 
 class PreviousApplicationFeatures(BasicHandCraftedFeatures):
@@ -448,9 +455,8 @@ class PreviousApplicationFeatures(BasicHandCraftedFeatures):
         g = prev_app_sorted_groupby['previous_application_prev_was_refused'].last().reset_index()
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
-        func = PreviousApplicationFeatures.previous_application_number_of_prev_application
-        g = parallel_apply(prev_app_sorted_groupby, func, index_name='SK_ID_CURR',
-                           num_workers=self.num_workers).reset_index()
+        g = prev_app_sorted_groupby['SK_ID_PREV'].agg('nunique').reset_index()
+        g.rename(index=str, columns={'SK_ID_PREV': 'previous_application_number_of_prev_application'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
         for number in self.numbers_of_applications:
@@ -458,32 +464,29 @@ class PreviousApplicationFeatures(BasicHandCraftedFeatures):
 
             tail_groupby = prev_applications_tail.groupby(by=['SK_ID_CURR'])
 
-            func = partial(PreviousApplicationFeatures.tail_features, number=number)
-            g = parallel_apply(tail_groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+            g = tail_groupby['CNT_PAYMENT'].agg('mean').reset_index()
+            g.rename(index=str,
+                     columns={'CNT_PAYMENT': 'previous_application_term_of_last_{}_credits_mean'.format(number)},
+                     inplace=True)
+            features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+            g = tail_groupby['DAYS_DECISION'].agg('mean').reset_index()
+            g.rename(index=str,
+                     columns={'DAYS_DECISION': 'previous_application_days_decision_about_last_{}_credits_mean'.format(
+                         number)},
+                     inplace=True)
+            features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+            g = tail_groupby['DAYS_FIRST_DRAWING'].agg('mean').reset_index()
+            g.rename(index=str,
+                     columns={
+                         'DAYS_FIRST_DRAWING': 'previous_application_days_first_drawing_last_{}_credits_mean'.format(
+                             number)},
+                     inplace=True)
             features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
         self.features = features
         return self
-
-    @staticmethod
-    def tail_features(gr, number):
-        gr_ = gr.copy()
-
-        features = {}
-        features['previous_application_term_of_last_{}_credits_mean'.format(number)] = gr_['CNT_PAYMENT'].mean()
-        features['previous_application_days_decision_about_last_{}_credits_mean'.format(number)] = gr_[
-            'DAYS_DECISION'].mean()
-        features['previous_application_days_first_drawing_last_{}_credits_mean'.format(number)] = gr_[
-            'DAYS_FIRST_DRAWING'].mean()
-        return pd.Series(features)
-
-    @staticmethod
-    def previous_application_number_of_prev_application(gr):
-        gr_ = gr.copy()
-
-        features = {}
-        features['previous_application_number_of_prev_application'] = gr_['SK_ID_PREV'].nunique()
-        return pd.Series(features)
 
 
 class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
