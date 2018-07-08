@@ -43,6 +43,7 @@ def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
                                           'X_valid': E(features_valid.name, 'features'),
                                           'y_valid': E('application', 'y_valid'),
                                           }),
+                         force_fitting=True,
                          experiment_directory=config.pipeline.experiment_directory,
                          **kwargs)
     else:
@@ -607,7 +608,7 @@ def _bureau(config, train_mode, suffix, **kwargs):
                                      experiment_directory=config.pipeline.experiment_directory, **kwargs)
 
     if train_mode:
-        bureau_hand_crafted_merge_valid = Step(name='bureau_agg_merge_valid{}'.format(suffix),
+        bureau_hand_crafted_merge_valid = Step(name='bureau_hand_crafted_merge_valid{}'.format(suffix),
                                                transformer=bureau_hand_crafted_merge,
                                                input_data=['application'],
                                                input_steps=[bureau_hand_crafted],
@@ -723,7 +724,7 @@ def _previous_application(config, train_mode, suffix, **kwargs):
 
     if train_mode:
         previous_applications_hand_crafted_merge_valid = Step(
-            name='previous_applications_agg_merge_valid{}'.format(suffix),
+            name='previous_applications_hand_crafted_merge_valid{}'.format(suffix),
             transformer=previous_applications_hand_crafted_merge,
             input_data=['application'],
             input_steps=[previous_applications_hand_crafted],

@@ -279,6 +279,8 @@ def _read_data(dev_mode, read_train=True, read_test=False):
     if read_test:
         raw_data['application_test'] = pd.read_csv(params.test_filepath, nrows=nrows)
 
+    # nrows=1
+
     raw_data['bureau'] = pd.read_csv(params.bureau_filepath, nrows=nrows)
     raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows)
     raw_data['installments_payments'] = pd.read_csv(params.installments_payments_filepath, nrows=nrows)

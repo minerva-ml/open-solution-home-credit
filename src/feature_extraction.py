@@ -358,7 +358,7 @@ class CreditCardBalanceFeatures(BasicHandCraftedFeatures):
             'credit_card_drawings_total']
 
         features['credit_card_installments_per_loan'] = (
-                features['credit_card_total_installments'] / features['credit_card_number_of_loans'])
+            features['credit_card_total_installments'] / features['credit_card_number_of_loans'])
 
         return features
 
@@ -439,12 +439,12 @@ class PreviousApplicationFeatures(BasicHandCraftedFeatures):
         prev_app_sorted_groupby = prev_app_sorted.groupby(by=['SK_ID_CURR'])
 
         prev_app_sorted['previous_application_prev_was_approved'] = (
-                prev_app_sorted['NAME_CONTRACT_STATUS'] == 'Approved').astype('int')
+            prev_app_sorted['NAME_CONTRACT_STATUS'] == 'Approved').astype('int')
         g = prev_app_sorted_groupby['previous_application_prev_was_approved'].last().reset_index()
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
         prev_app_sorted['previous_application_prev_was_refused'] = (
-                prev_app_sorted['NAME_CONTRACT_STATUS'] == 'Refused').astype('int')
+            prev_app_sorted['NAME_CONTRACT_STATUS'] == 'Refused').astype('int')
         g = prev_app_sorted_groupby['previous_application_prev_was_refused'].last().reset_index()
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
