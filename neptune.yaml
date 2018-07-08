@@ -61,8 +61,8 @@ parameters:
   lgbm__boosting_type: gbdt
   lgbm__objective: binary
   lgbm__metric: auc
-  lgbm__number_boosting_rounds: 500
-  lgbm__early_stopping_rounds: 50
+  lgbm__number_boosting_rounds: 5000
+  lgbm__early_stopping_rounds: 100
   lgbm__learning_rate: 0.1
   lgbm__max_bin: 300
   lgbm__max_depth: -1
