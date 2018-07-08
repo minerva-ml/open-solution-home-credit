@@ -66,13 +66,13 @@ parameters:
   lgbm__learning_rate: 0.1
   lgbm__max_bin: 300
   lgbm__max_depth: -1
-  lgbm__num_leaves: 100
-  lgbm__min_child_samples: 600
+  lgbm__num_leaves: 35
+  lgbm__min_child_samples: 50
   lgbm__subsample: 1.0
   lgbm__subsample_freq: 1
-  lgbm__colsample_bytree: 0.1
+  lgbm__colsample_bytree: 0.2
   lgbm__min_gain_to_split: 0.5
-  lgbm__reg_lambda: 50.0
+  lgbm__reg_lambda: 100.0
   lgbm__reg_alpha: 0.0
   lgbm__scale_pos_weight: 1
 
