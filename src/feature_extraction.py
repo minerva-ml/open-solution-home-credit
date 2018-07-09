@@ -325,8 +325,6 @@ class BureauFeatures(BasicHandCraftedFeatures):
         g.rename(index=str, columns={'bureau_credit_enddate_binary': 'bureau_credit_enddate_percentage'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
-        features = features.merge(g, on=['SK_ID_CURR'], how='left')
-
         features['bureau_average_of_past_loans_per_type'] = \
             features['bureau_number_of_past_loans'] / features['bureau_number_of_loan_types']
 
