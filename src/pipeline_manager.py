@@ -281,10 +281,10 @@ def _read_data(dev_mode, read_train=True, read_test=False):
 
     raw_data['bureau'] = pd.read_csv(params.bureau_filepath, nrows=nrows)
     raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows)
-    raw_data['installments_payments'] = pd.read_csv(params.installments_payments_filepath, nrows=nrows)
     raw_data['pos_cash_balance'] = pd.read_csv(params.POS_CASH_balance_filepath, nrows=nrows)
     raw_data['previous_application'] = pd.read_csv(params.previous_application_filepath, nrows=nrows)
     raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath, nrows=nrows)
+    raw_data['installments_payments'] = pd.read_csv(params.installments_payments_filepath, nrows=nrows)
 
     return AttrDict(raw_data)
 

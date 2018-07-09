@@ -277,12 +277,14 @@ SOLUTION_CONFIG = AttrDict({
 
     'bureau': {'table_name': 'bureau',
                'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-               'groupby_aggregations': BUREAU_AGGREGATION_RECIPIES
+               'groupby_aggregations': BUREAU_AGGREGATION_RECIPIES,
+               'num_workers': params.num_workers
                },
 
     'credit_card_balance': {'table_name': 'credit_card_balance',
                             'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                            'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES
+                            'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES,
+                            'num_workers': params.num_workers
                             },
 
     'installments_payments': {'table_name': 'installments_payments',
@@ -295,13 +297,15 @@ SOLUTION_CONFIG = AttrDict({
 
     'pos_cash_balance': {'table_name': 'POS_CASH_balance',
                          'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
-                         'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES
+                         'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES,
+                         'num_workers': params.num_workers
                          },
 
     'previous_applications': {'table_name': 'previous_application',
                               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                               'groupby_aggregations': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES,
-                              'numbers_of_applications': [1, 2, 3, 4, 5]
+                              'numbers_of_applications': [1, 2, 3, 4, 5],
+                              'num_workers': params.num_workers
                               },
 
     'light_gbm': {'device': parameter_eval(params.lgbm__device),
