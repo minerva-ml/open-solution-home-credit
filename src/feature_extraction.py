@@ -636,7 +636,7 @@ def add_features_in_group(features, gr_, feature_name, aggs, prefix):
             features['{}{}_iqr'.format(prefix, feature_name)] = iqr(gr_[feature_name])
         elif agg == 'median':
             features['{}{}_median'.format(prefix, feature_name)] = gr_[feature_name].median()
-        return features
+    return features
 
 
 def add_trend_feature(features, gr, feature_name, prefix):
