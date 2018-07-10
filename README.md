@@ -23,14 +23,13 @@ In this open source solution you will find references to the [neptune.ml](https:
 1. Check [Kaggle forum](https://www.kaggle.com/c/home-credit-default-risk/discussion/57175) and participate in the discussions.
 1. Check our [Wiki pages :page_facing_up:](https://github.com/neptune-ml/open-solution-home-credit/wiki), where we document our work. Click on the house to get started [:house_with_garden:](https://github.com/neptune-ml/open-solution-home-credit/wiki).
 
-| link to code | name | link to description |
-|:---:|:---:|:---:|
-|[solution 1](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-1)|*chestnut* :chestnut:|[LightGBM and basic features](LightGBM-and-basic-features)|
-|[solution 2](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-2)|*seedling* :seedling:|[Sklearn and XGBoost algorithms and groupby features](Sklearn-and-XGBoost-algorithms-and-groupby-features)|
-|[solution 3](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-3)|*blossom* :blossom:|[LightGBM on selected features](LightGBM-on-selected-features)|
-|[solution 4](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-4)|*tulip* :tulip:|[LightGBM with smarter features](LightGBM-with-smarter-features)|
-|solution 5|*sunflower* :sunflower:|*(in progress...)*|
-
+| link to code | name | CV | LB | link to description |
+|:---:|:---:|:---:|:---:|:---:|
+|[solution 1](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-1)|*chestnut* :chestnut:|?|0.742|[LightGBM and basic features](LightGBM-and-basic-features)|
+|[solution 2](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-2)|*seedling* :seedling:|?|0.747|[Sklearn and XGBoost algorithms and groupby features](Sklearn-and-XGBoost-algorithms-and-groupby-features)|
+|[solution 3](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-3)|*blossom* :blossom:|0.7840|0.790|[LightGBM on selected features](LightGBM-on-selected-features)|
+|[solution 4](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-4)|*tulip* :tulip: |0.7905|0.801|[LightGBM with smarter features](LightGBM-with-smarter-features)|
+|solution 5|*sunflower* :sunflower:|||*(in progress...)* :construction_worker_woman:|
 
 ## Start experimenting with ready-to-use code
 You can jump start your participation in the competition by using our starter pack. Installation instruction below will guide you through the setup.
