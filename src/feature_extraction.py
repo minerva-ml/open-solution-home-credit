@@ -427,6 +427,7 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
         pos_cash['pos_cash_paid_late'] = (pos_cash['SK_DPD'] > 0).astype(int)
         pos_cash['pos_cash_paid_late_with_tolerance'] = (pos_cash['SK_DPD_DEF'] > 0).astype(int)
 
+
         features = pd.DataFrame({'SK_ID_CURR': pos_cash['SK_ID_CURR'].unique()})
 
         g = pos_cash_sorted.groupby('SK_ID_CURR')['CNT_INSTALMENT_FUTURE'].last().reset_index()
@@ -602,7 +603,7 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
 
     @staticmethod
     def generate_features(gr, agg_periods, trend_periods):
-        all = InstallmentPaymentsFeatures.all(gr)
+        all = InstallmentPaymentsFeatures.all_installment_features(gr)
         agg = InstallmentPaymentsFeatures.last_k_installment_features(gr, agg_periods)
         trend = InstallmentPaymentsFeatures.trend_in_last_k_installment_features(gr, trend_periods)
         last = InstallmentPaymentsFeatures.last_loan_features(gr)
@@ -721,7 +722,8 @@ def add_features_in_group(features, gr_, feature_name, aggs, prefix):
             features['{}{}_iqr'.format(prefix, feature_name)] = iqr(gr_[feature_name])
         elif agg == 'median':
             features['{}{}_median'.format(prefix, feature_name)] = gr_[feature_name].median()
-        return features
+
+    return features
 
 
 def add_trend_feature(features, gr, feature_name, prefix):
