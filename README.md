@@ -25,10 +25,10 @@ In this open source solution you will find references to the [neptune.ml](https:
 
 | link to code | name | CV | LB | link to description |
 |:---:|:---:|:---:|:---:|:---:|
-|[solution 1](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-1)|*chestnut* :chestnut:|?|0.742|[LightGBM and basic features](LightGBM-and-basic-features)|
-|[solution 2](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-2)|*seedling* :seedling:|?|0.747|[Sklearn and XGBoost algorithms and groupby features](Sklearn-and-XGBoost-algorithms-and-groupby-features)|
-|[solution 3](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-3)|*blossom* :blossom:|0.7840|0.790|[LightGBM on selected features](LightGBM-on-selected-features)|
-|[solution 4](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-4)|*tulip* :tulip: |0.7905|0.801|[LightGBM with smarter features](LightGBM-with-smarter-features)|
+|[solution 1](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-1)|*chestnut* :chestnut:|?|0.742|[LightGBM and basic features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-and-basic-features)|
+|[solution 2](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-2)|*seedling* :seedling:|?|0.747|[Sklearn and XGBoost algorithms and groupby features](https://github.com/neptune-ml/open-solution-home-credit/wiki/Sklearn-and-XGBoost-algorithms-and-groupby-features)|
+|[solution 3](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-3)|*blossom* :blossom:|0.7840|0.790|[LightGBM on selected features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-on-selected-features)|
+|[solution 4](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-4)|*tulip* :tulip: |0.7905|0.801|[LightGBM with smarter features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-with-smarter-features)|
 |solution 5|*sunflower* :sunflower:|||*(in progress...)* :construction_worker_woman:|
 
 ## Start experimenting with ready-to-use code
