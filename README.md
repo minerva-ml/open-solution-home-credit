@@ -9,9 +9,9 @@ We are building entirely open solution to this competition. Specifically:
 1. **Learning from the process** - updates about new ideas, code and experiments is the best way to learn data science. Our activity is especially useful for people who wants to enter the competition, but lack appropriate experience.
 1. Encourage more Kagglers to start working on this competition.
 1. Deliver open source solution with no strings attached. Code is available on our [GitHub repository :computer:](https://github.com/neptune-ml/open-solution-home-credit). This solution should establish solid benchmark, as well as provide good base for your custom ideas and experiments. We care about clean code :smiley:
-1. We are opening our experiments as well: everybody can have **live preview** on our experiments, parameters, code, etc. Check: [Home Credit Default Risk :chart_with_upwards_trend:](https://app.neptune.ml/neptune-ml/Home-Credit-Default-Risk).
+1. We are opening our experiments as well: everybody can have **live preview** on our experiments, parameters, code, etc. Check: [Home Credit Default Risk :chart_with_upwards_trend:](https://app.neptune.ml/neptune-ml/Home-Credit-Default-Risk) and screens below.
 
-| Train and validation results on folds | LightGBM learning curves |
+| Train and validation results on folds :bar_chart: | LightGBM learning curves :bar_chart: |
 |:---|:---|
 |[![train-validation-results-on-folds](https://gist.githubusercontent.com/kamil-kaczmarek/b3b939797fb39752c45fdadfedba3ed9/raw/fbc925f683853fa8af5a95426fcd37fcb3afcf38/hc-1.png)](https://app.neptune.ml/-/dashboard/experiment/9f58e223-cbf2-4954-9a64-c0b454b30c56) | [![LightGBM-learning-curves](https://gist.githubusercontent.com/kamil-kaczmarek/b3b939797fb39752c45fdadfedba3ed9/raw/fbc925f683853fa8af5a95426fcd37fcb3afcf38/hc-2.png)](https://app.neptune.ml/-/dashboard/experiment/9f58e223-cbf2-4954-9a64-c0b454b30c56) |
 
