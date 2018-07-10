@@ -21,7 +21,7 @@ In this open source solution you will find references to the [neptune.ml](https:
 # How to start?
 ## Learn about our solutions
 1. Check [Kaggle forum](https://www.kaggle.com/c/home-credit-default-risk/discussion/57175) and participate in the discussions.
-1. Check our [Wiki pages :page_facing_up:](https://github.com/neptune-ml/open-solution-home-credit/wiki), where we document our work. Click on the blowfish to get started [:blowfish:](https://github.com/neptune-ml/open-solution-home-credit/wiki).
+1. Check our [Wiki pages :page_facing_up:](https://github.com/neptune-ml/open-solution-home-credit/wiki), where we document our work. Click on the house to get started [:house_with_garden:](https://github.com/neptune-ml/open-solution-home-credit/wiki).
 
 ## Start experimenting with our ready-to-use code
 You can jump start your participation in the competition by using our starter pack. Installation instruction below will guide you through the setup.
