@@ -412,9 +412,20 @@ class CreditCardBalanceFeatures(BasicHandCraftedFeatures):
 
 
 class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
+    def __init__(self, last_k_agg_periods, last_k_trend_periods, num_workers=1, **kwargs):
+        super().__init__(num_workers=num_workers)
+        self.last_k_agg_periods = last_k_agg_periods
+        self.last_k_trend_periods = last_k_trend_periods
+
+        self.num_workers = num_workers
+        self.features = None
+
     def fit(self, pos_cash, **kwargs):
         pos_cash['is_contract_status_completed'] = pos_cash['NAME_CONTRACT_STATUS'] == 'Completed'
         pos_cash_sorted = pos_cash.sort_values(['SK_ID_CURR', 'MONTHS_BALANCE'])
+
+        pos_cash['pos_cash_paid_late'] = (pos_cash['SK_DPD'] > 0).astype(int)
+        pos_cash['pos_cash_paid_late_with_tolerance'] = (pos_cash['SK_DPD_DEF'] > 0).astype(int)
 
         features = pd.DataFrame({'SK_ID_CURR': pos_cash['SK_ID_CURR'].unique()})
 
@@ -424,12 +435,86 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
                  inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
-        groupby = pos_cash.groupby(['SK_ID_CURR'])
-        g = groupby['is_contract_status_completed'].agg('sum').reset_index()
-        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+        func = partial(POSCASHBalanceFeatures.generate_features,
+                       agg_periods=self.last_k_agg_periods,
+                       trend_periods=self.last_k_trend_periods)
+        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        features = features.merge(g, on='SK_ID_CURR', how='left')
 
         self.features = features
         return self
+
+    @staticmethod
+    def generate_features(gr, agg_periods, trend_periods):
+        all = POSCASHBalanceFeatures.all_installment_features(gr)
+        agg = POSCASHBalanceFeatures.last_k_installment_features(gr, agg_periods)
+        trend = POSCASHBalanceFeatures.trend_in_last_k_installment_features(gr, trend_periods)
+        last = POSCASHBalanceFeatures.last_loan_features(gr)
+        features = {**all, **agg, **trend, **last}
+        return pd.Series(features)
+
+    @staticmethod
+    def all_installment_features(gr):
+        return POSCASHBalanceFeatures.last_k_installment_features(gr, periods=[10e16])
+
+    @staticmethod
+    def last_k_installment_features(gr, periods):
+        gr_ = gr.copy()
+        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
+
+        features = {}
+        for period in periods:
+            if period > 10e10:
+                period_name = 'all_installment'
+                gr_period = gr_.copy()
+            else:
+                period_name = 'last_{}_'.format(period)
+                gr_period = gr_.iloc[:period]
+
+            features = add_features_in_group(features, gr_period, 'is_contract_status_completed',
+                                             ['sum'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'pos_cash_paid_late',
+                                             ['count', 'mean'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'pos_cash_paid_late_with_tolerance',
+                                             ['count', 'mean'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'SK_DPD',
+                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'SK_DPD_DEF',
+                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
+                                             period_name)
+        return features
+
+    @staticmethod
+    def trend_in_last_k_installment_features(gr, periods):
+        gr_ = gr.copy()
+        gr_.sort_values(['MONTHS_BALANCE'], ascending=False, inplace=True)
+
+        features = {}
+        for period in periods:
+            gr_period = gr_.iloc[:period]
+
+            features = add_trend_feature(features, gr_period,
+                                         'SK_DPD', '{}_period_trend_'.format(period)
+                                         )
+            features = add_trend_feature(features, gr_period,
+                                         'SK_DPD_DEF', '{}_period_trend_'.format(period)
+                                         )
+        return features
+
+    @staticmethod
+    def last_loan_features(gr):
+        gr_ = gr.copy()
+        gr_.sort_values(['MONTHS_BALANCE'], ascending=False, inplace=True)
+        last_installment_id = gr_['SK_ID_PREV'].iloc[0]
+        gr_ = gr_[gr_['SK_ID_PREV'] == last_installment_id]
+
+        features['pos_cash_remaining_installments'] = gr_['pos_cash_remaining_installments']
+
+        return features
 
 
 class PreviousApplicationFeatures(BasicHandCraftedFeatures):
@@ -517,7 +602,7 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
 
     @staticmethod
     def generate_features(gr, agg_periods, trend_periods):
-        all = InstallmentPaymentsFeatures.last_k_installment_features(gr, periods=[10e16])
+        all = InstallmentPaymentsFeatures.all(gr)
         agg = InstallmentPaymentsFeatures.last_k_installment_features(gr, agg_periods)
         trend = InstallmentPaymentsFeatures.trend_in_last_k_installment_features(gr, trend_periods)
         last = InstallmentPaymentsFeatures.last_loan_features(gr)
