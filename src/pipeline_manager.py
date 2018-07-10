@@ -11,29 +11,30 @@ from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
 
 from . import pipeline_config as cfg
 from .pipelines import PIPELINES
-from .utils import init_logger, read_params, set_seed, create_submission, verify_submission, calculate_rank
+from .utils import init_logger, read_params, set_seed, create_submission, verify_submission, calculate_rank, \
+    read_oof_predictions
 
 set_seed(cfg.RANDOM_SEED)
 logger = init_logger()
 ctx = neptune.Context()
-params = read_params(ctx, fallback_file='neptune.yaml')
+params = read_params(ctx, fallback_file='../configs/neptune.yaml')
 
 
-class PipelineManager():
+class PipelineManager:
     def train(self, pipeline_name, dev_mode):
         train(pipeline_name, dev_mode)
 
-    def evaluate(self, pipeline_name, dev_mode, ):
+    def evaluate(self, pipeline_name, dev_mode):
         evaluate(pipeline_name, dev_mode)
 
     def predict(self, pipeline_name, dev_mode, submit_predictions):
         predict(pipeline_name, dev_mode, submit_predictions)
 
-    def train_evaluate_cv(self, pipeline_name, dev_mode):
-        train_evaluate_cv(pipeline_name, dev_mode)
+    def train_evaluate_cv(self, pipeline_name, model_level, dev_mode):
+        train_evaluate_cv(pipeline_name, model_level, dev_mode)
 
-    def train_evaluate_predict_cv(self, pipeline_name, dev_mode, submit_predictions):
-        train_evaluate_predict_cv(pipeline_name, dev_mode, submit_predictions)
+    def train_evaluate_predict_cv(self, pipeline_name, model_level, dev_mode, submit_predictions):
+        train_evaluate_predict_cv(pipeline_name, model_level, dev_mode, submit_predictions)
 
 
 def train(pipeline_name, dev_mode):
@@ -158,7 +159,31 @@ def predict(pipeline_name, dev_mode, submit_predictions):
             make_submission(submission_filepath)
 
 
-def train_evaluate_cv(pipeline_name, dev_mode):
+def train_evaluate_cv(pipeline_name, model_level, dev_mode):
+    if model_level == 'first':
+        train_evaluate_cv_first_level(pipeline_name, dev_mode)
+    elif model_level == 'second':
+        train_evaluate_cv_second_level(pipeline_name)
+    else:
+        raise NotImplementedError
+
+
+def train_evaluate_predict_cv(pipeline_name, model_level, dev_mode, submit_predictions):
+    if model_level == 'first':
+        train_evaluate_predict_cv_first_level(pipeline_name, dev_mode, submit_predictions)
+    elif model_level == 'second':
+        train_evaluate_predict_cv_second_level(pipeline_name, submit_predictions)
+    else:
+        raise NotImplementedError
+
+
+def make_submission(submission_filepath):
+    logger.info('making Kaggle submit...')
+    os.system('kaggle competitions submit -c home-credit-default-risk -f {} -m {}'
+              .format(submission_filepath, params.kaggle_message))
+
+
+def train_evaluate_cv_first_level(pipeline_name, dev_mode):
     if bool(params.clean_experiment_directory_before_training) and os.path.isdir(params.experiment_directory):
         logger.info('Cleaning experiment_directory...')
         shutil.rmtree(params.experiment_directory)
@@ -179,7 +204,8 @@ def train_evaluate_cv(pipeline_name, dev_mode):
         logger.info('Train shape: {}'.format(train_data_split.shape))
         logger.info('Valid shape: {}'.format(valid_data_split.shape))
 
-        score, _, _ = _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id, pipeline_name)
+        score, _, _ = _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id, pipeline_name,
+                                              model_level='first')
 
         logger.info('Fold {} ROC_AUC {}'.format(fold_id, score))
         ctx.channel_send('Fold {} ROC_AUC'.format(fold_id), 0, score)
@@ -193,7 +219,45 @@ def train_evaluate_cv(pipeline_name, dev_mode):
     ctx.channel_send('ROC_AUC STD', 0, score_std)
 
 
-def train_evaluate_predict_cv(pipeline_name, dev_mode, submit_predictions):
+def train_evaluate_cv_second_level(pipeline_name):
+    if bool(params.clean_experiment_directory_before_training) and os.path.isdir(params.experiment_directory):
+        logger.info('Cleaning experiment_directory...')
+        shutil.rmtree(params.experiment_directory)
+
+    logger.info('Reading data...')
+
+    train, test = read_oof_predictions(params.first_level_oof_predictions_dir,
+                                       params.train_filepath,
+                                       id_column=cfg.ID_COLUMNS[0],
+                                       target_column=cfg.TARGET_COLUMNS[0])
+
+    fold_scores = []
+    for fold_id in range(params.n_cv_splits):
+        train_data_split = train[train['fold_id'] != fold_id]
+        valid_data_split = train[train['fold_id'] == fold_id]
+
+        logger.info('Started fold {}'.format(fold_id))
+        logger.info('Target mean in train: {}'.format(train_data_split[cfg.TARGET_COLUMNS].mean()))
+        logger.info('Target mean in valid: {}'.format(valid_data_split[cfg.TARGET_COLUMNS].mean()))
+        logger.info('Train shape: {}'.format(train_data_split.shape))
+        logger.info('Valid shape: {}'.format(valid_data_split.shape))
+
+        score, _, _ = _fold_fit_evaluate_loop(train_data_split, valid_data_split, None, fold_id, pipeline_name,
+                                              model_level='second')
+
+        logger.info('Fold {} ROC_AUC {}'.format(fold_id, score))
+        ctx.channel_send('Fold {} ROC_AUC'.format(fold_id), 0, score)
+
+        fold_scores.append(score)
+
+    score_mean, score_std = np.mean(fold_scores), np.std(fold_scores)
+
+    logger.info('ROC_AUC mean {}, ROC_AUC std {}'.format(score_mean, score_std))
+    ctx.channel_send('ROC_AUC', 0, score_mean)
+    ctx.channel_send('ROC_AUC STD', 0, score_std)
+
+
+def train_evaluate_predict_cv_first_level(pipeline_name, dev_mode, submit_predictions):
     if bool(params.clean_experiment_directory_before_training) and os.path.isdir(params.experiment_directory):
         logger.info('Cleaning experiment_directory...')
         shutil.rmtree(params.experiment_directory)
@@ -217,7 +281,8 @@ def train_evaluate_predict_cv(pipeline_name, dev_mode, submit_predictions):
         score, out_of_fold_prediction, test_prediction = _fold_fit_evaluate_predict_loop(train_data_split,
                                                                                          valid_data_split,
                                                                                          tables,
-                                                                                         fold_id, pipeline_name)
+                                                                                         fold_id, pipeline_name,
+                                                                                         model_level='first')
 
         logger.info('Fold {} ROC_AUC {}'.format(fold_id, score))
         ctx.channel_send('Fold {} ROC_AUC'.format(fold_id), 0, score)
@@ -257,10 +322,68 @@ def train_evaluate_predict_cv(pipeline_name, dev_mode, submit_predictions):
             make_submission(test_aggregated_file_path)
 
 
-def make_submission(submission_filepath):
-    logger.info('making Kaggle submit...')
-    os.system('kaggle competitions submit -c home-credit-default-risk -f {} -m {}'
-              .format(submission_filepath, params.kaggle_message))
+def train_evaluate_predict_cv_second_level(pipeline_name, submit_predictions):
+    if bool(params.clean_experiment_directory_before_training) and os.path.isdir(params.experiment_directory):
+        logger.info('Cleaning experiment_directory...')
+        shutil.rmtree(params.experiment_directory)
+
+    train, test = read_oof_predictions(params.first_level_oof_predictions_dir,
+                                       params.train_filepath,
+                                       id_column=cfg.ID_COLUMNS[0],
+                                       target_column=cfg.TARGET_COLUMNS[0])
+
+    out_of_fold_train_predictions, out_of_fold_test_predictions, fold_scores = [], [], []
+    for fold_id in range(params.n_cv_splits):
+        train_data_split = train[train['fold_id'] != fold_id]
+        valid_data_split = train[train['fold_id'] == fold_id]
+
+        logger.info('Started fold {}'.format(fold_id))
+        logger.info('Target mean in train: {}'.format(train_data_split[cfg.TARGET_COLUMNS].mean()))
+        logger.info('Target mean in valid: {}'.format(valid_data_split[cfg.TARGET_COLUMNS].mean()))
+        logger.info('Train shape: {}'.format(train_data_split.shape))
+        logger.info('Valid shape: {}'.format(valid_data_split.shape))
+
+        score, out_of_fold_prediction, test_prediction = _fold_fit_evaluate_predict_loop(train_data_split,
+                                                                                         valid_data_split,
+                                                                                         test,
+                                                                                         fold_id, pipeline_name,
+                                                                                         model_level='second')
+
+        logger.info('Fold {} ROC_AUC {}'.format(fold_id, score))
+        ctx.channel_send('Fold {} ROC_AUC'.format(fold_id), 0, score)
+
+        out_of_fold_train_predictions.append(out_of_fold_prediction)
+        out_of_fold_test_predictions.append(test_prediction)
+        fold_scores.append(score)
+
+    out_of_fold_train_predictions = pd.concat(out_of_fold_train_predictions, axis=0)
+    out_of_fold_test_predictions = pd.concat(out_of_fold_test_predictions, axis=0)
+
+    test_prediction_aggregated = _aggregate_test_prediction(out_of_fold_test_predictions)
+    score_mean, score_std = np.mean(fold_scores), np.std(fold_scores)
+
+    logger.info('ROC_AUC mean {}, ROC_AUC std {}'.format(score_mean, score_std))
+    ctx.channel_send('ROC_AUC', 0, score_mean)
+    ctx.channel_send('ROC_AUC STD', 0, score_std)
+
+    logger.info('Saving predictions')
+    out_of_fold_train_predictions.to_csv(os.path.join(params.experiment_directory,
+                                                      '{}_out_of_fold_train_predictions.csv'.format(pipeline_name)),
+                                         index=None)
+    out_of_fold_test_predictions.to_csv(os.path.join(params.experiment_directory,
+                                                     '{}_out_of_fold_test_predictions.csv'.format(pipeline_name)),
+                                        index=None)
+    test_aggregated_file_path = os.path.join(params.experiment_directory,
+                                             '{}_test_predictions_{}.csv'.format(pipeline_name,
+                                                                                 params.aggregation_method))
+    test_prediction_aggregated.to_csv(test_aggregated_file_path, index=None)
+
+    logger.info('verifying submission...')
+    sample_submission = pd.read_csv(params.sample_submission_filepath)
+    verify_submission(test_prediction_aggregated, sample_submission)
+
+    if submit_predictions and params.kaggle_api:
+        make_submission(test_aggregated_file_path)
 
 
 def _read_data(dev_mode, read_train=True, read_test=False):
@@ -300,20 +423,27 @@ def _get_fold_generator(target_values):
     return fold_generator
 
 
-def _fold_fit_evaluate_predict_loop(train_data_split, valid_data_split, tables, fold_id, pipeline_name):
+def _fold_fit_evaluate_predict_loop(train_data_split, valid_data_split, tables, fold_id, pipeline_name, model_level):
     score, y_valid_pred, pipeline = _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables,
-                                                            fold_id, pipeline_name)
-
-    test_data = {'application': {'X': tables.application_test,
-                                 'y': None,
-                                 },
-                 'bureau_balance': {'X': tables.bureau_balance},
-                 'bureau': {'X': tables.bureau},
-                 'credit_card_balance': {'X': tables.credit_card_balance},
-                 'installments_payments': {'X': tables.installments_payments},
-                 'pos_cash_balance': {'X': tables.pos_cash_balance},
-                 'previous_application': {'X': tables.previous_application},
-                 }
+                                                            fold_id, pipeline_name, model_level)
+    if model_level == 'first':
+        test_data = {'application': {'X': tables.application_test,
+                                     'y': None,
+                                     },
+                     'bureau_balance': {'X': tables.bureau_balance},
+                     'bureau': {'X': tables.bureau},
+                     'credit_card_balance': {'X': tables.credit_card_balance},
+                     'installments_payments': {'X': tables.installments_payments},
+                     'pos_cash_balance': {'X': tables.pos_cash_balance},
+                     'previous_application': {'X': tables.previous_application},
+                     }
+    elif model_level == 'second':
+        test_data = {'input': {'X': tables.drop(cfg.ID_COLUMNS, axis=1),
+                               'y': None,
+                               },
+                     }
+    else:
+        raise NotImplementedError
 
     logger.info('Start pipeline transform on test')
     pipeline.clean_cache()
@@ -325,37 +455,59 @@ def _fold_fit_evaluate_predict_loop(train_data_split, valid_data_split, tables, 
     train_out_of_fold_prediction_chunk['fold_id'] = fold_id
     train_out_of_fold_prediction_chunk['{}_prediction'.format(pipeline_name)] = y_valid_pred
 
-    test_out_of_fold_prediction_chunk = tables.application_test[cfg.ID_COLUMNS]
+    if model_level == 'first':
+        test_out_of_fold_prediction_chunk = tables.application_test[cfg.ID_COLUMNS]
+    elif model_level == 'second':
+        test_out_of_fold_prediction_chunk = tables[cfg.ID_COLUMNS]
+    else:
+        raise NotImplementedError
+
     test_out_of_fold_prediction_chunk['fold_id'] = fold_id
     test_out_of_fold_prediction_chunk['{}_prediction'.format(pipeline_name)] = y_test_pred
 
     return score, train_out_of_fold_prediction_chunk, test_out_of_fold_prediction_chunk
 
 
-def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id, pipeline_name):
-    train_data = {'application': {'X': train_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
-                                  'y': train_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
-                                  'X_valid': valid_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
-                                  'y_valid': valid_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
-                                  },
-                  'bureau_balance': {'X': tables.bureau_balance},
-                  'bureau': {'X': tables.bureau},
-                  'credit_card_balance': {'X': tables.credit_card_balance},
-                  'installments_payments': {'X': tables.installments_payments},
-                  'pos_cash_balance': {'X': tables.pos_cash_balance},
-                  'previous_application': {'X': tables.previous_application},
-                  }
+def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id, pipeline_name, model_level):
+    if model_level == 'first':
+        train_data = {'application': {'X': train_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
+                                      'y': train_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
+                                      'X_valid': valid_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
+                                      'y_valid': valid_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
+                                      },
+                      'bureau_balance': {'X': tables.bureau_balance},
+                      'bureau': {'X': tables.bureau},
+                      'credit_card_balance': {'X': tables.credit_card_balance},
+                      'installments_payments': {'X': tables.installments_payments},
+                      'pos_cash_balance': {'X': tables.pos_cash_balance},
+                      'previous_application': {'X': tables.previous_application},
+                      }
 
-    valid_data = {'application': {'X': valid_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
-                                  'y': None,
-                                  },
-                  'bureau_balance': {'X': tables.bureau_balance},
-                  'bureau': {'X': tables.bureau},
-                  'credit_card_balance': {'X': tables.credit_card_balance},
-                  'installments_payments': {'X': tables.installments_payments},
-                  'pos_cash_balance': {'X': tables.pos_cash_balance},
-                  'previous_application': {'X': tables.previous_application},
-                  }
+        valid_data = {'application': {'X': valid_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
+                                      'y': None,
+                                      },
+                      'bureau_balance': {'X': tables.bureau_balance},
+                      'bureau': {'X': tables.bureau},
+                      'credit_card_balance': {'X': tables.credit_card_balance},
+                      'installments_payments': {'X': tables.installments_payments},
+                      'pos_cash_balance': {'X': tables.pos_cash_balance},
+                      'previous_application': {'X': tables.previous_application},
+                      }
+    elif model_level == 'second':
+        drop_columns = cfg.TARGET_COLUMNS + ['fold_id']
+        train_data = {'input': {'X': train_data_split.drop(drop_columns, axis=1),
+                                'y': train_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
+                                'X_valid': valid_data_split.drop(drop_columns, axis=1),
+                                'y_valid': valid_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
+                                },
+                      }
+
+        valid_data = {'input': {'X': valid_data_split.drop(drop_columns, axis=1),
+                                'y': None,
+                                },
+                      }
+    else:
+        raise NotImplementedError
 
     pipeline = PIPELINES[pipeline_name](config=cfg.SOLUTION_CONFIG, train_mode=True,
                                         suffix='_fold_{}'.format(fold_id))

@@ -2,7 +2,7 @@ from functools import partial
 
 from sklearn.metrics import roc_auc_score
 from steppy.adapter import Adapter, E
-from steppy.base import Step, make_transformer
+from steppy.base import Step, make_transformer, IdentityOperation
 
 from . import feature_extraction as fe
 from . import data_cleaning as dc
@@ -42,6 +42,52 @@ def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
                                           'categorical_features': E(features_train.name, 'categorical_features'),
                                           'X_valid': E(features_valid.name, 'features'),
                                           'y_valid': E('application', 'y_valid'),
+                                          }),
+                         force_fitting=True,
+                         experiment_directory=config.pipeline.experiment_directory,
+                         **kwargs)
+    else:
+        light_gbm = Step(name=model_name,
+                         transformer=LightGBM(name=model_name, **config.light_gbm),
+                         input_steps=[features],
+                         adapter=Adapter({'X': E(features.name, 'features')}),
+                         experiment_directory=config.pipeline.experiment_directory,
+                         **kwargs)
+    return light_gbm
+
+
+def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs):
+    model_name = 'light_gbm{}'.format(suffix)
+
+    if train_mode:
+        features_train, features_valid = features
+        if config.random_search.light_gbm.n_runs:
+            transformer = RandomSearchOptimizer(TransformerClass=LightGBM,
+                                                params=config.light_gbm,
+                                                train_input_keys=[],
+                                                valid_input_keys=['X_valid', 'y_valid'],
+                                                score_func=roc_auc_score,
+                                                maximize=True,
+                                                n_runs=config.random_search.light_gbm.n_runs,
+                                                callbacks=[
+                                                    NeptuneMonitor(
+                                                        **config.random_search.light_gbm.callbacks.neptune_monitor),
+                                                    PersistResults(
+                                                        **config.random_search.light_gbm.callbacks.persist_results)]
+                                                )
+        else:
+            transformer = LightGBM(name=model_name, **config.light_gbm)
+
+        light_gbm = Step(name=model_name,
+                         transformer=transformer,
+                         input_data=['input'],
+                         input_steps=[features_train, features_valid],
+                         adapter=Adapter({'X': E(features_train.name, 'features'),
+                                          'y': E('input', 'y'),
+                                          'feature_names': E(features_train.name, 'feature_names'),
+                                          'categorical_features': E(features_train.name, 'categorical_features'),
+                                          'X_valid': E(features_valid.name, 'features'),
+                                          'y_valid': E('input', 'y_valid'),
                                           }),
                          force_fitting=True,
                          experiment_directory=config.pipeline.experiment_directory,
@@ -274,6 +320,38 @@ def preprocessing_fillna(features, config, train_mode, suffix, **kwargs):
                       **kwargs
                       )
     return fillna
+
+
+def stacking_features(config, train_mode, suffix, **kwargs):
+    features = Step(name='stacking_features{}'.format(suffix),
+                    transformer=IdentityOperation(),
+                    input_data=['input'],
+                    adapter=Adapter({'numerical_features': E('input', 'X')}),
+                    experiment_directory=config.pipeline.experiment_directory, **kwargs)
+
+    if train_mode:
+        features_valid = Step(name='stacking_features_valid{}'.format(suffix),
+                              transformer=IdentityOperation(),
+                              input_data=['input'],
+                              adapter=Adapter({'numerical_features': E('input', 'X_valid')}),
+                              experiment_directory=config.pipeline.experiment_directory, **kwargs)
+        feature_combiner, feature_combiner_valid = _join_features(numerical_features=[features],
+                                                                  numerical_features_valid=[features_valid],
+                                                                  categorical_features=[],
+                                                                  categorical_features_valid=[],
+                                                                  config=config,
+                                                                  train_mode=train_mode,
+                                                                  suffix=suffix, **kwargs)
+        return feature_combiner, feature_combiner_valid
+    else:
+        feature_combiner = _join_features(numerical_features=[features],
+                                          numerical_features_valid=[],
+                                          categorical_features=[],
+                                          categorical_features_valid=[],
+                                          config=config,
+                                          train_mode=train_mode,
+                                          suffix=suffix, **kwargs)
+        return feature_combiner
 
 
 def _join_features(numerical_features,
