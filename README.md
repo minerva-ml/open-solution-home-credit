@@ -11,6 +11,10 @@ We are building entirely open solution to this competition. Specifically:
 1. Deliver open source solution with no strings attached. Code is available on our [GitHub repository :computer:](https://github.com/neptune-ml/open-solution-home-credit). This solution should establish solid benchmark, as well as provide good base for your custom ideas and experiments. We care about clean code :smiley:
 1. We are opening our experiments as well: everybody can have **live preview** on our experiments, parameters, code, etc. Check: [Home Credit Default Risk :chart_with_upwards_trend:](https://app.neptune.ml/neptune-ml/Home-Credit-Default-Risk).
 
+| Train and validation results on folds | LightGBM learning curves |
+|:---|:---|
+|[![train-validation-results-on-folds](https://gist.githubusercontent.com/kamil-kaczmarek/b3b939797fb39752c45fdadfedba3ed9/raw/fbc925f683853fa8af5a95426fcd37fcb3afcf38/hc-1.png)](https://app.neptune.ml/-/dashboard/experiment/9f58e223-cbf2-4954-9a64-c0b454b30c56) | [![LightGBM-learning-curves](https://gist.githubusercontent.com/kamil-kaczmarek/b3b939797fb39752c45fdadfedba3ed9/raw/fbc925f683853fa8af5a95426fcd37fcb3afcf38/hc-2.png)](https://app.neptune.ml/-/dashboard/experiment/9f58e223-cbf2-4954-9a64-c0b454b30c56) |
+
 ## Disclaimer
 In this open source solution you will find references to the [neptune.ml](https://neptune.ml). It is free platform for community Users, which we use daily to keep track of our experiments. Please note that using neptune.ml is not necessary to proceed with this solution. You may run it as plain Python script :snake:.
 
