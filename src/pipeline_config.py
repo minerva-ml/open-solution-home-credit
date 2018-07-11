@@ -140,6 +140,8 @@ HIGHLY_CORRELATED_NUMERICAL_COLUMNS = ['AMT_GOODS_PRICE',
                                        'YEARS_BUILD_MODE']
 
 APPLICATION_AGGREGATION_RECIPIES = [
+    (['NAME_FAMILY_STATUS', 'NAME_EDUCATION_TYPE'], [(col, agg) for col in ['AMT_CREDIT', 'AMT_ANNUITY', 'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3'] for agg in ['min', 'mean', 'max', 'sum', 'var']]),
+    (['NAME_FAMILY_STATUS', 'CODE_GENDER'] ,[(col, agg) for col in ['AMT_CREDIT', 'AMT_ANNUITY', 'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3'] for agg in ['min', 'mean', 'max', 'sum', 'var']]),
     (['CODE_GENDER', 'NAME_EDUCATION_TYPE'], [('AMT_ANNUITY', 'max'),
                                               ('AMT_CREDIT', 'max'),
                                               ('EXT_SOURCE_1', 'mean'),
