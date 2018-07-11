@@ -42,7 +42,7 @@ You can jump start your participation in the competition by using our starter pa
 :trident:
 ```bash
 neptune account login
-neptune run --config neptune_random_search.yaml main.py train_evaluate_predict --pipeline_name lightGBM
+neptune run --config neptune.yaml main.py train_evaluate_predict --pipeline_name lightGBM
 ```
 
 :snake:
@@ -66,7 +66,7 @@ pip3 install -r requirements.txt
 :trident:
 ```bash
 neptune login
-neptune run --config neptune_random_search.yaml main.py train_evaluate_predict --pipeline_name lightGBM
+neptune run --config neptune.yaml main.py train_evaluate_predict --pipeline_name lightGBM
 ```
 
 :snake:
