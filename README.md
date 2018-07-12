@@ -21,9 +21,17 @@ In this open source solution you will find references to the [neptune.ml](https:
 # How to start?
 ## Learn about our solutions
 1. Check [Kaggle forum](https://www.kaggle.com/c/home-credit-default-risk/discussion/57175) and participate in the discussions.
-1. Check our [Wiki pages :page_facing_up:](https://github.com/neptune-ml/open-solution-home-credit/wiki), where we document our work. Click on the house to get started [:house_with_garden:](https://github.com/neptune-ml/open-solution-home-credit/wiki).
+1. Check our [Wiki pages :house_with_garden:](https://github.com/neptune-ml/open-solution-home-credit/wiki), where we document our work. See solutions below:
 
-## Start experimenting with our ready-to-use code
+| link to code | name | CV | LB | link to description |
+|:---:|:---:|:---:|:---:|:---:|
+|[solution 1](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-1)|*chestnut* :chestnut:|?|0.742|[LightGBM and basic features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-and-basic-features)|
+|[solution 2](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-2)|*seedling* :seedling:|?|0.747|[Sklearn and XGBoost algorithms and groupby features](https://github.com/neptune-ml/open-solution-home-credit/wiki/Sklearn-and-XGBoost-algorithms-and-groupby-features)|
+|[solution 3](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-3)|*blossom* :blossom:|0.7840|0.790|[LightGBM on selected features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-on-selected-features)|
+|[solution 4](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-4)|*tulip* :tulip: |0.7905|0.801|[LightGBM with smarter features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-with-smarter-features)|
+|solution 5|*sunflower* :sunflower:|||*(in progress...)* :construction_worker_woman:|
+
+## Start experimenting with ready-to-use code
 You can jump start your participation in the competition by using our starter pack. Installation instruction below will guide you through the setup.
 
 ### Installation *(fast track)*
@@ -39,7 +47,7 @@ neptune run --config neptune_random_search.yaml main.py train_evaluate_predict -
 
 :snake:
 ```bash
-python main.py train_evaluate_predict --pipeline_name lightGBM
+python main.py -- train_evaluate_predict --pipeline_name lightGBM
 ```
 
 ### Installation *(step by step)*
@@ -49,7 +57,7 @@ git clone https://github.com/minerva-ml/open-solution-home-credit.git
 ```
 2. Install requirements in your Python3 environment
 ```bash
-pip3 install requirements.txt
+pip3 install -r requirements.txt
 ```
 3. Register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
 4. Update data directories in the [neptune.yaml](https://github.com/minerva-ml/open-solution-home-credit/blob/master/neptune.yaml) configuration file.
@@ -63,7 +71,7 @@ neptune run --config neptune_random_search.yaml main.py train_evaluate_predict -
 
 :snake:
 ```bash
-python main.py train_evaluate_predict --pipeline_name lightGBM
+python main.py -- train_evaluate_predict --pipeline_name lightGBM
 ```
 
 6. collect submit from `experiment_directory` specified in the [neptune.yaml](https://github.com/minerva-ml/open-solution-home-credit/blob/master/neptune.yaml)
