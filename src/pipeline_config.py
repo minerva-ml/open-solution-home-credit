@@ -139,14 +139,14 @@ HIGHLY_CORRELATED_NUMERICAL_COLUMNS = ['AMT_GOODS_PRICE',
                                        'YEARS_BUILD_MEDI',
                                        'YEARS_BUILD_MODE']
 
-conti_cols = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_INCOME_TOTAL', 'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']
+cols_to_agg = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_INCOME_TOTAL', 'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']
 aggs = ['min', 'mean', 'max', 'sum', 'var']
-lst_col_agg = [(col, agg) for col in conti_cols for agg in aggs]
+aggregation_pairs = [(col, agg) for col in cols_to_agg for agg in aggs]
 
 APPLICATION_AGGREGATION_RECIPIES = [
-    (['NAME_EDUCATION_TYPE', 'CODE_GENDER'],  lst_col_agg),
-    (['NAME_FAMILY_STATUS', 'NAME_EDUCATION_TYPE'], lst_col_agg),
-    (['NAME_FAMILY_STATUS', 'CODE_GENDER'], lst_col_agg),
+    (['NAME_EDUCATION_TYPE', 'CODE_GENDER'],  aggregation_pairs),
+    (['NAME_FAMILY_STATUS', 'NAME_EDUCATION_TYPE'], aggregation_pairs),
+    (['NAME_FAMILY_STATUS', 'CODE_GENDER'], aggregation_pairs),
     (['CODE_GENDER', 'ORGANIZATION_TYPE'], [('AMT_ANNUITY', 'mean'),
                                             ('AMT_INCOME_TOTAL', 'mean'),
                                             ('DAYS_REGISTRATION', 'mean'),
