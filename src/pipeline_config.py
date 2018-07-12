@@ -144,15 +144,9 @@ aggs = ['min', 'mean', 'max', 'sum', 'var']
 lst_col_agg = [(col, agg) for col in conti_cols for agg in aggs]
 
 APPLICATION_AGGREGATION_RECIPIES = [
-  	(['NAME_EDUCATION_TYPE', 'CODE_GENDER'],  lst_col_agg),
+    (['NAME_EDUCATION_TYPE', 'CODE_GENDER'],  lst_col_agg),
     (['NAME_FAMILY_STATUS', 'NAME_EDUCATION_TYPE'], lst_col_agg),
     (['NAME_FAMILY_STATUS', 'CODE_GENDER'], lst_col_agg),
-#    (['CODE_GENDER', 'NAME_EDUCATION_TYPE'], [('AMT_ANNUITY', 'max'),
-#                                              ('AMT_CREDIT', 'max'),
-#                                              ('EXT_SOURCE_1', 'mean'),
-#                                              ('EXT_SOURCE_2', 'mean'),
-#                                              ('OWN_CAR_AGE', 'max'),
-#                                              ('OWN_CAR_AGE', 'sum')]),
     (['CODE_GENDER', 'ORGANIZATION_TYPE'], [('AMT_ANNUITY', 'mean'),
                                             ('AMT_INCOME_TOTAL', 'mean'),
                                             ('DAYS_REGISTRATION', 'mean'),
