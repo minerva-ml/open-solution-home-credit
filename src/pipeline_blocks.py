@@ -196,6 +196,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
     if train_mode:
         application, application_valid = _application(config, train_mode, suffix, **kwargs)
         bureau, bureau_valid = _bureau(config, train_mode, suffix, **kwargs)
+        bureau_balance, bureau_balance_valid = _bureau_balance(config, train_mode, suffix, **kwargs)
         credit_card_balance, credit_card_balance_valid = _credit_card_balance(config, train_mode, suffix, **kwargs)
         pos_cash_balance, pos_cash_balance_valid = _pos_cash_balance(config, train_mode, suffix, **kwargs)
         previous_application, previous_application_valid = _previous_application(config, train_mode, suffix, **kwargs)
@@ -227,6 +228,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                 application_agg,
                                 bureau,
                                 bureau_agg,
+                                bureau_balance,
                                 credit_card_balance,
                                 credit_card_balance_agg,
                                 installment_payments,
@@ -240,6 +242,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                       application_agg_valid,
                                       bureau_valid,
                                       bureau_agg_valid,
+                                      bureau_balance_valid,
                                       credit_card_balance_valid,
                                       credit_card_balance_agg_valid,
                                       installment_payments_valid,
@@ -262,6 +265,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
     else:
         application = _application(config, train_mode, suffix, **kwargs)
         bureau = _bureau(config, train_mode, suffix, **kwargs)
+        bureau_balance = _bureau_balance(config, train_mode, suffix, **kwargs)
         credit_card_balance = _credit_card_balance(config, train_mode, suffix, **kwargs)
         pos_cash_balance = _pos_cash_balance(config, train_mode, suffix, **kwargs)
         previous_application = _previous_application(config, train_mode, suffix, **kwargs)
@@ -278,6 +282,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                                               application_agg,
                                                               bureau,
                                                               bureau_agg,
+                                                              bureau_balance,
                                                               credit_card_balance,
                                                               credit_card_balance_agg,
                                                               installment_payments,
@@ -697,6 +702,36 @@ def _bureau(config, train_mode, suffix, **kwargs):
         return bureau_hand_crafted_merge, bureau_hand_crafted_merge_valid
     else:
         return bureau_hand_crafted_merge
+
+
+def _bureau_balance(config, train_mode, suffix, **kwargs):
+    bureau_balance_hand_crafted = Step(name='bureau_balance_hand_crafted',
+                                       transformer=fe.BureauBalanceFeatures(**config.bureau_balance),
+                                       input_data=['bureau_balance'],
+                                       adapter=Adapter({'bureau_balance': E('bureau_balance', 'X')}),
+                                       experiment_directory=config.pipeline.experiment_directory, **kwargs)
+
+    bureau_balance_hand_crafted_merge = Step(name='bureau_balance_hand_crafted_merge{}'.format(suffix),
+                                             transformer=fe.GroupbyMerge(**config.bureau_balance),
+                                             input_data=['application'],
+                                             input_steps=[bureau_balance_hand_crafted],
+                                             adapter=Adapter({'table': E('application', 'X'),
+                                                              'features': E(bureau_balance_hand_crafted.name,
+                                                                            'features_table')}),
+                                             experiment_directory=config.pipeline.experiment_directory, **kwargs)
+
+    if train_mode:
+        bureau_balance_hand_crafted_merge_valid = Step(name='bureau_balance_hand_crafted_merge_valid{}'.format(suffix),
+                                               transformer=bureau_balance_hand_crafted_merge,
+                                               input_data=['application'],
+                                               input_steps=[bureau_balance_hand_crafted],
+                                               adapter=Adapter({'table': E('application', 'X_valid'),
+                                                                'features': E(bureau_balance_hand_crafted.name,
+                                                                              'features_table')}),
+                                               experiment_directory=config.pipeline.experiment_directory, **kwargs)
+        return bureau_balance_hand_crafted_merge, bureau_balance_hand_crafted_merge_valid
+    else:
+        return bureau_balance_hand_crafted_merge
 
 
 def _credit_card_balance(config, train_mode, suffix, **kwargs):
