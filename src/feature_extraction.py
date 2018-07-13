@@ -466,7 +466,7 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
         features = {}
 
         features['pos_cash_remaining_installments'] = gr_['CNT_INSTALMENT_FUTURE'].tail(1)
-        features['pos_cash_complted_contracts'] = gr_['is_contract_status_completed'].agg('sum')
+        features['pos_cash_completed_contracts'] = gr_['is_contract_status_completed'].agg('sum')
 
         return features
 
@@ -495,10 +495,10 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
                                              ['count', 'mean'],
                                              period_name)
             features = add_features_in_group(features, gr_period, 'SK_DPD',
-                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
+                                             ['sum', 'mean', 'max', 'std', 'skew', 'kurt'],
                                              period_name)
             features = add_features_in_group(features, gr_period, 'SK_DPD_DEF',
-                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
+                                             ['sum', 'mean', 'max', 'std', 'skew', 'kurt'],
                                              period_name)
         return features
 
@@ -534,13 +534,13 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
                                          ['count', 'sum', 'mean'],
                                          'last_loan_')
         features = add_features_in_group(features, gr_, 'pos_cash_paid_late_with_tolerance',
-                                         ['sum', 'mean'],
+                                         ['mean'],
                                          'last_loan_')
         features = add_features_in_group(features, gr_, 'SK_DPD',
-                                         ['sum', 'mean', 'max', 'min', 'std'],
+                                         ['sum', 'mean', 'max', 'std'],
                                          'last_loan_')
         features = add_features_in_group(features, gr_, 'SK_DPD_DEF',
-                                         ['sum', 'mean', 'max', 'min', 'std'],
+                                         ['sum', 'mean', 'max', 'std'],
                                          'last_loan_')
 
         return features
@@ -650,7 +650,7 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
         features = {}
         for period in periods:
             if period > 10e10:
-                period_name = 'all_installment'
+                period_name = 'all_installment_'
                 gr_period = gr_.copy()
             else:
                 period_name = 'last_{}_'.format(period)
