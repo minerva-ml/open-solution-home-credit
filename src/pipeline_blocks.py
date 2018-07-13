@@ -456,10 +456,12 @@ def _application_groupby_agg(config, train_mode, suffix, **kwargs):
 
 
 def _bureau_groupby_agg(config, train_mode, suffix, **kwargs):
+    bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+
     bureau_groupby_agg = Step(name='bureau_groupby_agg',
                               transformer=fe.GroupbyAggregate(**config.bureau),
-                              input_data=['bureau'],
-                              adapter=Adapter({'table': E('bureau', 'X')}),
+                              input_steps=[bureau_cleaned],
+                              adapter=Adapter({'table': E(bureau_cleaned.name, 'bureau')}),
                               experiment_directory=config.pipeline.experiment_directory,
                               **kwargs)
 
@@ -485,10 +487,13 @@ def _bureau_groupby_agg(config, train_mode, suffix, **kwargs):
 
 
 def _credit_card_balance_groupby_agg(config, train_mode, suffix, **kwargs):
+    credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
+
     credit_card_balance_groupby_agg = Step(name='credit_card_balance_groupby_agg',
                                            transformer=fe.GroupbyAggregate(**config.credit_card_balance),
-                                           input_data=['credit_card_balance'],
-                                           adapter=Adapter({'table': E('credit_card_balance', 'X')}),
+                                           input_steps=[credit_card_balance_cleaned],
+                                           adapter=Adapter({'table': E(credit_card_balance_cleaned.name,
+                                                                       'credit_card')}),
                                            experiment_directory=config.pipeline.experiment_directory,
                                            **kwargs)
 
@@ -582,10 +587,13 @@ def _pos_cash_balance_groupby_agg(config, train_mode, suffix, **kwargs):
 
 
 def _previous_applications_groupby_agg(config, train_mode, suffix, **kwargs):
+    previous_application_cleaned = _previous_application_cleaning(config, suffix, **kwargs)
+
     previous_applications_groupby_agg = Step(name='previous_applications_groupby_agg',
                                              transformer=fe.GroupbyAggregate(**config.previous_applications),
-                                             input_data=['previous_application'],
-                                             adapter=Adapter({'table': E('previous_application', 'X')}),
+                                             input_steps=[previous_application_cleaned],
+                                             adapter=Adapter({'table': E(previous_application_cleaned.name,
+                                                                         'previous_application')}),
                                              experiment_directory=config.pipeline.experiment_directory, **kwargs)
 
     previous_applications_agg_merge = Step(name='previous_applications_agg_merge{}'.format(suffix),
