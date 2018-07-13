@@ -1,7 +1,7 @@
 project: ORGANIZATION/home-credit
 
 name: home-credit-default-risk
-tags: [solution-4, dev]
+tags: [solution-5, dev]
 
 metric:
   channel: 'ROC_AUC'
@@ -53,8 +53,8 @@ parameters:
 # Feature Extraction
   installments__last_k_trend_periods: '[10, 50, 100, 500]'
   installments__last_k_agg_periods: '[1, 5, 10, 50, 100, 500]'
-  pos_cash__last_k_trend_periods: '[6, 12, 30, 60]'
-  pos_cash__last_k_agg_periods: '[6, 12, 30, 60]'
+  pos_cash__last_k_trend_periods: '[6, 12]'
+  pos_cash__last_k_agg_periods: '[6, 12, 30]'
   application_aggregation__use_diffs_only: True
   use_nan_count: True
 
@@ -66,7 +66,7 @@ parameters:
   lgbm__metric: auc
   lgbm__number_boosting_rounds: 5000
   lgbm__early_stopping_rounds: 100
-  lgbm__learning_rate: 0.1
+  lgbm__learning_rate: 0.02
   lgbm__max_bin: 300
   lgbm__max_depth: -1
   lgbm__num_leaves: 35
