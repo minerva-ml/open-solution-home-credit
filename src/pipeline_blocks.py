@@ -286,18 +286,23 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         return feature_combiner, feature_combiner_valid
     else:
         application = _application(config, train_mode, suffix, **kwargs)
-        bureau = _bureau(config, train_mode, suffix, **kwargs)
-        credit_card_balance = _credit_card_balance(config, train_mode, suffix, **kwargs)
+        bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+        bureau = _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs)
+        credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
+        credit_card_balance = _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix, **kwargs)
         pos_cash_balance = _pos_cash_balance(config, train_mode, suffix, **kwargs)
-        previous_application = _previous_application(config, train_mode, suffix, **kwargs)
+        previous_application_cleaned = _previous_application_cleaning(config, suffix, **kwargs)
+        previous_application = _previous_application(previous_application_cleaned, config, train_mode, suffix, **kwargs)
         installment_payments = _installment_payments(config, train_mode, suffix, **kwargs)
 
         application_agg = _application_groupby_agg(config, train_mode, suffix, **kwargs)
-        bureau_agg = _bureau_groupby_agg(config, train_mode, suffix, **kwargs)
-        credit_card_balance_agg = _credit_card_balance_groupby_agg(config, train_mode, suffix, **kwargs)
+        bureau_agg = _bureau_groupby_agg(bureau_cleaned, config, train_mode, suffix, **kwargs)
+        credit_card_balance_agg = _credit_card_balance_groupby_agg(credit_card_balance_cleaned,
+                                                                   config, train_mode, suffix, **kwargs)
         installments_payments_agg = _installments_payments_groupby_agg(config, train_mode, suffix, **kwargs)
         pos_cash_balance_agg = _pos_cash_balance_groupby_agg(config, train_mode, suffix, **kwargs)
-        previous_applications_agg = _previous_applications_groupby_agg(config, train_mode, suffix, **kwargs)
+        previous_applications_agg = _previous_applications_groupby_agg(previous_application_cleaned,
+                                                                       config, train_mode, suffix, **kwargs)
         categorical_encoder = _categorical_encoders(config, train_mode, suffix, **kwargs)
         feature_combiner = _join_features(numerical_features=[application,
                                                               application_agg,
