@@ -46,7 +46,7 @@ class CreditCardCleaning(BaseTransformer):
         credit_card['AMT_DRAWINGS_ATM_CURRENT'][credit_card['AMT_DRAWINGS_ATM_CURRENT'] < 0] = np.nan
         credit_card['AMT_DRAWINGS_CURRENT'][credit_card['AMT_DRAWINGS_CURRENT'] < 0] = np.nan
 
-        return {'bureau': credit_card}
+        return {'credit_card': credit_card}
 
 
 class PreviousApplicationCleaning(BaseTransformer):

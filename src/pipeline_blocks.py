@@ -699,11 +699,26 @@ def _bureau(config, train_mode, suffix, **kwargs):
         return bureau_hand_crafted_merge
 
 
+def _credit_card_balance_cleaning(config, suffix, **kwargs):
+    credit_card_balance_cleaning = Step(name='credit_card_balance_cleaning{}'.format(suffix),
+                                        transformer=dc.CreditCardCleaning(
+                                            **config.preprocessing.impute_missing),
+                                        input_data=['credit_card_balance'],
+                                        adapter=Adapter({'credit_card': E('credit_card_balance', 'X')}),
+                                        experiment_directory=config.pipeline.experiment_directory,
+                                        **kwargs)
+
+    return credit_card_balance_cleaning
+
+
 def _credit_card_balance(config, train_mode, suffix, **kwargs):
+    credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
+
     credit_card_balance_hand_crafted = Step(name='credit_card_balance_hand_crafted',
                                             transformer=fe.CreditCardBalanceFeatures(**config.credit_card_balance),
-                                            input_data=['credit_card_balance'],
-                                            adapter=Adapter({'credit_card': E('credit_card_balance', 'X')}),
+                                            input_steps=[credit_card_balance_cleaned],
+                                            adapter=Adapter({'credit_card': E(credit_card_balance_cleaned.name,
+                                                                              'credit_card')}),
                                             experiment_directory=config.pipeline.experiment_directory,
                                             **kwargs)
 
