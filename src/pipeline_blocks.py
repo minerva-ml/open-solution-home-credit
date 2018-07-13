@@ -195,15 +195,39 @@ def classifier_sklearn(sklearn_features,
 def feature_extraction(config, train_mode, suffix, **kwargs):
     if train_mode:
         application, application_valid = _application(config, train_mode, suffix, **kwargs)
-        bureau, bureau_valid = _bureau(config, train_mode, suffix, **kwargs)
-        credit_card_balance, credit_card_balance_valid = _credit_card_balance(config, train_mode, suffix, **kwargs)
+        bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+        bureau, bureau_valid = _bureau(
+            bureau_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
+        credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
+        credit_card_balance, credit_card_balance_valid = _credit_card_balance(
+            credit_card_balance_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
         pos_cash_balance, pos_cash_balance_valid = _pos_cash_balance(config, train_mode, suffix, **kwargs)
-        previous_application, previous_application_valid = _previous_application(config, train_mode, suffix, **kwargs)
+        previous_application_cleaned = _previous_application_cleaning(config, suffix, **kwargs)
+        previous_application, previous_application_valid = _previous_application(
+            previous_application_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
         installment_payments, installment_payments_valid = _installment_payments(config, train_mode, suffix, **kwargs)
 
         application_agg, application_agg_valid = _application_groupby_agg(config, train_mode, suffix, **kwargs)
-        bureau_agg, bureau_agg_valid = _bureau_groupby_agg(config, train_mode, suffix, **kwargs)
+        bureau_agg, bureau_agg_valid = _bureau_groupby_agg(
+            bureau_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
         credit_card_balance_agg, credit_card_balance_agg_valid = _credit_card_balance_groupby_agg(
+            credit_card_balance_cleaned,
             config,
             train_mode, suffix,
             **kwargs)
@@ -216,6 +240,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
             train_mode, suffix,
             **kwargs)
         previous_applications_agg, previous_applications_agg_valid = _previous_applications_groupby_agg(
+            previous_application_cleaned,
             config,
             train_mode, suffix,
             **kwargs)
@@ -455,9 +480,7 @@ def _application_groupby_agg(config, train_mode, suffix, **kwargs):
         return application_groupby_agg
 
 
-def _bureau_groupby_agg(config, train_mode, suffix, **kwargs):
-    bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
-
+def _bureau_groupby_agg(bureau_cleaned, config, train_mode, suffix, **kwargs):
     bureau_groupby_agg = Step(name='bureau_groupby_agg',
                               transformer=fe.GroupbyAggregate(**config.bureau),
                               input_steps=[bureau_cleaned],
@@ -486,9 +509,7 @@ def _bureau_groupby_agg(config, train_mode, suffix, **kwargs):
         return bureau_agg_merge
 
 
-def _credit_card_balance_groupby_agg(config, train_mode, suffix, **kwargs):
-    credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
-
+def _credit_card_balance_groupby_agg(credit_card_balance_cleaned, config, train_mode, suffix, **kwargs):
     credit_card_balance_groupby_agg = Step(name='credit_card_balance_groupby_agg',
                                            transformer=fe.GroupbyAggregate(**config.credit_card_balance),
                                            input_steps=[credit_card_balance_cleaned],
@@ -586,9 +607,7 @@ def _pos_cash_balance_groupby_agg(config, train_mode, suffix, **kwargs):
         return pos_cash_balance_agg_merge
 
 
-def _previous_applications_groupby_agg(config, train_mode, suffix, **kwargs):
-    previous_application_cleaned = _previous_application_cleaning(config, suffix, **kwargs)
-
+def _previous_applications_groupby_agg(previous_application_cleaned, config, train_mode, suffix, **kwargs):
     previous_applications_groupby_agg = Step(name='previous_applications_groupby_agg',
                                              transformer=fe.GroupbyAggregate(**config.previous_applications),
                                              input_steps=[previous_application_cleaned],
@@ -675,9 +694,7 @@ def _bureau_cleaning(config, suffix, **kwargs):
     return bureau_cleaning
 
 
-def _bureau(config, train_mode, suffix, **kwargs):
-    bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
-
+def _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs):
     bureau_hand_crafted = Step(name='bureau_hand_crafted',
                                transformer=fe.BureauFeatures(**config.bureau),
                                input_steps=[bureau_cleaned],
@@ -719,9 +736,7 @@ def _credit_card_balance_cleaning(config, suffix, **kwargs):
     return credit_card_balance_cleaning
 
 
-def _credit_card_balance(config, train_mode, suffix, **kwargs):
-    credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
-
+def _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix, **kwargs):
     credit_card_balance_hand_crafted = Step(name='credit_card_balance_hand_crafted',
                                             transformer=fe.CreditCardBalanceFeatures(**config.credit_card_balance),
                                             input_steps=[credit_card_balance_cleaned],
@@ -800,9 +815,7 @@ def _previous_application_cleaning(config, suffix, **kwargs):
     return previous_application_cleaning
 
 
-def _previous_application(config, train_mode, suffix, **kwargs):
-    previous_application_cleaned = _previous_application_cleaning(config, suffix, **kwargs)
-
+def _previous_application(previous_application_cleaned, config, train_mode, suffix, **kwargs):
     previous_applications_hand_crafted = Step(name='previous_applications_hand_crafted',
                                               transformer=fe.PreviousApplicationFeatures(
                                                   **config.previous_applications),

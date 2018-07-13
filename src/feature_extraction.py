@@ -472,7 +472,7 @@ class PreviousApplicationFeatures(BasicHandCraftedFeatures):
 
         g = prev_app_sorted.groupby(by=['SK_ID_CURR'])['previous_application_prev_was_refused'].mean().reset_index()
         g.rename(index=str, columns={
-            'previous_application_prev_was_refused': 'previous_application_%_of_refused_applications'},
+            'previous_application_prev_was_refused': 'previous_application_fraction_of_refused_applications'},
                             inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
