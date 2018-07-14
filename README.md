@@ -38,12 +38,12 @@ You can jump start your participation in the competition by using our starter pa
 1. *Use Python3.5*
 1. Clone repository and install requirements
 1. Register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
-1. Run experiment based on [LightGBM and random search](https://github.com/minerva-ml/open-solution-home-credit/wiki/LightGBM-and-basic-features):
+1. Run experiment based on [LightGBM](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-with-smarter-features):
 
 :trident:
 ```bash
 neptune account login
-neptune run --config neptune.yaml main.py train_evaluate_predict --pipeline_name lightGBM
+neptune run main.py train_evaluate_predict --pipeline_name lightGBM
 ```
 
 :snake:
@@ -63,7 +63,7 @@ pip3 install -r requirements.txt
 ```
 3. Register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
 4. Update data directories in the [neptune.yaml](https://github.com/minerva-ml/open-solution-home-credit/blob/master/neptune.yaml) configuration file.
-5. Run experiment based on [LightGBM and random search](https://github.com/minerva-ml/open-solution-home-credit/wiki/LightGBM-and-basic-features):
+5. Run experiment based on [LightGBM](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-with-smarter-features):
 
 :trident:
 ```bash
