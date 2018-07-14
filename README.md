@@ -35,6 +35,7 @@ In this open source solution you will find references to the [neptune.ml](https:
 You can jump start your participation in the competition by using our starter pack. Installation instruction below will guide you through the setup.
 
 ### Installation *(fast track)*
+1. *Use Python3.5*
 1. Clone repository and install requirements
 1. Register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
 1. Run experiment based on [LightGBM and random search](https://github.com/minerva-ml/open-solution-home-credit/wiki/LightGBM-and-basic-features):
@@ -51,6 +52,7 @@ python main.py -- train_evaluate_predict --pipeline_name lightGBM
 ```
 
 ### Installation *(step by step)*
+1. *Use Python3.5*
 1. Clone this repository
 ```bash
 git clone https://github.com/minerva-ml/open-solution-home-credit.git
