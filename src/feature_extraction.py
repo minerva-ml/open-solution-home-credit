@@ -470,6 +470,18 @@ class PreviousApplicationFeatures(BasicHandCraftedFeatures):
         g.rename(index=str, columns={'SK_ID_PREV': 'previous_application_number_of_prev_application'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
+        g = prev_app_sorted.groupby(by=['SK_ID_CURR'])['previous_application_prev_was_refused'].mean().reset_index()
+        g.rename(index=str, columns={
+            'previous_application_prev_was_refused': 'previous_application_fraction_of_refused_applications'},
+                            inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        prev_app_sorted['prev_applications_prev_was_revolving_loan'] = (
+                prev_app_sorted['NAME_CONTRACT_TYPE'] == 'Revolving loans').astype('int')
+        g = prev_app_sorted.groupby(by=['SK_ID_CURR'])[
+            'prev_applications_prev_was_revolving_loan'].last().reset_index()
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
         for number in self.numbers_of_applications:
             prev_applications_tail = prev_app_sorted_groupby.tail(number)
 

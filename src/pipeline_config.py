@@ -139,6 +139,7 @@ HIGHLY_CORRELATED_NUMERICAL_COLUMNS = ['AMT_GOODS_PRICE',
                                        'YEARS_BUILD_MEDI',
                                        'YEARS_BUILD_MODE']
 
+<<<<<<< HEAD
 cols_to_agg = ['AMT_CREDIT', 
                'AMT_ANNUITY',
                'AMT_INCOME_TOTAL',
@@ -148,6 +149,9 @@ cols_to_agg = ['AMT_CREDIT',
                'EXT_SOURCE_3',
                'OWN_CAR_AGE',
                'REGION_POPULATION_RELATIVE']
+=======
+cols_to_agg = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_INCOME_TOTAL', 'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']
+>>>>>>> upstream/dev
 aggs = ['min', 'mean', 'max', 'sum', 'var']
 aggregation_pairs = [(col, agg) for col in cols_to_agg for agg in aggs]
 
