@@ -52,32 +52,7 @@ python main.py -- train_evaluate_predict --pipeline_name lightGBM
 ```
 
 ### Installation *(step by step)*
-1. *Use Python3.5*
-1. Clone this repository
-```bash
-git clone https://github.com/minerva-ml/open-solution-home-credit.git
-```
-2. Install requirements in your Python3 environment
-```bash
-pip3 install -r requirements.txt
-```
-3. Register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
-4. Update data directories in the [neptune.yaml](https://github.com/minerva-ml/open-solution-home-credit/blob/master/neptune.yaml) configuration file.
-5. Run experiment based on [LightGBM](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-with-smarter-features):
-
-:trident:
-```bash
-neptune login
-neptune run --config neptune.yaml main.py train_evaluate_predict --pipeline_name lightGBM
-```
-
-:snake:
-```bash
-python main.py -- train_evaluate_predict --pipeline_name lightGBM
-```
-
-6. collect submit from `experiment_directory` specified in the [neptune.yaml](https://github.com/minerva-ml/open-solution-home-credit/blob/master/neptune.yaml)
-
+[Step by step installation :desktop_computer:](https://github.com/neptune-ml/open-solution-home-credit/wiki/Step-by-step-installation)
 
 ## Get involved
 You are welcome to contribute your code and ideas to this open solution. To get started:
