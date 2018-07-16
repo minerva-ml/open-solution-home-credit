@@ -377,8 +377,10 @@ class BureauBalanceFeatures(BasicHandCraftedFeatures):
 
     @staticmethod
     def _status_to_int(status):
-        if status in ['X', 'C'] or pd.isnull(status):
+        if status in ['X', 'C']:
             return 0
+        if pd.isnull(status):
+            return np.nan
         return int(status)
 
     @staticmethod
