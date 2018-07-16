@@ -372,12 +372,12 @@ class BureauBalanceFeatures(BasicHandCraftedFeatures):
         g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
         features = features.merge(g, on='SK_ID_CURR', how='left')
 
-        self.features = {}
+        self.features = features
         return self
 
     @staticmethod
     def _status_to_int(status):
-        if status in ['X', 'C']:
+        if status in ['X', 'C'] or pd.isnull(status):
             return 0
         return int(status)
 
