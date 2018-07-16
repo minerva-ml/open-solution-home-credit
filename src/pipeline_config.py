@@ -156,7 +156,7 @@ aggs = ['min', 'mean', 'max', 'sum', 'var']
 aggregation_pairs = [(col, agg) for col in cols_to_agg for agg in aggs]
 
 APPLICATION_AGGREGATION_RECIPIES = [
-    (['NAME_EDUCATION_TYPE', 'CODE_GENDER'],  aggregation_pairs),
+    (['NAME_EDUCATION_TYPE', 'CODE_GENDER'], aggregation_pairs),
     (['NAME_FAMILY_STATUS', 'NAME_EDUCATION_TYPE'], aggregation_pairs),
     (['NAME_FAMILY_STATUS', 'CODE_GENDER'], aggregation_pairs),
     (['CODE_GENDER', 'ORGANIZATION_TYPE'], [('AMT_ANNUITY', 'mean'),
@@ -304,6 +304,8 @@ SOLUTION_CONFIG = AttrDict({
                               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                               'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES,
                               'last_k_agg_periods': parameter_eval(params.installments__last_k_agg_periods),
+                              'last_k_agg_period_fractions': parameter_eval(
+                                  params.installments__last_k_agg_period_fractions),
                               'last_k_trend_periods': parameter_eval(params.installments__last_k_trend_periods),
                               'num_workers': params.num_workers
                               },
