@@ -383,15 +383,15 @@ class BureauBalanceFeatures(BasicHandCraftedFeatures):
 
     @staticmethod
     def generate_features(gr, agg_periods, trend_periods):
-        all = POSCASHBalanceFeatures.all_installment_features(gr)
-        agg = POSCASHBalanceFeatures.last_k_installment_features(gr, agg_periods)
-        trend = POSCASHBalanceFeatures.trend_in_last_k_installment_features(gr, trend_periods)
+        all = BureauBalanceFeatures.all_installment_features(gr)
+        agg = BureauBalanceFeatures.last_k_installment_features(gr, agg_periods)
+        trend = BureauBalanceFeatures.trend_in_last_k_installment_features(gr, trend_periods)
         features = {**all, **agg, **trend}
         return pd.Series(features)
 
     @staticmethod
     def all_installment_features(gr):
-        return POSCASHBalanceFeatures.last_k_installment_features(gr, periods=[10e16])
+        return BureauBalanceFeatures.last_k_installment_features(gr, periods=[10e16])
 
     @staticmethod
     def last_k_installment_features(gr, periods):
