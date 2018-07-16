@@ -277,8 +277,8 @@ class ApplicationFeatures(BaseTransformer):
             X['external_sources_{}'.format(function_name)] = eval('np.{}'.format(function_name))(
                 X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
 
-        X['short_employment'] = (X['DAYS_EMPLOYED'] > -2000).astype(int)
-        X['young_age'] = (X['DAYS_BIRTH'] > -14000).astype(int)
+        X['short_employment'] = (X['DAYS_EMPLOYED'] < -2000).astype(int)
+        X['young_age'] = (X['DAYS_BIRTH'] < -14000).astype(int)
 
         return {'numerical_features': X[self.engineered_numerical_columns + self.numerical_columns],
                 'categorical_features': X[self.categorical_columns]
