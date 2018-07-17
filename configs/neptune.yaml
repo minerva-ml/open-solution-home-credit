@@ -1,7 +1,7 @@
 project: ORGANIZATION/home-credit
 
 name: home-credit-default-risk
-tags: [solution-4, dev]
+tags: [solution-5, dev]
 
 metric:
   channel: 'ROC_AUC'
@@ -33,7 +33,7 @@ parameters:
 
 # Kaggle
   kaggle_api: 0
-  kaggle_message: 'solution-4'
+  kaggle_message: 'solution-5'
 
 # Data preparation
   n_cv_splits: 5
@@ -54,6 +54,8 @@ parameters:
   installments__last_k_trend_periods: '[10, 50, 100, 500]'
   installments__last_k_agg_periods: '[1, 5, 10, 20, 50, 100]'
   installments__last_k_agg_period_fractions: '[(5,20),(5,50),(10,50),(10,100),(20,100)]'
+  pos_cash__last_k_trend_periods: '[6, 12]'
+  pos_cash__last_k_agg_periods: '[6, 12, 30]'
   application_aggregation__use_diffs_only: True
   use_nan_count: True
 
@@ -68,7 +70,7 @@ parameters:
   lgbm__learning_rate: 0.02
   lgbm__max_bin: 300
   lgbm__max_depth: -1
-  lgbm__num_leaves: 35
+  lgbm__num_leaves: 30
   lgbm__min_child_samples: 70
   lgbm__subsample: 1.0
   lgbm__subsample_freq: 1

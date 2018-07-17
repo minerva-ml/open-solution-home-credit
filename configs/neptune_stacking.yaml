@@ -54,6 +54,8 @@ parameters:
   installments__last_k_trend_periods: None
   installments__last_k_agg_periods: None
   installments__last_k_agg_period_fractions: None
+  pos_cash__last_k_trend_periods: None
+  pos_cash__last_k_agg_periods: None
   application_aggregation__use_diffs_only: True
   use_nan_count: True
 
