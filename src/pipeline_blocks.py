@@ -460,11 +460,15 @@ def _categorical_encoders(config, train_mode, suffix, **kwargs):
 
 
 def _application_groupby_agg(config, train_mode, suffix, **kwargs):
+    if train_mode:
+        application_cleaning, application_cleaning_valid = _application_cleaning(config, train_mode, suffix, **kwargs)
+    else:
+        application_cleaning = _application_cleaning(config, train_mode, suffix, **kwargs)
+
     application_groupby_agg = Step(name='application_groupby_agg{}'.format(suffix),
                                    transformer=fe.GroupbyAggregateDiffs(**config.applications.aggregations),
-                                   input_data=['application'],
-                                   adapter=Adapter(
-                                       {'main_table': E('application', 'X')}),
+                                   input_steps=[application_cleaning],
+                                   adapter=Adapter({'main_table': E(application_cleaning.name, 'X')}),
                                    experiment_directory=config.pipeline.experiment_directory,
                                    **kwargs)
 
@@ -472,10 +476,8 @@ def _application_groupby_agg(config, train_mode, suffix, **kwargs):
 
         application_groupby_agg_valid = Step(name='application_groupby_agg_valid{}'.format(suffix),
                                              transformer=application_groupby_agg,
-                                             input_data=['application'],
-                                             adapter=Adapter(
-                                                 {'main_table': E('application', 'X_valid'),
-                                                  }),
+                                             input_steps=[application_cleaning_valid],
+                                             adapter=Adapter({'main_table': E(application_cleaning_valid.name, 'X')}),
                                              experiment_directory=config.pipeline.experiment_directory,
                                              **kwargs)
 
