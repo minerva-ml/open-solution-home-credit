@@ -139,7 +139,6 @@ HIGHLY_CORRELATED_NUMERICAL_COLUMNS = ['AMT_GOODS_PRICE',
                                        'YEARS_BUILD_MEDI',
                                        'YEARS_BUILD_MODE']
 
-<<<<<<< HEAD
 cols_to_agg = ['AMT_CREDIT', 
                'AMT_ANNUITY',
                'AMT_INCOME_TOTAL',
@@ -148,21 +147,26 @@ cols_to_agg = ['AMT_CREDIT',
                'EXT_SOURCE_2',
                'EXT_SOURCE_3',
                'OWN_CAR_AGE',
-               'REGION_POPULATION_RELATIVE']
-=======
-cols_to_agg = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_INCOME_TOTAL', 'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']
->>>>>>> upstream/dev
+               'REGION_POPULATION_RELATIVE',
+               'DAYS_REGISTRATION',
+               'CNT_CHILDREN',
+               'CNT_FAM_MEMBERS',
+               'DAYS_ID_PUBLISH',
+               'DAYS_BIRTH',
+               'DAYS_EMPLOYED'
+]
+
 aggs = ['min', 'mean', 'max', 'sum', 'var']
 aggregation_pairs = [(col, agg) for col in cols_to_agg for agg in aggs]
 
 APPLICATION_AGGREGATION_RECIPIES = [
-    (['NAME_EDUCATION_TYPE', 'CODE_GENDER'], aggregation_pairs),
+    (['NAME_EDUCATION_TYPE', 'CODE_GENDER'],  aggregation_pairs),
     (['NAME_FAMILY_STATUS', 'NAME_EDUCATION_TYPE'], aggregation_pairs),
     (['NAME_FAMILY_STATUS', 'CODE_GENDER'], aggregation_pairs),
     (['CODE_GENDER', 'ORGANIZATION_TYPE'], [('AMT_ANNUITY', 'mean'),
-                                            ('AMT_INCOME_TOTAL', 'mean'),
-                                            ('DAYS_REGISTRATION', 'mean'),
-                                            ('EXT_SOURCE_1', 'mean')]),
+                                             ('AMT_INCOME_TOTAL', 'mean'),
+                                             ('DAYS_REGISTRATION', 'mean'),
+                                             ('EXT_SOURCE_1', 'mean')]),
     (['CODE_GENDER', 'REG_CITY_NOT_WORK_CITY'], [('AMT_ANNUITY', 'mean'),
                                                  ('CNT_CHILDREN', 'mean'),
                                                  ('DAYS_ID_PUBLISH', 'mean')]),
@@ -322,27 +326,28 @@ SOLUTION_CONFIG = AttrDict({
                               'numbers_of_applications': [1, 2, 3, 4, 5],
                               'num_workers': params.num_workers
                               },
-
-    'light_gbm': {'device': params.lgbm__device,
-                  'boosting_type': params.lgbm__boosting_type,
-                  'objective': params.lgbm__objective,
-                  'metric': params.lgbm__metric,
-                  'scale_pos_weight': params.lgbm__scale_pos_weight,
-                  'learning_rate': params.lgbm__learning_rate,
-                  'max_bin': params.lgbm__max_bin,
-                  'max_depth': params.lgbm__max_depth,
-                  'num_leaves': params.lgbm__num_leaves,
-                  'min_child_samples': params.lgbm__min_child_samples,
-                  'subsample': params.lgbm__subsample,
-                  'colsample_bytree': params.lgbm__colsample_bytree,
-                  'subsample_freq': params.lgbm__subsample_freq,
-                  'min_gain_to_split': params.lgbm__min_gain_to_split,
-                  'reg_lambda': params.lgbm__reg_lambda,
-                  'reg_alpha': params.lgbm__reg_alpha,
-                  'nthread': params.num_workers,
-                  'number_boosting_rounds': params.lgbm__number_boosting_rounds,
-                  'early_stopping_rounds': params.lgbm__early_stopping_rounds,
-                  'verbose': params.verbose,
+                              
+    'light_gbm': {'device': parameter_eval(params.lgbm__device),
+                  'boosting_type': parameter_eval(params.lgbm__boosting_type),
+                  'objective': parameter_eval(params.lgbm__objective),
+                  'metric': parameter_eval(params.lgbm__metric),
+                  'is_unbalance': parameter_eval(params.lgbm__is_unbalance),
+                  'scale_pos_weight': parameter_eval(params.lgbm__scale_pos_weight),
+                  'learning_rate': parameter_eval(params.lgbm__learning_rate),
+                  'max_bin': parameter_eval(params.lgbm__max_bin),
+                  'max_depth': parameter_eval(params.lgbm__max_depth),
+                  'num_leaves': parameter_eval(params.lgbm__num_leaves),
+                  'min_child_samples': parameter_eval(params.lgbm__min_child_samples),
+                  'subsample': parameter_eval(params.lgbm__subsample),
+                  'colsample_bytree': parameter_eval(params.lgbm__colsample_bytree),
+                  'subsample_freq': parameter_eval(params.lgbm__subsample_freq),
+                  'min_gain_to_split': parameter_eval(params.lgbm__min_gain_to_split),
+                  'reg_lambda': parameter_eval(params.lgbm__reg_lambda),
+                  'reg_alpha': parameter_eval(params.lgbm__reg_alpha),
+                  'nthread': parameter_eval(params.num_workers),
+                  'number_boosting_rounds': parameter_eval(params.lgbm__number_boosting_rounds),
+                  'early_stopping_rounds': parameter_eval(params.lgbm__early_stopping_rounds),
+                  'verbose': parameter_eval(params.verbose),
                   },
 
     'xgboost': {'booster': parameter_eval(params.xgb__booster),
