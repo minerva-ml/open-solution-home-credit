@@ -327,7 +327,7 @@ SOLUTION_CONFIG = AttrDict({
                               'numbers_of_applications': [1, 2, 3, 4, 5],
                               'num_workers': params.num_workers
                               },
-                              
+
     'light_gbm': {'device': parameter_eval(params.lgbm__device),
                   'boosting_type': parameter_eval(params.lgbm__boosting_type),
                   'objective': parameter_eval(params.lgbm__objective),
