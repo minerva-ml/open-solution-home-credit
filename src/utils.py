@@ -150,3 +150,9 @@ def _clean_columns(df, keep_colnames):
     for i, colname in enumerate(feature_colnames):
         new_colnames.append('model_{}'.format(i))
     return new_colnames
+
+def safe_div(a, b):
+    try:
+        return float(a) / float(b)
+    except:
+        return 0.0

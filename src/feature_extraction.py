@@ -11,7 +11,7 @@ from swifter import swiftapply
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
-from .utils import parallel_apply
+from .utils import parallel_apply, safe_div
 
 logger = get_logger()
 
@@ -290,8 +290,8 @@ class ApplicationFeatures(BaseTransformer):
             X['external_sources_{}'.format(function_name)] = eval('np.{}'.format(function_name))(
                 X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
 
-        X['short_employment'] = (X['DAYS_EMPLOYED'] > -2000).astype(int)
-        X['young_age'] = (X['DAYS_BIRTH'] > -14000).astype(int)
+        X['short_employment'] = (X['DAYS_EMPLOYED'] < -2000).astype(int)
+        X['young_age'] = (X['DAYS_BIRTH'] < -14000).astype(int)
 
         return {'numerical_features': X[self.engineered_numerical_columns + self.numerical_columns],
                 'categorical_features': X[self.categorical_columns]
@@ -652,6 +652,18 @@ class PreviousApplicationFeatures(BasicHandCraftedFeatures):
         g.rename(index=str, columns={'SK_ID_PREV': 'previous_application_number_of_prev_application'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
+        g = prev_app_sorted.groupby(by=['SK_ID_CURR'])['previous_application_prev_was_refused'].mean().reset_index()
+        g.rename(index=str, columns={
+            'previous_application_prev_was_refused': 'previous_application_fraction_of_refused_applications'},
+                 inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        prev_app_sorted['prev_applications_prev_was_revolving_loan'] = (
+            prev_app_sorted['NAME_CONTRACT_TYPE'] == 'Revolving loans').astype('int')
+        g = prev_app_sorted.groupby(by=['SK_ID_CURR'])[
+            'prev_applications_prev_was_revolving_loan'].last().reset_index()
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
         for number in self.numbers_of_applications:
             prev_applications_tail = prev_app_sorted_groupby.tail(number)
 
@@ -683,9 +695,10 @@ class PreviousApplicationFeatures(BasicHandCraftedFeatures):
 
 
 class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
-    def __init__(self, last_k_agg_periods, last_k_trend_periods, num_workers=1, **kwargs):
+    def __init__(self, last_k_agg_periods, last_k_agg_period_fractions, last_k_trend_periods, num_workers=1, **kwargs):
         super().__init__(num_workers=num_workers)
         self.last_k_agg_periods = last_k_agg_periods
+        self.last_k_agg_period_fractions = last_k_agg_period_fractions
         self.last_k_trend_periods = last_k_trend_periods
 
         self.num_workers = num_workers
@@ -703,6 +716,7 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
 
         func = partial(InstallmentPaymentsFeatures.generate_features,
                        agg_periods=self.last_k_agg_periods,
+                       period_fractions=self.last_k_agg_period_fractions,
                        trend_periods=self.last_k_trend_periods)
         g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
         features = features.merge(g, on='SK_ID_CURR', how='left')
@@ -711,9 +725,11 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
         return self
 
     @staticmethod
-    def generate_features(gr, agg_periods, trend_periods):
+    def generate_features(gr, agg_periods, trend_periods, period_fractions):
         all = InstallmentPaymentsFeatures.all_installment_features(gr)
-        agg = InstallmentPaymentsFeatures.last_k_installment_features(gr, agg_periods)
+        agg = InstallmentPaymentsFeatures.last_k_installment_features_with_fractions(gr,
+                                                                                     agg_periods,
+                                                                                     period_fractions)
         trend = InstallmentPaymentsFeatures.trend_in_last_k_installment_features(gr, trend_periods)
         last = InstallmentPaymentsFeatures.last_loan_features(gr)
         features = {**all, **agg, **trend, **last}
@@ -722,6 +738,21 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
     @staticmethod
     def all_installment_features(gr):
         return InstallmentPaymentsFeatures.last_k_installment_features(gr, periods=[10e16])
+
+    @staticmethod
+    def last_k_installment_features_with_fractions(gr, periods, period_fractions):
+        features = InstallmentPaymentsFeatures.last_k_installment_features(gr, periods)
+
+        for short_period, long_period in period_fractions:
+            short_feature_names = get_feature_names_by_period(features, short_period)
+            long_feature_names = get_feature_names_by_period(features, long_period)
+
+            for short_feature, long_feature in zip(short_feature_names, long_feature_names):
+                old_name_chunk = '_{}_'.format(short_period)
+                new_name_chunk = '_{}by{}_fraction_'.format(short_period, long_period)
+                fraction_feature_name = short_feature.replace(old_name_chunk, new_name_chunk)
+                features[fraction_feature_name] = safe_div(features[short_feature], features[long_feature])
+        return features
 
     @staticmethod
     def last_k_installment_features(gr, periods):
@@ -846,3 +877,7 @@ def add_trend_feature(features, gr, feature_name, prefix):
         trend = np.nan
     features['{}{}'.format(prefix, feature_name)] = trend
     return features
+
+
+def get_feature_names_by_period(features, period):
+    return sorted([feat for feat in features.keys() if '_{}_'.format(period) in feat])
