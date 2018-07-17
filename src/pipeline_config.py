@@ -155,18 +155,17 @@ cols_to_agg = ['AMT_CREDIT',
                'DAYS_BIRTH',
                'DAYS_EMPLOYED'
 ]
-
 aggs = ['min', 'mean', 'max', 'sum', 'var']
 aggregation_pairs = [(col, agg) for col in cols_to_agg for agg in aggs]
 
 APPLICATION_AGGREGATION_RECIPIES = [
-    (['NAME_EDUCATION_TYPE', 'CODE_GENDER'],  aggregation_pairs),
+    (['NAME_EDUCATION_TYPE', 'CODE_GENDER'], aggregation_pairs),
     (['NAME_FAMILY_STATUS', 'NAME_EDUCATION_TYPE'], aggregation_pairs),
     (['NAME_FAMILY_STATUS', 'CODE_GENDER'], aggregation_pairs),
     (['CODE_GENDER', 'ORGANIZATION_TYPE'], [('AMT_ANNUITY', 'mean'),
-                                             ('AMT_INCOME_TOTAL', 'mean'),
-                                             ('DAYS_REGISTRATION', 'mean'),
-                                             ('EXT_SOURCE_1', 'mean')]),
+                                            ('AMT_INCOME_TOTAL', 'mean'),
+                                            ('DAYS_REGISTRATION', 'mean'),
+                                            ('EXT_SOURCE_1', 'mean')]),
     (['CODE_GENDER', 'REG_CITY_NOT_WORK_CITY'], [('AMT_ANNUITY', 'mean'),
                                                  ('CNT_CHILDREN', 'mean'),
                                                  ('DAYS_ID_PUBLISH', 'mean')]),
