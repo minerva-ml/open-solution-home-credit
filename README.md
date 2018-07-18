@@ -13,7 +13,7 @@ We are building entirely open solution to this competition. Specifically:
 
 | Train and validation results on folds :bar_chart: | LightGBM learning curves :bar_chart: |
 |:---|:---|
-|[![train-validation-results-on-folds](https://gist.githubusercontent.com/kamil-kaczmarek/b3b939797fb39752c45fdadfedba3ed9/raw/fbc925f683853fa8af5a95426fcd37fcb3afcf38/hc-1.png)](https://app.neptune.ml/-/dashboard/experiment/9f58e223-cbf2-4954-9a64-c0b454b30c56) | [![LightGBM-learning-curves](https://gist.githubusercontent.com/kamil-kaczmarek/b3b939797fb39752c45fdadfedba3ed9/raw/fbc925f683853fa8af5a95426fcd37fcb3afcf38/hc-2.png)](https://app.neptune.ml/-/dashboard/experiment/9f58e223-cbf2-4954-9a64-c0b454b30c56) |
+|[![train-validation-results-on-folds](https://gist.githubusercontent.com/kamil-kaczmarek/b3b939797fb39752c45fdadfedba3ed9/raw/fbc925f683853fa8af5a95426fcd37fcb3afcf38/hc-1.png)](https://app.neptune.ml/-/dashboard/experiment/941a0785-7b2b-4eb7-8076-8fc207ef4396)|[![LightGBM-learning-curves](https://gist.githubusercontent.com/kamil-kaczmarek/b3b939797fb39752c45fdadfedba3ed9/raw/fbc925f683853fa8af5a95426fcd37fcb3afcf38/hc-2.png)](https://app.neptune.ml/-/dashboard/experiment/941a0785-7b2b-4eb7-8076-8fc207ef4396)|
 
 ## Disclaimer
 In this open source solution you will find references to the [neptune.ml](https://neptune.ml). It is free platform for community Users, which we use daily to keep track of our experiments. Please note that using neptune.ml is not necessary to proceed with this solution. You may run it as plain Python script :snake:.
@@ -29,7 +29,8 @@ In this open source solution you will find references to the [neptune.ml](https:
 |[solution 2](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-2)|*seedling* :seedling:|?|0.747|[Sklearn and XGBoost algorithms and groupby features](https://github.com/neptune-ml/open-solution-home-credit/wiki/Sklearn-and-XGBoost-algorithms-and-groupby-features)|
 |[solution 3](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-3)|*blossom* :blossom:|0.7840|0.790|[LightGBM on selected features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-on-selected-features)|
 |[solution 4](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-4)|*tulip* :tulip: |0.7905|0.801|[LightGBM with smarter features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-with-smarter-features)|
-|solution 5|*sunflower* :sunflower:|0.7950|0.804|*(in progress...)* :construction_worker_woman:|
+|[solution 5](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-5)|*sunflower* :sunflower:|0.7950|0.804|[LightGBM clean dynamic features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-clean-dynamic-features)|
+|solution 6|*four leaf clover* :four_leaf_clover:|||:construction_worker_woman: *in progress...*|
 
 ## Start experimenting with ready-to-use code
 You can jump start your participation in the competition by using our starter pack. Installation instruction below will guide you through the setup.
@@ -42,7 +43,7 @@ You can jump start your participation in the competition by using our starter pa
 :trident:
 ```bash
 neptune account login
-neptune run main.py train_evaluate_predict_cv --pipeline_name lightGBM
+neptune run --config configs/neptune.yaml main.py train_evaluate_predict_cv --pipeline_name lightGBM
 ```
 
 :snake:
