@@ -7,7 +7,6 @@ import pandas as pd
 from scipy.stats import kurtosis, iqr, skew
 from sklearn.externals import joblib
 from sklearn.linear_model import LinearRegression
-from swifter import swiftapply
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
