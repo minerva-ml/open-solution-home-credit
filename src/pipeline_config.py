@@ -139,7 +139,22 @@ HIGHLY_CORRELATED_NUMERICAL_COLUMNS = ['AMT_GOODS_PRICE',
                                        'YEARS_BUILD_MEDI',
                                        'YEARS_BUILD_MODE']
 
-cols_to_agg = ['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_INCOME_TOTAL', 'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']
+cols_to_agg = ['AMT_CREDIT', 
+               'AMT_ANNUITY',
+               'AMT_INCOME_TOTAL',
+               'AMT_GOODS_PRICE', 
+               'EXT_SOURCE_1',
+               'EXT_SOURCE_2',
+               'EXT_SOURCE_3',
+               'OWN_CAR_AGE',
+               'REGION_POPULATION_RELATIVE',
+               'DAYS_REGISTRATION',
+               'CNT_CHILDREN',
+               'CNT_FAM_MEMBERS',
+               'DAYS_ID_PUBLISH',
+               'DAYS_BIRTH',
+               'DAYS_EMPLOYED'
+]
 aggs = ['min', 'mean', 'max', 'sum', 'var']
 aggregation_pairs = [(col, agg) for col in cols_to_agg for agg in aggs]
 
@@ -317,6 +332,7 @@ SOLUTION_CONFIG = AttrDict({
                   'boosting_type': parameter_eval(params.lgbm__boosting_type),
                   'objective': parameter_eval(params.lgbm__objective),
                   'metric': parameter_eval(params.lgbm__metric),
+                  'is_unbalance': parameter_eval(params.lgbm__is_unbalance),
                   'scale_pos_weight': parameter_eval(params.lgbm__scale_pos_weight),
                   'learning_rate': parameter_eval(params.lgbm__learning_rate),
                   'max_bin': parameter_eval(params.lgbm__max_bin),
