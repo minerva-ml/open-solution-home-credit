@@ -42,7 +42,7 @@ You can jump start your participation in the competition by using our starter pa
 :trident:
 ```bash
 neptune account login
-neptune run main.py train_evaluate_predict_cv --pipeline_name lightGBM
+neptune run --config configs/neptune.yaml main.py train_evaluate_predict_cv --pipeline_name lightGBM
 ```
 
 :snake:
