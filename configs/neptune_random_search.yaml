@@ -28,6 +28,7 @@ parameters:
   POS_CASH_balance_filepath:      YOUR/PATH/TO/POS_CASH_balance.csv
   previous_application_filepath:  YOUR/PATH/TO/previous_application.csv
   sample_submission_filepath:     YOUR/PATH/TO/sample_submission.csv
+  first_level_oof_predictions_dir: YOUR/PATH/TO/oof_predictions
   experiment_directory:           YOUR/PATH/WORKDIR
 
 # Kaggle
@@ -52,6 +53,9 @@ parameters:
 # Feature Extraction
   installments__last_k_trend_periods: '[10, 50, 100, 500]'
   installments__last_k_agg_periods: '[1, 5, 10, 50, 100, 500]'
+  installments__last_k_agg_period_fractions: '[(5,20),(5,50),(10,50),(10,100),(20,100)]'
+  pos_cash__last_k_trend_periods: '[6, 12]'
+  pos_cash__last_k_agg_periods: '[6, 12, 30]'
   application_aggregation__use_diffs_only: True
   use_nan_count: True
 
@@ -75,6 +79,7 @@ parameters:
   lgbm__reg_lambda: '[0.0, 0.1, "uniform"]'
   lgbm__reg_alpha: '[0.0, 0.1, "uniform"]'
   lgbm__scale_pos_weight: 1
+  lgbm__is_unbalance: False
 
 # XGBoost
   xgb_random_search_runs: 50

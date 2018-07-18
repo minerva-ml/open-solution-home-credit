@@ -2,7 +2,7 @@ from functools import partial
 
 from sklearn.metrics import roc_auc_score
 from steppy.adapter import Adapter, E
-from steppy.base import Step, make_transformer
+from steppy.base import Step, make_transformer, IdentityOperation
 
 from . import feature_extraction as fe
 from . import data_cleaning as dc
@@ -42,6 +42,52 @@ def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
                                           'categorical_features': E(features_train.name, 'categorical_features'),
                                           'X_valid': E(features_valid.name, 'features'),
                                           'y_valid': E('application', 'y_valid'),
+                                          }),
+                         force_fitting=True,
+                         experiment_directory=config.pipeline.experiment_directory,
+                         **kwargs)
+    else:
+        light_gbm = Step(name=model_name,
+                         transformer=LightGBM(name=model_name, **config.light_gbm),
+                         input_steps=[features],
+                         adapter=Adapter({'X': E(features.name, 'features')}),
+                         experiment_directory=config.pipeline.experiment_directory,
+                         **kwargs)
+    return light_gbm
+
+
+def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs):
+    model_name = 'light_gbm{}'.format(suffix)
+
+    if train_mode:
+        features_train, features_valid = features
+        if config.random_search.light_gbm.n_runs:
+            transformer = RandomSearchOptimizer(TransformerClass=LightGBM,
+                                                params=config.light_gbm,
+                                                train_input_keys=[],
+                                                valid_input_keys=['X_valid', 'y_valid'],
+                                                score_func=roc_auc_score,
+                                                maximize=True,
+                                                n_runs=config.random_search.light_gbm.n_runs,
+                                                callbacks=[
+                                                    NeptuneMonitor(
+                                                        **config.random_search.light_gbm.callbacks.neptune_monitor),
+                                                    PersistResults(
+                                                        **config.random_search.light_gbm.callbacks.persist_results)]
+                                                )
+        else:
+            transformer = LightGBM(name=model_name, **config.light_gbm)
+
+        light_gbm = Step(name=model_name,
+                         transformer=transformer,
+                         input_data=['input'],
+                         input_steps=[features_train, features_valid],
+                         adapter=Adapter({'X': E(features_train.name, 'features'),
+                                          'y': E('input', 'y'),
+                                          'feature_names': E(features_train.name, 'feature_names'),
+                                          'categorical_features': E(features_train.name, 'categorical_features'),
+                                          'X_valid': E(features_valid.name, 'features'),
+                                          'y_valid': E('input', 'y_valid'),
                                           }),
                          force_fitting=True,
                          experiment_directory=config.pipeline.experiment_directory,
@@ -149,15 +195,39 @@ def classifier_sklearn(sklearn_features,
 def feature_extraction(config, train_mode, suffix, **kwargs):
     if train_mode:
         application, application_valid = _application(config, train_mode, suffix, **kwargs)
-        bureau, bureau_valid = _bureau(config, train_mode, suffix, **kwargs)
-        credit_card_balance, credit_card_balance_valid = _credit_card_balance(config, train_mode, suffix, **kwargs)
+        bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+        bureau, bureau_valid = _bureau(
+            bureau_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
+        credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
+        credit_card_balance, credit_card_balance_valid = _credit_card_balance(
+            credit_card_balance_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
         pos_cash_balance, pos_cash_balance_valid = _pos_cash_balance(config, train_mode, suffix, **kwargs)
-        previous_application, previous_application_valid = _previous_application(config, train_mode, suffix, **kwargs)
+        previous_application_cleaned = _previous_application_cleaning(config, suffix, **kwargs)
+        previous_application, previous_application_valid = _previous_application(
+            previous_application_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
         installment_payments, installment_payments_valid = _installment_payments(config, train_mode, suffix, **kwargs)
 
         application_agg, application_agg_valid = _application_groupby_agg(config, train_mode, suffix, **kwargs)
-        bureau_agg, bureau_agg_valid = _bureau_groupby_agg(config, train_mode, suffix, **kwargs)
+        bureau_agg, bureau_agg_valid = _bureau_groupby_agg(
+            bureau_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
         credit_card_balance_agg, credit_card_balance_agg_valid = _credit_card_balance_groupby_agg(
+            credit_card_balance_cleaned,
             config,
             train_mode, suffix,
             **kwargs)
@@ -170,6 +240,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
             train_mode, suffix,
             **kwargs)
         previous_applications_agg, previous_applications_agg_valid = _previous_applications_groupby_agg(
+            previous_application_cleaned,
             config,
             train_mode, suffix,
             **kwargs)
@@ -215,18 +286,23 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         return feature_combiner, feature_combiner_valid
     else:
         application = _application(config, train_mode, suffix, **kwargs)
-        bureau = _bureau(config, train_mode, suffix, **kwargs)
-        credit_card_balance = _credit_card_balance(config, train_mode, suffix, **kwargs)
+        bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+        bureau = _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs)
+        credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
+        credit_card_balance = _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix, **kwargs)
         pos_cash_balance = _pos_cash_balance(config, train_mode, suffix, **kwargs)
-        previous_application = _previous_application(config, train_mode, suffix, **kwargs)
+        previous_application_cleaned = _previous_application_cleaning(config, suffix, **kwargs)
+        previous_application = _previous_application(previous_application_cleaned, config, train_mode, suffix, **kwargs)
         installment_payments = _installment_payments(config, train_mode, suffix, **kwargs)
 
         application_agg = _application_groupby_agg(config, train_mode, suffix, **kwargs)
-        bureau_agg = _bureau_groupby_agg(config, train_mode, suffix, **kwargs)
-        credit_card_balance_agg = _credit_card_balance_groupby_agg(config, train_mode, suffix, **kwargs)
+        bureau_agg = _bureau_groupby_agg(bureau_cleaned, config, train_mode, suffix, **kwargs)
+        credit_card_balance_agg = _credit_card_balance_groupby_agg(credit_card_balance_cleaned,
+                                                                   config, train_mode, suffix, **kwargs)
         installments_payments_agg = _installments_payments_groupby_agg(config, train_mode, suffix, **kwargs)
         pos_cash_balance_agg = _pos_cash_balance_groupby_agg(config, train_mode, suffix, **kwargs)
-        previous_applications_agg = _previous_applications_groupby_agg(config, train_mode, suffix, **kwargs)
+        previous_applications_agg = _previous_applications_groupby_agg(previous_application_cleaned,
+                                                                       config, train_mode, suffix, **kwargs)
         categorical_encoder = _categorical_encoders(config, train_mode, suffix, **kwargs)
         feature_combiner = _join_features(numerical_features=[application,
                                                               application_agg,
@@ -274,6 +350,38 @@ def preprocessing_fillna(features, config, train_mode, suffix, **kwargs):
                       **kwargs
                       )
     return fillna
+
+
+def stacking_features(config, train_mode, suffix, **kwargs):
+    features = Step(name='stacking_features{}'.format(suffix),
+                    transformer=IdentityOperation(),
+                    input_data=['input'],
+                    adapter=Adapter({'numerical_features': E('input', 'X')}),
+                    experiment_directory=config.pipeline.experiment_directory, **kwargs)
+
+    if train_mode:
+        features_valid = Step(name='stacking_features_valid{}'.format(suffix),
+                              transformer=IdentityOperation(),
+                              input_data=['input'],
+                              adapter=Adapter({'numerical_features': E('input', 'X_valid')}),
+                              experiment_directory=config.pipeline.experiment_directory, **kwargs)
+        feature_combiner, feature_combiner_valid = _join_features(numerical_features=[features],
+                                                                  numerical_features_valid=[features_valid],
+                                                                  categorical_features=[],
+                                                                  categorical_features_valid=[],
+                                                                  config=config,
+                                                                  train_mode=train_mode,
+                                                                  suffix=suffix, **kwargs)
+        return feature_combiner, feature_combiner_valid
+    else:
+        feature_combiner = _join_features(numerical_features=[features],
+                                          numerical_features_valid=[],
+                                          categorical_features=[],
+                                          categorical_features_valid=[],
+                                          config=config,
+                                          train_mode=train_mode,
+                                          suffix=suffix, **kwargs)
+        return feature_combiner
 
 
 def _join_features(numerical_features,
@@ -352,11 +460,15 @@ def _categorical_encoders(config, train_mode, suffix, **kwargs):
 
 
 def _application_groupby_agg(config, train_mode, suffix, **kwargs):
+    if train_mode:
+        application_cleaning, application_cleaning_valid = _application_cleaning(config, train_mode, suffix, **kwargs)
+    else:
+        application_cleaning = _application_cleaning(config, train_mode, suffix, **kwargs)
+
     application_groupby_agg = Step(name='application_groupby_agg{}'.format(suffix),
                                    transformer=fe.GroupbyAggregateDiffs(**config.applications.aggregations),
-                                   input_data=['application'],
-                                   adapter=Adapter(
-                                       {'main_table': E('application', 'X')}),
+                                   input_steps=[application_cleaning],
+                                   adapter=Adapter({'main_table': E(application_cleaning.name, 'X')}),
                                    experiment_directory=config.pipeline.experiment_directory,
                                    **kwargs)
 
@@ -364,10 +476,8 @@ def _application_groupby_agg(config, train_mode, suffix, **kwargs):
 
         application_groupby_agg_valid = Step(name='application_groupby_agg_valid{}'.format(suffix),
                                              transformer=application_groupby_agg,
-                                             input_data=['application'],
-                                             adapter=Adapter(
-                                                 {'main_table': E('application', 'X_valid'),
-                                                  }),
+                                             input_steps=[application_cleaning_valid],
+                                             adapter=Adapter({'main_table': E(application_cleaning_valid.name, 'X')}),
                                              experiment_directory=config.pipeline.experiment_directory,
                                              **kwargs)
 
@@ -377,11 +487,11 @@ def _application_groupby_agg(config, train_mode, suffix, **kwargs):
         return application_groupby_agg
 
 
-def _bureau_groupby_agg(config, train_mode, suffix, **kwargs):
+def _bureau_groupby_agg(bureau_cleaned, config, train_mode, suffix, **kwargs):
     bureau_groupby_agg = Step(name='bureau_groupby_agg',
                               transformer=fe.GroupbyAggregate(**config.bureau),
-                              input_data=['bureau'],
-                              adapter=Adapter({'table': E('bureau', 'X')}),
+                              input_steps=[bureau_cleaned],
+                              adapter=Adapter({'table': E(bureau_cleaned.name, 'bureau')}),
                               experiment_directory=config.pipeline.experiment_directory,
                               **kwargs)
 
@@ -406,11 +516,12 @@ def _bureau_groupby_agg(config, train_mode, suffix, **kwargs):
         return bureau_agg_merge
 
 
-def _credit_card_balance_groupby_agg(config, train_mode, suffix, **kwargs):
+def _credit_card_balance_groupby_agg(credit_card_balance_cleaned, config, train_mode, suffix, **kwargs):
     credit_card_balance_groupby_agg = Step(name='credit_card_balance_groupby_agg',
                                            transformer=fe.GroupbyAggregate(**config.credit_card_balance),
-                                           input_data=['credit_card_balance'],
-                                           adapter=Adapter({'table': E('credit_card_balance', 'X')}),
+                                           input_steps=[credit_card_balance_cleaned],
+                                           adapter=Adapter({'table': E(credit_card_balance_cleaned.name,
+                                                                       'credit_card')}),
                                            experiment_directory=config.pipeline.experiment_directory,
                                            **kwargs)
 
@@ -503,11 +614,12 @@ def _pos_cash_balance_groupby_agg(config, train_mode, suffix, **kwargs):
         return pos_cash_balance_agg_merge
 
 
-def _previous_applications_groupby_agg(config, train_mode, suffix, **kwargs):
+def _previous_applications_groupby_agg(previous_application_cleaned, config, train_mode, suffix, **kwargs):
     previous_applications_groupby_agg = Step(name='previous_applications_groupby_agg',
                                              transformer=fe.GroupbyAggregate(**config.previous_applications),
-                                             input_data=['previous_application'],
-                                             adapter=Adapter({'table': E('previous_application', 'X')}),
+                                             input_steps=[previous_application_cleaned],
+                                             adapter=Adapter({'table': E(previous_application_cleaned.name,
+                                                                         'previous_application')}),
                                              experiment_directory=config.pipeline.experiment_directory, **kwargs)
 
     previous_applications_agg_merge = Step(name='previous_applications_agg_merge{}'.format(suffix),
@@ -589,9 +701,7 @@ def _bureau_cleaning(config, suffix, **kwargs):
     return bureau_cleaning
 
 
-def _bureau(config, train_mode, suffix, **kwargs):
-    bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
-
+def _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs):
     bureau_hand_crafted = Step(name='bureau_hand_crafted',
                                transformer=fe.BureauFeatures(**config.bureau),
                                input_steps=[bureau_cleaned],
@@ -621,11 +731,24 @@ def _bureau(config, train_mode, suffix, **kwargs):
         return bureau_hand_crafted_merge
 
 
-def _credit_card_balance(config, train_mode, suffix, **kwargs):
+def _credit_card_balance_cleaning(config, suffix, **kwargs):
+    credit_card_balance_cleaning = Step(name='credit_card_balance_cleaning{}'.format(suffix),
+                                        transformer=dc.CreditCardCleaning(
+                                            **config.preprocessing.impute_missing),
+                                        input_data=['credit_card_balance'],
+                                        adapter=Adapter({'credit_card': E('credit_card_balance', 'X')}),
+                                        experiment_directory=config.pipeline.experiment_directory,
+                                        **kwargs)
+
+    return credit_card_balance_cleaning
+
+
+def _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix, **kwargs):
     credit_card_balance_hand_crafted = Step(name='credit_card_balance_hand_crafted',
                                             transformer=fe.CreditCardBalanceFeatures(**config.credit_card_balance),
-                                            input_data=['credit_card_balance'],
-                                            adapter=Adapter({'credit_card': E('credit_card_balance', 'X')}),
+                                            input_steps=[credit_card_balance_cleaned],
+                                            adapter=Adapter({'credit_card': E(credit_card_balance_cleaned.name,
+                                                                              'credit_card')}),
                                             experiment_directory=config.pipeline.experiment_directory,
                                             **kwargs)
 
@@ -699,9 +822,7 @@ def _previous_application_cleaning(config, suffix, **kwargs):
     return previous_application_cleaning
 
 
-def _previous_application(config, train_mode, suffix, **kwargs):
-    previous_application_cleaned = _previous_application_cleaning(config, suffix, **kwargs)
-
+def _previous_application(previous_application_cleaned, config, train_mode, suffix, **kwargs):
     previous_applications_hand_crafted = Step(name='previous_applications_hand_crafted',
                                               transformer=fe.PreviousApplicationFeatures(
                                                   **config.previous_applications),

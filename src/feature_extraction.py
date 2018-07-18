@@ -7,11 +7,10 @@ import pandas as pd
 from scipy.stats import kurtosis, iqr, skew
 from sklearn.externals import joblib
 from sklearn.linear_model import LinearRegression
-from swifter import swiftapply
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
-from .utils import parallel_apply
+from .utils import parallel_apply, safe_div
 
 logger = get_logger()
 
@@ -255,7 +254,14 @@ class ApplicationFeatures(BaseTransformer):
                                              'external_sources_mean',
                                              'external_sources_nanmedian',
                                              'short_employment',
-                                             'young_age']
+                                             'young_age',
+                                             'cnt_non_child',
+                                             'child_to_non_child_ratio',
+                                             'income_per_non_child',
+                                             'credit_per_person',
+                                             'credit_per_child',
+                                             'credit_per_non_child',
+                                             ]
 
     def transform(self, X, **kwargs):
         X['annuity_income_percentage'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
@@ -273,6 +279,12 @@ class ApplicationFeatures(BaseTransformer):
         X['phone_to_birth_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_BIRTH']
         X['phone_to_employ_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_EMPLOYED']
         X['external_sources_weighted'] = X.EXT_SOURCE_1 * 2 + X.EXT_SOURCE_2 * 3 + X.EXT_SOURCE_3 * 4
+        X['cnt_non_child'] = X['CNT_FAM_MEMBERS'] - X['CNT_CHILDREN']
+        X['child_to_non_child_ratio'] = X['CNT_CHILDREN'] / X['cnt_non_child']
+        X['income_per_non_child'] = X['AMT_INCOME_TOTAL'] / X['cnt_non_child']
+        X['credit_per_person'] = X['AMT_CREDIT'] / X['CNT_FAM_MEMBERS']
+        X['credit_per_child'] = X['AMT_CREDIT'] / (1 + X['CNT_CHILDREN'])
+        X['credit_per_non_child'] = X['AMT_CREDIT'] / X['cnt_non_child']
         for function_name in ['min', 'max', 'sum', 'mean', 'nanmedian']:
             X['external_sources_{}'.format(function_name)] = eval('np.{}'.format(function_name))(
                 X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
@@ -412,24 +424,125 @@ class CreditCardBalanceFeatures(BasicHandCraftedFeatures):
 
 
 class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
+    def __init__(self, last_k_agg_periods, last_k_trend_periods, num_workers=1, **kwargs):
+        super().__init__(num_workers=num_workers)
+        self.last_k_agg_periods = last_k_agg_periods
+        self.last_k_trend_periods = last_k_trend_periods
+
+        self.num_workers = num_workers
+        self.features = None
+
     def fit(self, pos_cash, **kwargs):
         pos_cash['is_contract_status_completed'] = pos_cash['NAME_CONTRACT_STATUS'] == 'Completed'
-        pos_cash_sorted = pos_cash.sort_values(['SK_ID_CURR', 'MONTHS_BALANCE'])
+        pos_cash['pos_cash_paid_late'] = (pos_cash['SK_DPD'] > 0).astype(int)
+        pos_cash['pos_cash_paid_late_with_tolerance'] = (pos_cash['SK_DPD_DEF'] > 0).astype(int)
 
         features = pd.DataFrame({'SK_ID_CURR': pos_cash['SK_ID_CURR'].unique()})
-
-        g = pos_cash_sorted.groupby('SK_ID_CURR')['CNT_INSTALMENT_FUTURE'].last().reset_index()
-        g.rename(index=str,
-                 columns={'CNT_INSTALMENT_FUTURE': 'pos_cash_remaining_installments'},
-                 inplace=True)
-        features = features.merge(g, on=['SK_ID_CURR'], how='left')
-
         groupby = pos_cash.groupby(['SK_ID_CURR'])
-        g = groupby['is_contract_status_completed'].agg('sum').reset_index()
-        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+        func = partial(POSCASHBalanceFeatures.generate_features,
+                       agg_periods=self.last_k_agg_periods,
+                       trend_periods=self.last_k_trend_periods)
+        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        features = features.merge(g, on='SK_ID_CURR', how='left')
 
         self.features = features
         return self
+
+    @staticmethod
+    def generate_features(gr, agg_periods, trend_periods):
+        one_time = POSCASHBalanceFeatures.one_time_features(gr)
+        all = POSCASHBalanceFeatures.all_installment_features(gr)
+        agg = POSCASHBalanceFeatures.last_k_installment_features(gr, agg_periods)
+        trend = POSCASHBalanceFeatures.trend_in_last_k_installment_features(gr, trend_periods)
+        last = POSCASHBalanceFeatures.last_loan_features(gr)
+        features = {**one_time, **all, **agg, **trend, **last}
+        return pd.Series(features)
+
+    @staticmethod
+    def one_time_features(gr):
+        gr_ = gr.copy()
+        gr_.sort_values(['MONTHS_BALANCE'], inplace=True)
+        features = {}
+
+        features['pos_cash_remaining_installments'] = gr_['CNT_INSTALMENT_FUTURE'].tail(1)
+        features['pos_cash_completed_contracts'] = gr_['is_contract_status_completed'].agg('sum')
+
+        return features
+
+    @staticmethod
+    def all_installment_features(gr):
+        return POSCASHBalanceFeatures.last_k_installment_features(gr, periods=[10e16])
+
+    @staticmethod
+    def last_k_installment_features(gr, periods):
+        gr_ = gr.copy()
+        gr_.sort_values(['MONTHS_BALANCE'], ascending=False, inplace=True)
+
+        features = {}
+        for period in periods:
+            if period > 10e10:
+                period_name = 'all_installment_'
+                gr_period = gr_.copy()
+            else:
+                period_name = 'last_{}_'.format(period)
+                gr_period = gr_.iloc[:period]
+
+            features = add_features_in_group(features, gr_period, 'pos_cash_paid_late',
+                                             ['count', 'mean'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'pos_cash_paid_late_with_tolerance',
+                                             ['count', 'mean'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'SK_DPD',
+                                             ['sum', 'mean', 'max', 'std', 'skew', 'kurt'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'SK_DPD_DEF',
+                                             ['sum', 'mean', 'max', 'std', 'skew', 'kurt'],
+                                             period_name)
+        return features
+
+    @staticmethod
+    def trend_in_last_k_installment_features(gr, periods):
+        gr_ = gr.copy()
+        gr_.sort_values(['MONTHS_BALANCE'], ascending=False, inplace=True)
+
+        features = {}
+        for period in periods:
+            gr_period = gr_.iloc[:period]
+
+            features = add_trend_feature(features, gr_period,
+                                         'SK_DPD', '{}_period_trend_'.format(period)
+                                         )
+            features = add_trend_feature(features, gr_period,
+                                         'SK_DPD_DEF', '{}_period_trend_'.format(period)
+                                         )
+            features = add_trend_feature(features, gr_period,
+                                         'CNT_INSTALMENT_FUTURE', '{}_period_trend_'.format(period)
+                                         )
+        return features
+
+    @staticmethod
+    def last_loan_features(gr):
+        gr_ = gr.copy()
+        gr_.sort_values(['MONTHS_BALANCE'], ascending=False, inplace=True)
+        last_installment_id = gr_['SK_ID_PREV'].iloc[0]
+        gr_ = gr_[gr_['SK_ID_PREV'] == last_installment_id]
+
+        features={}
+        features = add_features_in_group(features, gr_, 'pos_cash_paid_late',
+                                         ['count', 'sum', 'mean'],
+                                         'last_loan_')
+        features = add_features_in_group(features, gr_, 'pos_cash_paid_late_with_tolerance',
+                                         ['mean'],
+                                         'last_loan_')
+        features = add_features_in_group(features, gr_, 'SK_DPD',
+                                         ['sum', 'mean', 'max', 'std'],
+                                         'last_loan_')
+        features = add_features_in_group(features, gr_, 'SK_DPD_DEF',
+                                         ['sum', 'mean', 'max', 'std'],
+                                         'last_loan_')
+
+        return features
 
 
 class PreviousApplicationFeatures(BasicHandCraftedFeatures):
@@ -455,6 +568,18 @@ class PreviousApplicationFeatures(BasicHandCraftedFeatures):
 
         g = prev_app_sorted_groupby['SK_ID_PREV'].agg('nunique').reset_index()
         g.rename(index=str, columns={'SK_ID_PREV': 'previous_application_number_of_prev_application'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = prev_app_sorted.groupby(by=['SK_ID_CURR'])['previous_application_prev_was_refused'].mean().reset_index()
+        g.rename(index=str, columns={
+            'previous_application_prev_was_refused': 'previous_application_fraction_of_refused_applications'},
+                 inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        prev_app_sorted['prev_applications_prev_was_revolving_loan'] = (
+            prev_app_sorted['NAME_CONTRACT_TYPE'] == 'Revolving loans').astype('int')
+        g = prev_app_sorted.groupby(by=['SK_ID_CURR'])[
+            'prev_applications_prev_was_revolving_loan'].last().reset_index()
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
         for number in self.numbers_of_applications:
@@ -488,9 +613,10 @@ class PreviousApplicationFeatures(BasicHandCraftedFeatures):
 
 
 class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
-    def __init__(self, last_k_agg_periods, last_k_trend_periods, num_workers=1, **kwargs):
+    def __init__(self, last_k_agg_periods, last_k_agg_period_fractions, last_k_trend_periods, num_workers=1, **kwargs):
         super().__init__(num_workers=num_workers)
         self.last_k_agg_periods = last_k_agg_periods
+        self.last_k_agg_period_fractions = last_k_agg_period_fractions
         self.last_k_trend_periods = last_k_trend_periods
 
         self.num_workers = num_workers
@@ -508,6 +634,7 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
 
         func = partial(InstallmentPaymentsFeatures.generate_features,
                        agg_periods=self.last_k_agg_periods,
+                       period_fractions=self.last_k_agg_period_fractions,
                        trend_periods=self.last_k_trend_periods)
         g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
         features = features.merge(g, on='SK_ID_CURR', how='left')
@@ -516,9 +643,11 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
         return self
 
     @staticmethod
-    def generate_features(gr, agg_periods, trend_periods):
-        all = InstallmentPaymentsFeatures.last_k_installment_features(gr, periods=[10e16])
-        agg = InstallmentPaymentsFeatures.last_k_installment_features(gr, agg_periods)
+    def generate_features(gr, agg_periods, trend_periods, period_fractions):
+        all = InstallmentPaymentsFeatures.all_installment_features(gr)
+        agg = InstallmentPaymentsFeatures.last_k_installment_features_with_fractions(gr,
+                                                                                     agg_periods,
+                                                                                     period_fractions)
         trend = InstallmentPaymentsFeatures.trend_in_last_k_installment_features(gr, trend_periods)
         last = InstallmentPaymentsFeatures.last_loan_features(gr)
         features = {**all, **agg, **trend, **last}
@@ -529,6 +658,21 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
         return InstallmentPaymentsFeatures.last_k_installment_features(gr, periods=[10e16])
 
     @staticmethod
+    def last_k_installment_features_with_fractions(gr, periods, period_fractions):
+        features = InstallmentPaymentsFeatures.last_k_installment_features(gr, periods)
+
+        for short_period, long_period in period_fractions:
+            short_feature_names = get_feature_names_by_period(features, short_period)
+            long_feature_names = get_feature_names_by_period(features, long_period)
+
+            for short_feature, long_feature in zip(short_feature_names, long_feature_names):
+                old_name_chunk = '_{}_'.format(short_period)
+                new_name_chunk = '_{}by{}_fraction_'.format(short_period, long_period)
+                fraction_feature_name = short_feature.replace(old_name_chunk, new_name_chunk)
+                features[fraction_feature_name] = safe_div(features[short_feature], features[long_feature])
+        return features
+
+    @staticmethod
     def last_k_installment_features(gr, periods):
         gr_ = gr.copy()
         gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
@@ -536,7 +680,7 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
         features = {}
         for period in periods:
             if period > 10e10:
-                period_name = 'all_installment'
+                period_name = 'all_installment_'
                 gr_period = gr_.copy()
             else:
                 period_name = 'last_{}_'.format(period)
@@ -636,6 +780,7 @@ def add_features_in_group(features, gr_, feature_name, aggs, prefix):
             features['{}{}_iqr'.format(prefix, feature_name)] = iqr(gr_[feature_name])
         elif agg == 'median':
             features['{}{}_median'.format(prefix, feature_name)] = gr_[feature_name].median()
+
     return features
 
 
@@ -650,3 +795,7 @@ def add_trend_feature(features, gr, feature_name, prefix):
         trend = np.nan
     features['{}{}'.format(prefix, feature_name)] = trend
     return features
+
+
+def get_feature_names_by_period(features, period):
+    return sorted([feat for feat in features.keys() if '_{}_'.format(period) in feat])

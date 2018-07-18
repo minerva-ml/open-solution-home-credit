@@ -3,7 +3,9 @@ import os
 import random
 import sys
 import multiprocessing as mp
+from functools import reduce
 
+import glob
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -91,20 +93,20 @@ def calculate_rank(predictions):
 
 def chunk_groups(groupby_object, chunk_size):
     n_groups = groupby_object.ngroups
-    group_chunk, index_chunk = [],[]
+    group_chunk, index_chunk = [], []
     for i, (index, df) in enumerate(groupby_object):
         group_chunk.append(df)
         index_chunk.append(index)
 
         if (i + 1) % chunk_size == 0 or i + 1 == n_groups:
             group_chunk_, index_chunk_ = group_chunk.copy(), index_chunk.copy()
-            group_chunk, index_chunk = [],[]
+            group_chunk, index_chunk = [], []
             yield index_chunk_, group_chunk_
 
 
 def parallel_apply(groups, func, index_name='Index', num_workers=1, chunk_size=100000):
     n_chunks = np.ceil(1.0 * groups.ngroups / chunk_size)
-    indeces, features  = [],[]
+    indeces, features = [], []
     for index_chunk, groups_chunk in tqdm(chunk_groups(groups, chunk_size), total=n_chunks):
         with mp.pool.Pool(num_workers) as executor:
             features_chunk = executor.map(func, groups_chunk)
@@ -115,3 +117,42 @@ def parallel_apply(groups, func, index_name='Index', num_workers=1, chunk_size=1
     features.index = indeces
     features.index.name = index_name
     return features
+
+
+def read_oof_predictions(prediction_dir, train_filepath, id_column, target_column):
+    labels = pd.read_csv(train_filepath, usecols=[id_column, target_column])
+
+    filepaths_train, filepaths_test = [], []
+    for filepath in sorted(glob.glob('{}/*'.format(prediction_dir))):
+        if filepath.endswith('_oof_train.csv'):
+            filepaths_train.append(filepath)
+        elif filepath.endswith('_oof_test.csv'):
+            filepaths_test.append(filepath)
+
+    train_dfs = []
+    for filepath in filepaths_train:
+        train_dfs.append(pd.read_csv(filepath))
+    train_dfs = reduce(lambda df1, df2: pd.merge(df1, df2, on=[id_column, 'fold_id']), train_dfs)
+    train_dfs.columns = _clean_columns(train_dfs, keep_colnames=[id_column, 'fold_id'])
+    train_dfs = pd.merge(train_dfs, labels, on=[id_column])
+
+    test_dfs = []
+    for filepath in filepaths_test:
+        test_dfs.append(pd.read_csv(filepath))
+    test_dfs = reduce(lambda df1, df2: pd.merge(df1, df2, on=[id_column, 'fold_id']), test_dfs)
+    test_dfs.columns = _clean_columns(test_dfs, keep_colnames=[id_column, 'fold_id'])
+    return train_dfs, test_dfs
+
+
+def _clean_columns(df, keep_colnames):
+    new_colnames = keep_colnames
+    feature_colnames = df.drop(keep_colnames, axis=1).columns
+    for i, colname in enumerate(feature_colnames):
+        new_colnames.append('model_{}'.format(i))
+    return new_colnames
+
+def safe_div(a, b):
+    try:
+        return float(a) / float(b)
+    except:
+        return 0.0
