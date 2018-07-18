@@ -777,7 +777,7 @@ def _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix
 
 
 def _pos_cash_balance(config, train_mode, suffix, **kwargs):
-    pos_cash_balance_hand_crafted = Step(name='pos_cash_balance_hand_crafted{}'.format(suffix),
+    pos_cash_balance_hand_crafted = Step(name='pos_cash_balance_hand_crafted',
                                          transformer=fe.POSCASHBalanceFeatures(**config.pos_cash_balance),
                                          input_data=['pos_cash_balance'],
                                          adapter=Adapter({'pos_cash': E('pos_cash_balance', 'X')}),
