@@ -202,7 +202,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
             train_mode,
             suffix,
             **kwargs)
-        bureau_balance, bureau_balance_valid = _bureau_balance(config, train_mode, suffix, **kwargs)
+        #bureau_balance, bureau_balance_valid = _bureau_balance(config, train_mode, suffix, **kwargs)
         credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
         credit_card_balance, credit_card_balance_valid = _credit_card_balance(
             credit_card_balance_cleaned,
@@ -253,7 +253,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                 application_agg,
                                 bureau,
                                 bureau_agg,
-                                bureau_balance,
+                                #bureau_balance,
                                 credit_card_balance,
                                 credit_card_balance_agg,
                                 installment_payments,
@@ -267,7 +267,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                       application_agg_valid,
                                       bureau_valid,
                                       bureau_agg_valid,
-                                      bureau_balance_valid,
+                                      #bureau_balance_valid,
                                       credit_card_balance_valid,
                                       credit_card_balance_agg_valid,
                                       installment_payments_valid,
@@ -291,7 +291,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         application = _application(config, train_mode, suffix, **kwargs)
         bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
         bureau = _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs)
-        bureau_balance = _bureau_balance(config, train_mode, suffix, **kwargs)
+        #bureau_balance = _bureau_balance(config, train_mode, suffix, **kwargs)
         credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
         credit_card_balance = _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix, **kwargs)
         pos_cash_balance = _pos_cash_balance(config, train_mode, suffix, **kwargs)
@@ -312,7 +312,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                                               application_agg,
                                                               bureau,
                                                               bureau_agg,
-                                                              bureau_balance,
+                                                              #bureau_balance,
                                                               credit_card_balance,
                                                               credit_card_balance_agg,
                                                               installment_payments,

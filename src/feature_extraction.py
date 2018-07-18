@@ -347,58 +347,33 @@ class BureauFeatures(BasicHandCraftedFeatures):
         features['bureau_overdue_debt_ratio'] = \
             features['bureau_total_customer_overdue'] / features['bureau_total_customer_debt']
 
-        self.features = features
-        return self
-
-
-class BureauBalanceFeatures(BasicHandCraftedFeatures):
-    def __init__(self, last_k_agg_periods, last_k_trend_periods, num_workers=1, **kwargs):
-        super().__init__(num_workers=num_workers)
-        self.last_k_agg_periods = last_k_agg_periods
-        self.last_k_trend_periods = last_k_trend_periods
-
-        self.num_workers = num_workers
-        self.features = None
-
-    def fit(self, bureau_balance, **kwargs):
-        bureau_balance['bureau_balance_dpd_level'] = bureau_balance['STATUS'].apply(BureauBalanceFeatures._status_to_int)
-        bureau_balance['bureau_balance_status_unknown'] = (bureau_balance['STATUS'] == 'X').astype(int)
-
-        features = pd.DataFrame({'SK_ID_CURR': bureau_balance['SK_ID_CURR'].unique()})
-        groupby = bureau_balance.groupby(['SK_ID_CURR'])
-        func = partial(BureauBalanceFeatures.generate_features,
-                       agg_periods=self.last_k_agg_periods,
-                       trend_periods=self.last_k_trend_periods)
-        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        #groupby = bureau.groupby(['SK_ID_CURR'])
+        #func = partial(BureauFeatures.generate_features,
+        #               agg_periods=self.last_k_agg_periods,
+        #               period_fractions = self.last_k_agg_periods_fractions,
+        #               trend_periods=self.last_k_trend_periods)
+        #g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
         features = features.merge(g, on='SK_ID_CURR', how='left')
 
         self.features = features
         return self
 
     @staticmethod
-    def _status_to_int(status):
-        if status in ['X', 'C']:
-            return 0
-        if pd.isnull(status):
-            return np.nan
-        return int(status)
-
-    @staticmethod
     def generate_features(gr, agg_periods, trend_periods):
-        all = BureauBalanceFeatures.all_installment_features(gr)
-        agg = BureauBalanceFeatures.last_k_installment_features(gr, agg_periods)
-        trend = BureauBalanceFeatures.trend_in_last_k_installment_features(gr, trend_periods)
+        all = BureauFeatures.all_installment_features(gr)
+        agg = BureauFeatures.last_k_installment_features(gr, agg_periods)
+        trend = BureauFeatures.trend_in_last_k_installment_features(gr, trend_periods)
         features = {**all, **agg, **trend}
         return pd.Series(features)
 
     @staticmethod
     def all_installment_features(gr):
-        return BureauBalanceFeatures.last_k_installment_features(gr, periods=[10e16])
+        return BureauFeatures.last_k_installment_features(gr, periods=[10e16])
 
     @staticmethod
     def last_k_installment_features(gr, periods):
         gr_ = gr.copy()
-        gr_.sort_values(['MONTHS_BALANCE'], ascending=False, inplace=True)
+        gr_.sort_values(['DAYS_CREDIT'], ascending=False, inplace=True)
 
         features = {}
         for period in periods:
@@ -425,6 +400,106 @@ class BureauBalanceFeatures(BasicHandCraftedFeatures):
         features = {}
         for period in periods:
             gr_period = gr_.iloc[:period]
+
+            features = add_trend_feature(features, gr_period,
+                                         'bureau_balance_dpd_level', '{}_period_trend_'.format(period)
+                                         )
+        return features
+
+
+class BureauBalanceFeatures(BasicHandCraftedFeatures):
+    def __init__(self, last_k_agg_periods, last_k_agg_period_fractions, last_k_trend_periods, num_workers=1, **kwargs):
+        super().__init__(num_workers=num_workers)
+        self.last_k_agg_periods = last_k_agg_periods
+        self.last_k_agg_period_fractions = last_k_agg_period_fractions
+        self.last_k_trend_periods = last_k_trend_periods
+
+        self.num_workers = num_workers
+        self.features = None
+
+    def fit(self, bureau_balance, **kwargs):
+        bureau_balance['bureau_balance_dpd_level'] = bureau_balance['STATUS'].apply(BureauBalanceFeatures._status_to_int)
+        bureau_balance['bureau_balance_status_unknown'] = (bureau_balance['STATUS'] == 'X').astype(int)
+
+        features = pd.DataFrame({'SK_ID_CURR': bureau_balance['SK_ID_CURR'].unique()})
+        groupby = bureau_balance.groupby(['SK_ID_CURR'])
+        func = partial(BureauBalanceFeatures.generate_features,
+                       agg_periods=self.last_k_agg_periods,
+                       period_fractions = self.last_k_agg_period_fractions,
+                       trend_periods=self.last_k_trend_periods)
+        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+
+        self.features = features
+        return self
+
+    @staticmethod
+    def _status_to_int(status):
+        if status in ['X', 'C']:
+            return 0
+        if pd.isnull(status):
+            return np.nan
+        return int(status)
+
+    @staticmethod
+    def generate_features(gr, agg_periods, period_fractions, trend_periods):
+        all = BureauBalanceFeatures.all_installment_features(gr)
+        agg = BureauBalanceFeatures.last_k_installment_features_with_fractions(gr, agg_periods, period_fractions)
+        trend = BureauBalanceFeatures.trend_in_last_k_installment_features(gr, trend_periods)
+        features = {**all, **agg, **trend}
+        return pd.Series(features)
+
+    @staticmethod
+    def all_installment_features(gr):
+        return BureauBalanceFeatures.last_k_installment_features(gr, periods=[10e16])
+
+    @staticmethod
+    def last_k_installment_features_with_fractions(gr, periods, period_fractions):
+        features = BureauBalanceFeatures.last_k_installment_features(gr, periods)
+
+        for short_period, long_period in period_fractions:
+            short_feature_names = get_feature_names_by_period(features, short_period)
+            long_feature_names = get_feature_names_by_period(features, long_period)
+
+            for short_feature, long_feature in zip(short_feature_names, long_feature_names):
+                old_name_chunk = '_{}_'.format(short_period)
+                new_name_chunk = '_{}by{}_fraction_'.format(short_period, long_period)
+                fraction_feature_name = short_feature.replace(old_name_chunk, new_name_chunk)
+                features[fraction_feature_name] = safe_div(features[short_feature], features[long_feature])
+        return features
+
+    @staticmethod
+    def last_k_installment_features(gr, periods):
+        gr_ = gr.copy()
+        time_column = 'MONTHS_BALANCE'
+        gr_.sort_values([time_column], ascending=False, inplace=True)
+
+        features = {}
+        for period in periods:
+            if period > 10e10:
+                period_name = 'all_installment_'
+                gr_period = gr_.copy()
+            else:
+                period_name = 'last_{}_'.format(period)
+                gr_period = gr_[gr_[time_column] >= (-1)*period]
+
+            features = add_features_in_group(features, gr_period, 'bureau_balance_dpd_level',
+                                             ['sum', 'mean', 'max', 'std', 'skew', 'kurt'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'bureau_balance_status_unknown',
+                                             ['sum', 'mean'],
+                                             period_name)
+        return features
+
+    @staticmethod
+    def trend_in_last_k_installment_features(gr, periods):
+        gr_ = gr.copy()
+        time_column = 'MONTHS_BALANCE'
+        gr_.sort_values([time_column], ascending=False, inplace=True)
+
+        features = {}
+        for period in periods:
+            gr_period = gr_[gr_[time_column] >= (-1) * period]
 
             features = add_trend_feature(features, gr_period,
                                          'bureau_balance_dpd_level', '{}_period_trend_'.format(period)
@@ -757,7 +832,6 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
     @staticmethod
     def last_k_installment_features(gr, periods):
         gr_ = gr.copy()
-        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
 
         features = {}
         for period in periods:
@@ -766,7 +840,7 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
                 gr_period = gr_.copy()
             else:
                 period_name = 'last_{}_'.format(period)
-                gr_period = gr_.iloc[:period]
+                gr_period = gr_[gr_['DAYS_INSTALMENT'] > (-1) * period]
 
             features = add_features_in_group(features, gr_period, 'NUM_INSTALMENT_VERSION',
                                              ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
@@ -789,11 +863,10 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
     @staticmethod
     def trend_in_last_k_installment_features(gr, periods):
         gr_ = gr.copy()
-        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
 
         features = {}
         for period in periods:
-            gr_period = gr_.iloc[:period]
+            gr_period = gr_[gr_['DAYS_INSTALMENT'] > (-1) * period]
 
             features = add_trend_feature(features, gr_period,
                                          'installment_paid_late_in_days', '{}_period_trend_'.format(period)
