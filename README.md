@@ -29,7 +29,8 @@ In this open source solution you will find references to the [neptune.ml](https:
 |[solution 2](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-2)|*seedling* :seedling:|?|0.747|[Sklearn and XGBoost algorithms and groupby features](https://github.com/neptune-ml/open-solution-home-credit/wiki/Sklearn-and-XGBoost-algorithms-and-groupby-features)|
 |[solution 3](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-3)|*blossom* :blossom:|0.7840|0.790|[LightGBM on selected features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-on-selected-features)|
 |[solution 4](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-4)|*tulip* :tulip: |0.7905|0.801|[LightGBM with smarter features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-with-smarter-features)|
-|solution 5|*sunflower* :sunflower:|0.7950|0.804|[LightGBM clean dynamic features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-clean-dynamic-features)|
+|[solution 5](https://github.com/neptune-ml/open-solution-home-credit/tree/solution-5)|*sunflower* :sunflower:|0.7950|0.804|[LightGBM clean dynamic features](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-clean-dynamic-features)|
+|solution 6|*four leaf clover* :four_leaf_clover:|||:construction_worker_woman: *in progress...*|
 
 ## Start experimenting with ready-to-use code
 You can jump start your participation in the competition by using our starter pack. Installation instruction below will guide you through the setup.
