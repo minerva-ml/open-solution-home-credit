@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from steppy.base import BaseTransformer
 from toolkit.sklearn_transformers.models import SklearnClassifier
 import xgboost as xgb
+import catboost as ctb
 
 from .utils import get_logger
 
@@ -176,6 +177,42 @@ class LightGBM(BaseTransformer):
         else:
             raise TypeError(
                 '"target" must be "numpy.ndarray" or "Pandas.Series" or "list", got {} instead.'.format(type(target)))
+
+
+class CatBoost(BaseTransformer):
+    def __init__(self, **kwargs):
+        self.estimator = ctb.CatBoostClassifier(**kwargs)
+
+    def fit(self,
+            X,
+            y,
+            X_valid,
+            y_valid,
+            feature_names=None,
+            categorical_features=None,
+            **kwargs):
+        categorical_indeces = self._get_categorical_indeces(feature_names, categorical_features)
+        self.estimator.fit(X, y,
+                           eval_set=(X_valid, y_valid),
+                           cat_features=categorical_indeces)
+        return self
+
+    def transform(self, X, **kwargs):
+        prediction = self.estimator.predict_proba(X)
+        return {'prediction': prediction}
+
+    def load(self, filepath):
+        self.estimator = joblib.load(filepath)
+        return self
+
+    def persist(self, filepath):
+        joblib.dump(self.estimator, filepath)
+
+    def _get_categorical_indeces(self, feature_names, categorical_features):
+        if categorical_features:
+            return [feature_names.index(feature) for feature in categorical_features]
+        else:
+            return None
 
 
 def get_sklearn_classifier(ClassifierClass, normalize, **kwargs):
