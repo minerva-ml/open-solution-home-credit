@@ -86,19 +86,16 @@ parameters:
   lgbm__is_unbalance: False
 
 # Catboost
-  catboost_random_search_runs: 1
+  catboost_random_search_runs: 0
   catboost__loss_function: Logloss
   catboost__eval_metric: AUC
-  catboost__iterations: 1000
-  catboost__learning_rate: 0.03
+  catboost__iterations: 5000
+  catboost__learning_rate: 0.05
   catboost__depth: 6
   catboost__l2_leaf_reg: 3
   catboost__border_count: 128
   catboost__model_size_reg: 0.5
-  catboost__rsm: 1
-  catboost__rsm: 1.0
-  catboost__subsample: 0.66
-  catboost__sampling_frequency: PerTreeLevel
+  catboost__colsample_bylevel: 1.0
 
 # XGBoost
   xgb_random_search_runs: 50
