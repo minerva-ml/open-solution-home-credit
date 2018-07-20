@@ -191,6 +191,12 @@ class CatBoost(BaseTransformer):
             feature_names=None,
             categorical_features=None,
             **kwargs):
+
+        logger.info('Catboost, train data shape        {}'.format(X.shape))
+        logger.info('Catboost, validation data shape   {}'.format(X_valid.shape))
+        logger.info('Catboost, train labels shape      {}'.format(y.shape))
+        logger.info('Catboost, validation labels shape {}'.format(y_valid.shape))
+
         categorical_indeces = self._get_categorical_indeces(feature_names, categorical_features)
         self.estimator.fit(X, y,
                            eval_set=(X_valid, y_valid),
@@ -198,7 +204,7 @@ class CatBoost(BaseTransformer):
         return self
 
     def transform(self, X, **kwargs):
-        prediction = self.estimator.predict_proba(X)
+        prediction = self.estimator.predict_proba(X)[:, 1]
         return {'prediction': prediction}
 
     def load(self, filepath):
