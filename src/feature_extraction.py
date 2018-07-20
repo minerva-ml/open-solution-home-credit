@@ -346,8 +346,6 @@ class BureauFeatures(BasicHandCraftedFeatures):
         features['bureau_overdue_debt_ratio'] = \
             features['bureau_total_customer_overdue'] / features['bureau_total_customer_debt']
 
-        features = features.merge(g, on='SK_ID_CURR', how='left')
-
         self.features = features
         return self
 
@@ -363,7 +361,7 @@ class BureauBalanceFeatures(BasicHandCraftedFeatures):
         self.features = None
 
     def fit(self, bureau_balance, **kwargs):
-        bureau_balance['bureau_balance_dpd_level'] = bureau_balance['STATUS'].apply(BureauBalanceFeatures._status_to_int)
+        bureau_balance['bureau_balance_dpd_level'] = bureau_balance['STATUS'].apply(self._status_to_int)
         bureau_balance['bureau_balance_status_unknown'] = (bureau_balance['STATUS'] == 'X').astype(int)
         bureau_balance['bureau_balance_no_history'] = bureau_balance['MONTHS_BALANCE'].isnull().astype(int)
 
@@ -390,8 +388,7 @@ class BureauBalanceFeatures(BasicHandCraftedFeatures):
         self.features = features
         return self
 
-    @staticmethod
-    def _status_to_int(status):
+    def _status_to_int(self, status):
         if status in ['X', 'C']:
             return 0
         if pd.isnull(status):
@@ -890,7 +887,7 @@ def add_last_k_features_fractions(features, id, period_fractions):
             new_name_chunk = '_{}by{}_fraction_'.format(short_period, long_period)
             fraction_feature_name = short_feature.replace(old_name_chunk, new_name_chunk)
             fraction_features[fraction_feature_name] = features[short_feature] / features[long_feature]
-    return fraction_features.fillna(0.0)
+    return fraction_features
 
 
 def get_feature_names_by_period(features, period):
