@@ -297,6 +297,14 @@ SOLUTION_CONFIG = AttrDict({
                'num_workers': params.num_workers
                },
 
+    'bureau_balance': {'table_name': 'bureau_balance',
+                       'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                       'last_k_agg_periods': parameter_eval(params.bureau_balance__last_k_agg_periods),
+                       'last_k_agg_period_fractions': parameter_eval(params.bureau_balance__last_k_agg_period_fractions),
+                       'last_k_trend_periods': parameter_eval(params.bureau_balance__last_k_trend_periods),
+                       'num_workers': params.num_workers
+                       },
+
     'credit_card_balance': {'table_name': 'credit_card_balance',
                             'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                             'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES,
@@ -318,6 +326,8 @@ SOLUTION_CONFIG = AttrDict({
                          'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES,
                          'last_k_agg_periods': parameter_eval(params.pos_cash__last_k_agg_periods),
                          'last_k_trend_periods': parameter_eval(params.pos_cash__last_k_trend_periods),
+                         'last_k_agg_period_fractions': parameter_eval(
+                                  params.pos_cash__last_k_agg_period_fractions),
                          'num_workers': params.num_workers
                          },
 

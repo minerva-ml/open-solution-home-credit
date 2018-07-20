@@ -56,6 +56,10 @@ parameters:
   installments__last_k_agg_period_fractions: None
   pos_cash__last_k_trend_periods: None
   pos_cash__last_k_agg_periods: None
+  pos_cash__last_k_agg_period_fractions: None
+  bureau_balance__last_k_trend_periods: None
+  bureau_balance__last_k_agg_periods: None
+  bureau_balance__last_k_agg_period_fractions: None
   application_aggregation__use_diffs_only: True
   use_nan_count: True
 

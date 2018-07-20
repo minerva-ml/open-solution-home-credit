@@ -51,11 +51,15 @@ parameters:
   fill_value: 0
 
 # Feature Extraction
-  installments__last_k_trend_periods: '[10, 50, 100, 500]'
-  installments__last_k_agg_periods: '[1, 5, 10, 20, 50, 100]'
-  installments__last_k_agg_period_fractions: '[(5,20),(5,50),(10,50),(10,100),(20,100)]'
-  pos_cash__last_k_trend_periods: '[6, 12]'
-  pos_cash__last_k_agg_periods: '[6, 12, 30]'
+  installments__last_k_trend_periods: '[180, 360, 720]'
+  installments__last_k_agg_periods: '[60, 180, 360, 720, 1500]'
+  installments__last_k_agg_period_fractions: '[(60,180),(60,360),(180,1500),(360,1500)]'
+  pos_cash__last_k_trend_periods: '[6, 12, 60]'
+  pos_cash__last_k_agg_periods: '[6, 12, 24, 60]'
+  pos_cash__last_k_agg_period_fractions: '[(6,24), (12, 60)]'
+  bureau_balance__last_k_trend_periods: '[6, 12, 60]'
+  bureau_balance__last_k_agg_periods: '[6, 12, 24, 60]'
+  bureau_balance__last_k_agg_period_fractions: '[(6,24), (12, 60)]'
   application_aggregation__use_diffs_only: True
   use_nan_count: True
 

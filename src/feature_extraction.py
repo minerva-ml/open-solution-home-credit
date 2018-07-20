@@ -350,6 +350,99 @@ class BureauFeatures(BasicHandCraftedFeatures):
         return self
 
 
+class BureauBalanceFeatures(BasicHandCraftedFeatures):
+    def __init__(self, last_k_agg_periods, last_k_agg_period_fractions, last_k_trend_periods, num_workers=1, **kwargs):
+        super().__init__(num_workers=num_workers)
+        self.last_k_agg_periods = last_k_agg_periods
+        self.last_k_agg_period_fractions = last_k_agg_period_fractions
+        self.last_k_trend_periods = last_k_trend_periods
+
+        self.num_workers = num_workers
+        self.features = None
+
+    def fit(self, bureau_balance, **kwargs):
+        bureau_balance['bureau_balance_dpd_level'] = bureau_balance['STATUS'].apply(self._status_to_int)
+        bureau_balance['bureau_balance_status_unknown'] = (bureau_balance['STATUS'] == 'X').astype(int)
+        bureau_balance['bureau_balance_no_history'] = bureau_balance['MONTHS_BALANCE'].isnull().astype(int)
+
+        features = pd.DataFrame({'SK_ID_CURR': bureau_balance['SK_ID_CURR'].unique()})
+        groupby = bureau_balance.groupby(['SK_ID_CURR'])
+
+        g = groupby['bureau_balance_no_history'].all().astype(int).reset_index()
+        g.rename(index=str, columns={'bureau_balance_no_history': 'bureau_balance_no_history'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['bureau_balance_no_history'].any().astype(int).reset_index()
+        g.rename(index=str, columns={'bureau_balance_no_history': 'bureau_balance_partial_history'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        func = partial(BureauBalanceFeatures.generate_features,
+                       agg_periods=self.last_k_agg_periods,
+                       trend_periods=self.last_k_trend_periods)
+        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+
+        g = add_last_k_features_fractions(features, 'SK_ID_CURR', period_fractions=self.last_k_agg_period_fractions)
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+
+        self.features = features
+        return self
+
+    def _status_to_int(self, status):
+        if status in ['X', 'C']:
+            return 0
+        if pd.isnull(status):
+            return np.nan
+        return int(status)
+
+    @staticmethod
+    def generate_features(gr, agg_periods, trend_periods):
+        all = BureauBalanceFeatures.all_installment_features(gr)
+        agg = BureauBalanceFeatures.last_k_installment_features(gr, agg_periods)
+        trend = BureauBalanceFeatures.trend_in_last_k_installment_features(gr, trend_periods)
+        features = {**all, **agg, **trend}
+        return pd.Series(features)
+
+    @staticmethod
+    def all_installment_features(gr):
+        return BureauBalanceFeatures.last_k_installment_features(gr, periods=[10e16])
+
+    @staticmethod
+    def last_k_installment_features(gr, periods):
+        gr_ = gr.copy()
+
+        features = {}
+        for period in periods:
+            if period > 10e10:
+                period_name = 'all_installment_'
+                gr_period = gr_.copy()
+            else:
+                period_name = 'last_{}_'.format(period)
+                gr_period = gr_[gr_['MONTHS_BALANCE'] >= (-1)*period]
+
+            features = add_features_in_group(features, gr_period, 'bureau_balance_dpd_level',
+                                             ['sum', 'mean', 'max', 'std', 'skew', 'kurt'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'bureau_balance_status_unknown',
+                                             ['sum', 'mean'],
+                                             period_name)
+        return features
+
+    @staticmethod
+    def trend_in_last_k_installment_features(gr, periods):
+        gr_ = gr.copy()
+        gr_.sort_values(['MONTHS_BALANCE'], ascending=False, inplace=True)
+
+        features = {}
+        for period in periods:
+            gr_period = gr_[gr_['MONTHS_BALANCE'] >= (-1) * period]
+
+            features = add_trend_feature(features, gr_period,
+                                         'bureau_balance_dpd_level', '{}_period_trend_'.format(period)
+                                         )
+        return features
+
+
 class CreditCardBalanceFeatures(BasicHandCraftedFeatures):
     def fit(self, credit_card, **kwargs):
         static_features = self._static_features(credit_card, **kwargs)
@@ -424,10 +517,11 @@ class CreditCardBalanceFeatures(BasicHandCraftedFeatures):
 
 
 class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
-    def __init__(self, last_k_agg_periods, last_k_trend_periods, num_workers=1, **kwargs):
+    def __init__(self, last_k_agg_periods, last_k_trend_periods, last_k_agg_period_fractions, num_workers=1, **kwargs):
         super().__init__(num_workers=num_workers)
         self.last_k_agg_periods = last_k_agg_periods
         self.last_k_trend_periods = last_k_trend_periods
+        self.last_k_agg_period_fractions = last_k_agg_period_fractions
 
         self.num_workers = num_workers
         self.features = None
@@ -443,6 +537,9 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
                        agg_periods=self.last_k_agg_periods,
                        trend_periods=self.last_k_trend_periods)
         g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+
+        g = add_last_k_features_fractions(features, 'SK_ID_CURR', period_fractions=self.last_k_agg_period_fractions)
         features = features.merge(g, on='SK_ID_CURR', how='left')
 
         self.features = features
@@ -476,7 +573,6 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
     @staticmethod
     def last_k_installment_features(gr, periods):
         gr_ = gr.copy()
-        gr_.sort_values(['MONTHS_BALANCE'], ascending=False, inplace=True)
 
         features = {}
         for period in periods:
@@ -485,7 +581,7 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
                 gr_period = gr_.copy()
             else:
                 period_name = 'last_{}_'.format(period)
-                gr_period = gr_.iloc[:period]
+                gr_period = gr_[gr_['MONTHS_BALANCE'] >= (-1) * period]
 
             features = add_features_in_group(features, gr_period, 'pos_cash_paid_late',
                                              ['count', 'mean'],
@@ -494,10 +590,10 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
                                              ['count', 'mean'],
                                              period_name)
             features = add_features_in_group(features, gr_period, 'SK_DPD',
-                                             ['sum', 'mean', 'max', 'std', 'skew', 'kurt'],
+                                             ['mean', 'max', 'std'],
                                              period_name)
             features = add_features_in_group(features, gr_period, 'SK_DPD_DEF',
-                                             ['sum', 'mean', 'max', 'std', 'skew', 'kurt'],
+                                             ['mean', 'max', 'std'],
                                              period_name)
         return features
 
@@ -508,7 +604,7 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
 
         features = {}
         for period in periods:
-            gr_period = gr_.iloc[:period]
+            gr_period = gr_[gr_['MONTHS_BALANCE'] >= (-1) * period]
 
             features = add_trend_feature(features, gr_period,
                                          'SK_DPD', '{}_period_trend_'.format(period)
@@ -524,22 +620,21 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
     @staticmethod
     def last_loan_features(gr):
         gr_ = gr.copy()
-        gr_.sort_values(['MONTHS_BALANCE'], ascending=False, inplace=True)
-        last_installment_id = gr_['SK_ID_PREV'].iloc[0]
-        gr_ = gr_[gr_['SK_ID_PREV'] == last_installment_id]
+        last_installments_ids = gr_[gr_['MONTHS_BALANCE'] == gr_['MONTHS_BALANCE'].max()]['SK_ID_PREV']
+        gr_ = gr_[gr_['SK_ID_PREV'].isin(last_installments_ids)]
 
         features={}
         features = add_features_in_group(features, gr_, 'pos_cash_paid_late',
-                                         ['count', 'sum', 'mean'],
+                                         ['sum', 'mean'],
                                          'last_loan_')
         features = add_features_in_group(features, gr_, 'pos_cash_paid_late_with_tolerance',
-                                         ['mean'],
+                                         ['sum', 'mean'],
                                          'last_loan_')
         features = add_features_in_group(features, gr_, 'SK_DPD',
-                                         ['sum', 'mean', 'max', 'std'],
+                                         ['mean', 'max', 'std'],
                                          'last_loan_')
         features = add_features_in_group(features, gr_, 'SK_DPD_DEF',
-                                         ['sum', 'mean', 'max', 'std'],
+                                         ['mean', 'max', 'std'],
                                          'last_loan_')
 
         return features
@@ -634,20 +729,20 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
 
         func = partial(InstallmentPaymentsFeatures.generate_features,
                        agg_periods=self.last_k_agg_periods,
-                       period_fractions=self.last_k_agg_period_fractions,
                        trend_periods=self.last_k_trend_periods)
         g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+
+        g = add_last_k_features_fractions(features, 'SK_ID_CURR', period_fractions=self.last_k_agg_period_fractions)
         features = features.merge(g, on='SK_ID_CURR', how='left')
 
         self.features = features
         return self
 
     @staticmethod
-    def generate_features(gr, agg_periods, trend_periods, period_fractions):
+    def generate_features(gr, agg_periods, trend_periods):
         all = InstallmentPaymentsFeatures.all_installment_features(gr)
-        agg = InstallmentPaymentsFeatures.last_k_installment_features_with_fractions(gr,
-                                                                                     agg_periods,
-                                                                                     period_fractions)
+        agg = InstallmentPaymentsFeatures.last_k_installment_features(gr, agg_periods)
         trend = InstallmentPaymentsFeatures.trend_in_last_k_installment_features(gr, trend_periods)
         last = InstallmentPaymentsFeatures.last_loan_features(gr)
         features = {**all, **agg, **trend, **last}
@@ -658,24 +753,8 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
         return InstallmentPaymentsFeatures.last_k_installment_features(gr, periods=[10e16])
 
     @staticmethod
-    def last_k_installment_features_with_fractions(gr, periods, period_fractions):
-        features = InstallmentPaymentsFeatures.last_k_installment_features(gr, periods)
-
-        for short_period, long_period in period_fractions:
-            short_feature_names = get_feature_names_by_period(features, short_period)
-            long_feature_names = get_feature_names_by_period(features, long_period)
-
-            for short_feature, long_feature in zip(short_feature_names, long_feature_names):
-                old_name_chunk = '_{}_'.format(short_period)
-                new_name_chunk = '_{}by{}_fraction_'.format(short_period, long_period)
-                fraction_feature_name = short_feature.replace(old_name_chunk, new_name_chunk)
-                features[fraction_feature_name] = safe_div(features[short_feature], features[long_feature])
-        return features
-
-    @staticmethod
     def last_k_installment_features(gr, periods):
         gr_ = gr.copy()
-        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
 
         features = {}
         for period in periods:
@@ -684,20 +763,20 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
                 gr_period = gr_.copy()
             else:
                 period_name = 'last_{}_'.format(period)
-                gr_period = gr_.iloc[:period]
+                gr_period = gr_[gr_['DAYS_INSTALMENT'] > (-1) * period]
 
             features = add_features_in_group(features, gr_period, 'NUM_INSTALMENT_VERSION',
-                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
+                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'iqr'],
                                              period_name)
 
             features = add_features_in_group(features, gr_period, 'installment_paid_late_in_days',
-                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
+                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'kurt', 'iqr'],
                                              period_name)
             features = add_features_in_group(features, gr_period, 'installment_paid_late',
                                              ['count', 'mean'],
                                              period_name)
             features = add_features_in_group(features, gr_period, 'installment_paid_over_amount',
-                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'skew', 'kurt', 'iqr'],
+                                             ['sum', 'mean', 'max', 'min', 'std', 'median', 'kurt'],
                                              period_name)
             features = add_features_in_group(features, gr_period, 'installment_paid_over',
                                              ['count', 'mean'],
@@ -711,7 +790,7 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
 
         features = {}
         for period in periods:
-            gr_period = gr_.iloc[:period]
+            gr_period = gr_[gr_['DAYS_INSTALMENT'] > (-1) * period]
 
             features = add_trend_feature(features, gr_period,
                                          'installment_paid_late_in_days', '{}_period_trend_'.format(period)
@@ -724,9 +803,8 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
     @staticmethod
     def last_loan_features(gr):
         gr_ = gr.copy()
-        gr_.sort_values(['DAYS_INSTALMENT'], ascending=False, inplace=True)
-        last_installment_id = gr_['SK_ID_PREV'].iloc[0]
-        gr_ = gr_[gr_['SK_ID_PREV'] == last_installment_id]
+        last_installments_ids = gr_[gr_['DAYS_INSTALMENT']==gr_['DAYS_INSTALMENT'].max()]['SK_ID_PREV']
+        gr_ = gr_[gr_['SK_ID_PREV'].isin(last_installments_ids)]
 
         features = {}
         features = add_features_in_group(features, gr_,
@@ -795,6 +873,21 @@ def add_trend_feature(features, gr, feature_name, prefix):
         trend = np.nan
     features['{}{}'.format(prefix, feature_name)] = trend
     return features
+
+
+def add_last_k_features_fractions(features, id, period_fractions):
+    fraction_features = features[[id]].copy()
+
+    for short_period, long_period in period_fractions:
+        short_feature_names = get_feature_names_by_period(features, short_period)
+        long_feature_names = get_feature_names_by_period(features, long_period)
+
+        for short_feature, long_feature in zip(short_feature_names, long_feature_names):
+            old_name_chunk = '_{}_'.format(short_period)
+            new_name_chunk = '_{}by{}_fraction_'.format(short_period, long_period)
+            fraction_feature_name = short_feature.replace(old_name_chunk, new_name_chunk)
+            fraction_features[fraction_feature_name] = features[short_feature] / features[long_feature]
+    return fraction_features
 
 
 def get_feature_names_by_period(features, period):
