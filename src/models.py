@@ -202,11 +202,11 @@ class CatBoost(BaseTransformer):
         return {'prediction': prediction}
 
     def load(self, filepath):
-        self.estimator = joblib.load(filepath)
+        self.estimator.load_model(filepath)
         return self
 
     def persist(self, filepath):
-        joblib.dump(self.estimator, filepath)
+        self.estimator.save_model(filepath)
 
     def _get_categorical_indeces(self, feature_names, categorical_features):
         if categorical_features:
