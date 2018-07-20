@@ -1,7 +1,7 @@
 project: ORGANIZATION/home-credit
 
 name: home-credit-default-risk
-tags: [solution-5, dev]
+tags: [solution-6]
 
 metric:
   channel: 'ROC_AUC'
@@ -33,7 +33,7 @@ parameters:
 
 # Kaggle
   kaggle_api: 0
-  kaggle_message: 'solution-5'
+  kaggle_message: 'solution-6'
 
 # Data preparation
   n_cv_splits: 5
@@ -84,6 +84,21 @@ parameters:
   lgbm__reg_alpha: 0.0
   lgbm__scale_pos_weight: 1
   lgbm__is_unbalance: False
+
+# Catboost
+  catboost_random_search_runs: 0
+  catboost__loss_function: Logloss
+  catboost__eval_metric: AUC
+  catboost__iterations: 1000
+  catboost__learning_rate: 0.03
+  catboost__depth: 6
+  catboost__l2_leaf_reg: 3
+  catboost__border_count: 128
+  catboost__model_size_reg: 0.5
+  catboost__rsm: 1
+  catboost__rsm: 1.0
+  catboost__subsample: 0.66
+  catboost__sampling_frequency: PerTreeLevel
 
 # XGBoost
   xgb_random_search_runs: 0

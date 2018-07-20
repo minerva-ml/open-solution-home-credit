@@ -7,7 +7,6 @@ import pandas as pd
 from scipy.stats import kurtosis, iqr, skew
 from sklearn.externals import joblib
 from sklearn.linear_model import LinearRegression
-from swifter import swiftapply
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
@@ -733,6 +732,7 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
 
         func = partial(InstallmentPaymentsFeatures.generate_features,
                        agg_periods=self.last_k_agg_periods,
+                       period_fractions=self.last_k_agg_period_fractions,
                        trend_periods=self.last_k_trend_periods)
         g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
         features = features.merge(g, on='SK_ID_CURR', how='left')
@@ -755,6 +755,21 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
     @staticmethod
     def all_installment_features(gr):
         return InstallmentPaymentsFeatures.last_k_installment_features(gr, periods=[10e16])
+
+    @staticmethod
+    def last_k_installment_features_with_fractions(gr, periods, period_fractions):
+        features = InstallmentPaymentsFeatures.last_k_installment_features(gr, periods)
+
+        for short_period, long_period in period_fractions:
+            short_feature_names = get_feature_names_by_period(features, short_period)
+            long_feature_names = get_feature_names_by_period(features, long_period)
+
+            for short_feature, long_feature in zip(short_feature_names, long_feature_names):
+                old_name_chunk = '_{}_'.format(short_period)
+                new_name_chunk = '_{}by{}_fraction_'.format(short_period, long_period)
+                fraction_feature_name = short_feature.replace(old_name_chunk, new_name_chunk)
+                features[fraction_feature_name] = safe_div(features[short_feature], features[long_feature])
+        return features
 
     @staticmethod
     def last_k_installment_features(gr, periods):
@@ -896,5 +911,3 @@ def add_last_k_features_fractions(features, id, period_fractions):
 
 def get_feature_names_by_period(features, period):
     return sorted([feat for feat in features.keys() if '_{}_'.format(period) in feat])
-
-
