@@ -33,7 +33,7 @@ parameters:
 
 # Kaggle
   kaggle_api: 0
-  kaggle_message: 'solution-4'
+  kaggle_message: 'solution-6'
 
 # Data preparation
   n_cv_splits: 5
