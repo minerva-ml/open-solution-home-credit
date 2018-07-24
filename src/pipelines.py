@@ -101,21 +101,32 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, suffix='', norma
                                                              cache_output=True,
                                                              load_persisted_output=True)
 
-        sklearn_preproc = blocks.preprocessing_fillna((features, features_valid), config, train_mode, suffix)
+        sklearn_preproc, sklearn_preproc_valid = blocks.sklearn_preprocessing(features,
+                                                                              features_valid,
+                                                                              config,
+                                                                              train_mode,
+                                                                              normalize,
+                                                                              suffix)
+        sklearn_clf = blocks.classifier_sklearn((sklearn_preproc, sklearn_preproc_valid),
+                                                ClassifierClass,
+                                                full_config,
+                                                clf_name,
+                                                train_mode,
+                                                suffix)
+
     else:
         features = blocks.feature_extraction(config,
                                              train_mode,
                                              suffix,
                                              cache_output=True)
-        sklearn_preproc = blocks.preprocessing_fillna(features, config, train_mode, suffix)
+        sklearn_preproc = blocks.sklearn_preprocessing(features, [], config, train_mode, normalize, suffix)
 
-    sklearn_clf = blocks.classifier_sklearn(sklearn_preproc,
-                                            ClassifierClass,
-                                            full_config,
-                                            clf_name,
-                                            train_mode,
-                                            suffix,
-                                            normalize)
+        sklearn_clf = blocks.classifier_sklearn(sklearn_preproc,
+                                                ClassifierClass,
+                                                full_config,
+                                                clf_name,
+                                                train_mode,
+                                                suffix)
     return sklearn_clf
 
 

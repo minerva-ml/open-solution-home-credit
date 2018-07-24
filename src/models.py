@@ -221,15 +221,12 @@ class CatBoost(BaseTransformer):
             return None
 
 
-def get_sklearn_classifier(ClassifierClass, normalize, **kwargs):
+def get_sklearn_classifier(ClassifierClass, **kwargs):
+
     class SklearnBinaryClassifier(SklearnClassifier):
         def transform(self, X, y=None, target=1, **kwargs):
             prediction = self.estimator.predict_proba(X)[:, target]
             return {SklearnClassifier.RESULT_KEY: prediction}
-
-    if normalize:
-        return SklearnBinaryClassifier(Pipeline([('standarizer', StandardScaler()),
-                                                 ('classifier', ClassifierClass(**kwargs))]))
 
     return SklearnBinaryClassifier(ClassifierClass(**kwargs))
 
