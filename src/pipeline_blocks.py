@@ -470,7 +470,7 @@ def preprocessing_fillna(features, config, train_mode, suffix, **kwargs):
     if train_mode:
         features_train, features_valid = features
         fillna = Step(name='fillna{}'.format(suffix),
-                      transformer = _fillna(**config.preprocessing),
+                      transformer=_fillna(**config.preprocessing),
                       input_steps=[features_train, features_valid],
                       adapter=Adapter({'X': E(features_train.name, 'features'),
                                        'X_valid': E(features_valid.name, 'features'),
