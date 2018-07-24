@@ -1,7 +1,7 @@
 project: ORGANIZATION/home-credit
 
 name: home-credit-default-risk
-tags: [solution-4, dev]
+tags: [solution-6, dev]
 
 metric:
   channel: 'ROC_AUC'
