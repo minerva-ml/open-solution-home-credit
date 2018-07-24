@@ -7,13 +7,8 @@ from steppy.base import Step, make_transformer, IdentityOperation
 from . import feature_extraction as fe
 from . import data_cleaning as dc
 from .hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, PersistResults
-<<<<<<< HEAD
-from .models import get_sklearn_classifier, XGBoost, LightGBM
 from sklearn.linear_model import LogisticRegression
-=======
 from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost
-
->>>>>>> upstream/dev
 
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
     model_name = 'light_gbm{}'.format(suffix)
@@ -474,10 +469,8 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
 def preprocessing_fillna(features, config, train_mode, suffix, **kwargs):
     if train_mode:
         features_train, features_valid = features
-        print(features_train)
-        print(features_train.name)
         fillna = Step(name='fillna{}'.format(suffix),
-                      transformer=_fillna(),
+                      transformer = _fillna(**config.preprocessing),
                       input_steps=[features_train, features_valid],
                       adapter=Adapter({'X': E(features_train.name, 'features'),
                                        'X_valid': E(features_valid.name, 'features'),
@@ -487,7 +480,7 @@ def preprocessing_fillna(features, config, train_mode, suffix, **kwargs):
                       )
     else:
         fillna = Step(name='fillna{}'.format(suffix),
-                      transformer=_fillna(),
+                      transformer=_fillna(**config.preprocessing),
                       input_steps=[features],
                       adapter=Adapter({'X': E(features.name, 'features')}),
                       experiment_directory=config.pipeline.experiment_directory,
@@ -1069,19 +1062,7 @@ def _installment_payments(config, train_mode, suffix, **kwargs):
         return installment_payments_hand_crafted_merge
 
 
-def _fillna():
-    def _simple_fillna(X, X_valid=None):
-        print(X)
-        print(X.columns)
-        print(SimpleFill().complete(X))
-        X_fillna = pd.DataFrame(data=SimpleFill().complete(X), columns=X.columns, index=X.index)
-        if X_valid is None:
-            return {'X': X_fillna}
-        else:
-            X_valid_fillna = pd.DataFrame(data=SimpleFill().complete(X_valid), columns=X_valid.columns, index=X_valid.index)
-            return {'X': X_fillna,
-                    'X_valid': X_valid_fillna}
-
+def _fillna(fillna_value):
     def _inner_fillna(X, X_valid=None):
         X_fillna = X.fillna(fillna_value)
         if X_valid is None:
@@ -1091,4 +1072,4 @@ def _fillna():
             return {'X': X_fillna,
                     'X_valid': X_valid_fillna}
 
-    return make_transformer(_simple_fillna)
+    return make_transformer(_inner_fillna)

@@ -56,6 +56,10 @@ parameters:
   installments__last_k_agg_period_fractions: None
   pos_cash__last_k_trend_periods: None
   pos_cash__last_k_agg_periods: None
+  pos_cash__last_k_agg_period_fractions: None
+  bureau_balance__last_k_trend_periods: None
+  bureau_balance__last_k_agg_periods: None
+  bureau_balance__last_k_agg_period_fractions: None
   application_aggregation__use_diffs_only: True
   use_nan_count: True
 
@@ -80,6 +84,18 @@ parameters:
   lgbm__reg_alpha: 0.0
   lgbm__scale_pos_weight: 1
   lgbm__is_unbalance: False
+
+# Catboost
+  catboost_random_search_runs: 0
+  catboost__loss_function: Logloss
+  catboost__eval_metric: AUC
+  catboost__iterations: 5000
+  catboost__learning_rate: 0.05
+  catboost__depth: 6
+  catboost__l2_leaf_reg: 3
+  catboost__border_count: 128
+  catboost__model_size_reg: 0.5
+  catboost__colsample_bylevel: 1.0
 
 # XGBoost
   xgb_random_search_runs: 0
