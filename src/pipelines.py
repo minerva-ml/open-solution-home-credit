@@ -30,6 +30,29 @@ def lightGBM(config, train_mode, suffix=''):
     return light_gbm
 
 
+def catboost(config, train_mode, suffix=''):
+    if train_mode:
+        features, features_valid = blocks.feature_extraction(config,
+                                                             train_mode,
+                                                             suffix,
+                                                             persist_output=False,
+                                                             cache_output=False,
+                                                             load_persisted_output=False)
+        catboost = blocks.classifier_catboost((features, features_valid),
+                                              config,
+                                              train_mode, suffix)
+    else:
+        features = blocks.feature_extraction(config,
+                                             train_mode,
+                                             suffix,
+                                             cache_output=False)
+        catboost = blocks.classifier_catboost(features,
+                                              config,
+                                              train_mode, suffix)
+
+    return catboost
+
+
 def lightGBM_stacking(config, train_mode, suffix=''):
     features = blocks.stacking_features(config, train_mode, suffix,
                                         persist_output=False,
@@ -106,6 +129,7 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, suffix='', norma
 
 
 PIPELINES = {'lightGBM': lightGBM,
+             'catboost': catboost,
              'lightGBM_stacking': lightGBM_stacking,
              'log_reg_stacking': log_reg_stacking,
              'XGBoost': xgboost,

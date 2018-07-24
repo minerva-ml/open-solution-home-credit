@@ -139,10 +139,10 @@ HIGHLY_CORRELATED_NUMERICAL_COLUMNS = ['AMT_GOODS_PRICE',
                                        'YEARS_BUILD_MEDI',
                                        'YEARS_BUILD_MODE']
 
-cols_to_agg = ['AMT_CREDIT', 
+cols_to_agg = ['AMT_CREDIT',
                'AMT_ANNUITY',
                'AMT_INCOME_TOTAL',
-               'AMT_GOODS_PRICE', 
+               'AMT_GOODS_PRICE',
                'EXT_SOURCE_1',
                'EXT_SOURCE_2',
                'EXT_SOURCE_3',
@@ -154,7 +154,7 @@ cols_to_agg = ['AMT_CREDIT',
                'DAYS_ID_PUBLISH',
                'DAYS_BIRTH',
                'DAYS_EMPLOYED'
-]
+               ]
 aggs = ['min', 'mean', 'max', 'sum', 'var']
 aggregation_pairs = [(col, agg) for col in cols_to_agg for agg in aggs]
 
@@ -297,6 +297,14 @@ SOLUTION_CONFIG = AttrDict({
                'num_workers': params.num_workers
                },
 
+    'bureau_balance': {'table_name': 'bureau_balance',
+                       'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                       'last_k_agg_periods': parameter_eval(params.bureau_balance__last_k_agg_periods),
+                       'last_k_agg_period_fractions': parameter_eval(params.bureau_balance__last_k_agg_period_fractions),
+                       'last_k_trend_periods': parameter_eval(params.bureau_balance__last_k_trend_periods),
+                       'num_workers': params.num_workers
+                       },
+
     'credit_card_balance': {'table_name': 'credit_card_balance',
                             'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                             'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES,
@@ -318,6 +326,8 @@ SOLUTION_CONFIG = AttrDict({
                          'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES,
                          'last_k_agg_periods': parameter_eval(params.pos_cash__last_k_agg_periods),
                          'last_k_trend_periods': parameter_eval(params.pos_cash__last_k_trend_periods),
+                         'last_k_agg_period_fractions': parameter_eval(
+                                  params.pos_cash__last_k_agg_period_fractions),
                          'num_workers': params.num_workers
                          },
 
@@ -350,6 +360,20 @@ SOLUTION_CONFIG = AttrDict({
                   'early_stopping_rounds': parameter_eval(params.lgbm__early_stopping_rounds),
                   'verbose': parameter_eval(params.verbose),
                   },
+
+    'catboost': {'loss_function': parameter_eval(params.catboost__loss_function),
+                 'eval_metric': parameter_eval(params.catboost__eval_metric),
+                 'iterations': parameter_eval(params.catboost__iterations),
+                 'learning_rate': parameter_eval(params.catboost__learning_rate),
+                 'depth': parameter_eval(params.catboost__depth),
+                 'l2_leaf_reg': parameter_eval(params.catboost__l2_leaf_reg),
+                 'model_size_reg': parameter_eval(params.catboost__model_size_reg),
+                 'colsample_bylevel': parameter_eval(params.catboost__colsample_bylevel),
+                 'border_count': parameter_eval(params.catboost__border_count),
+                 'random_seed': RANDOM_SEED,
+                 'thread_count': params.num_workers,
+                 'verbose': params.verbose,
+                 },
 
     'xgboost': {'booster': parameter_eval(params.xgb__booster),
                 'objective': parameter_eval(params.xgb__objective),
@@ -413,6 +437,13 @@ SOLUTION_CONFIG = AttrDict({
                                                                                       'random_search_light_gbm.pkl')}
                                          },
                                     },
+                      'catboost': {'n_runs': params.catboost_random_search_runs,
+                                   'callbacks':
+                                       {'neptune_monitor': {'name': 'catboost'},
+                                        'persist_results': {'filepath': os.path.join(params.experiment_directory,
+                                                                                     'random_search_catboost.pkl')}
+                                        },
+                                   },
                       'xgboost': {'n_runs': params.xgb_random_search_runs,
                                   'callbacks':
                                       {'neptune_monitor': {'name': 'xgboost'},

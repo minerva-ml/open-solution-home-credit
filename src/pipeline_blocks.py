@@ -7,8 +7,13 @@ from steppy.base import Step, make_transformer, IdentityOperation
 from . import feature_extraction as fe
 from . import data_cleaning as dc
 from .hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, PersistResults
+<<<<<<< HEAD
 from .models import get_sklearn_classifier, XGBoost, LightGBM
 from sklearn.linear_model import LogisticRegression
+=======
+from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost
+
+>>>>>>> upstream/dev
 
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
     model_name = 'light_gbm{}'.format(suffix)
@@ -42,6 +47,94 @@ def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
                                           'categorical_features': E(features_train.name, 'categorical_features'),
                                           'X_valid': E(features_valid.name, 'features'),
                                           'y_valid': E('application', 'y_valid'),
+                                          }),
+                         force_fitting=True,
+                         experiment_directory=config.pipeline.experiment_directory, **kwargs)
+    else:
+        light_gbm = Step(name=model_name,
+                         transformer=LightGBM(name=model_name, **config.light_gbm),
+                         input_steps=[features],
+                         adapter=Adapter({'X': E(features.name, 'features')}),
+                         experiment_directory=config.pipeline.experiment_directory, **kwargs)
+    return light_gbm
+
+
+def classifier_catboost(features, config, train_mode, suffix, **kwargs):
+    model_name = 'catboost{}'.format(suffix)
+
+    if train_mode:
+        features_train, features_valid = features
+        if config.random_search.catboost.n_runs:
+            transformer = RandomSearchOptimizer(TransformerClass=CatBoost,
+                                                params=config.catboost,
+                                                train_input_keys=[],
+                                                valid_input_keys=['X_valid', 'y_valid'],
+                                                score_func=roc_auc_score,
+                                                maximize=True,
+                                                n_runs=config.random_search.catboost.n_runs,
+                                                callbacks=[
+                                                    NeptuneMonitor(
+                                                        **config.random_search.catboost.callbacks.neptune_monitor),
+                                                    PersistResults(
+                                                        **config.random_search.catboost.callbacks.persist_results)]
+                                                )
+        else:
+            transformer = CatBoost(**config.catboost)
+
+        catboost = Step(name=model_name,
+                        transformer=transformer,
+                        input_data=['application'],
+                        input_steps=[features_train, features_valid],
+                        adapter=Adapter({'X': E(features_train.name, 'features'),
+                                         'y': E('application', 'y'),
+                                         'feature_names': E(features_train.name, 'feature_names'),
+                                         'categorical_features': E(features_train.name, 'categorical_features'),
+                                         'X_valid': E(features_valid.name, 'features'),
+                                         'y_valid': E('application', 'y_valid'),
+                                         }),
+                        force_fitting=True,
+                        experiment_directory=config.pipeline.experiment_directory, **kwargs)
+    else:
+        catboost = Step(name=model_name,
+                        transformer=CatBoost(**config.catboost),
+                        input_steps=[features],
+                        adapter=Adapter({'X': E(features.name, 'features')}),
+                        experiment_directory=config.pipeline.experiment_directory, **kwargs)
+    return catboost
+
+
+def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs):
+    model_name = 'light_gbm{}'.format(suffix)
+
+    if train_mode:
+        features_train, features_valid = features
+        if config.random_search.light_gbm.n_runs:
+            transformer = RandomSearchOptimizer(TransformerClass=LightGBM,
+                                                params=config.light_gbm,
+                                                train_input_keys=[],
+                                                valid_input_keys=['X_valid', 'y_valid'],
+                                                score_func=roc_auc_score,
+                                                maximize=True,
+                                                n_runs=config.random_search.light_gbm.n_runs,
+                                                callbacks=[
+                                                    NeptuneMonitor(
+                                                        **config.random_search.light_gbm.callbacks.neptune_monitor),
+                                                    PersistResults(
+                                                        **config.random_search.light_gbm.callbacks.persist_results)]
+                                                )
+        else:
+            transformer = LightGBM(name=model_name, **config.light_gbm)
+
+        light_gbm = Step(name=model_name,
+                         transformer=transformer,
+                         input_data=['input'],
+                         input_steps=[features_train, features_valid],
+                         adapter=Adapter({'X': E(features_train.name, 'features'),
+                                          'y': E('input', 'y'),
+                                          'feature_names': E(features_train.name, 'feature_names'),
+                                          'categorical_features': E(features_train.name, 'categorical_features'),
+                                          'X_valid': E(features_valid.name, 'features'),
+                                          'y_valid': E('input', 'y_valid'),
                                           }),
                          force_fitting=True,
                          experiment_directory=config.pipeline.experiment_directory,
@@ -246,6 +339,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
             train_mode,
             suffix,
             **kwargs)
+        bureau_balance, bureau_balance_valid = _bureau_balance(config, train_mode, suffix, **kwargs)
         credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
         credit_card_balance, credit_card_balance_valid = _credit_card_balance(
             credit_card_balance_cleaned,
@@ -296,6 +390,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                 application_agg,
                                 bureau,
                                 bureau_agg,
+                                bureau_balance,
                                 credit_card_balance,
                                 credit_card_balance_agg,
                                 installment_payments,
@@ -309,6 +404,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                       application_agg_valid,
                                       bureau_valid,
                                       bureau_agg_valid,
+                                      bureau_balance_valid,
                                       credit_card_balance_valid,
                                       credit_card_balance_agg_valid,
                                       installment_payments_valid,
@@ -332,6 +428,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         application = _application(config, train_mode, suffix, **kwargs)
         bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
         bureau = _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs)
+        bureau_balance = _bureau_balance(config, train_mode, suffix, **kwargs)
         credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
         credit_card_balance = _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix, **kwargs)
         pos_cash_balance = _pos_cash_balance(config, train_mode, suffix, **kwargs)
@@ -352,6 +449,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                                               application_agg,
                                                               bureau,
                                                               bureau_agg,
+                                                              bureau_balance,
                                                               credit_card_balance,
                                                               credit_card_balance_agg,
                                                               installment_payments,
@@ -775,6 +873,36 @@ def _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs):
         return bureau_hand_crafted_merge, bureau_hand_crafted_merge_valid
     else:
         return bureau_hand_crafted_merge
+
+
+def _bureau_balance(config, train_mode, suffix, **kwargs):
+    bureau_balance_hand_crafted = Step(name='bureau_balance_hand_crafted',
+                                       transformer=fe.BureauBalanceFeatures(**config.bureau_balance),
+                                       input_data=['bureau_balance'],
+                                       adapter=Adapter({'bureau_balance': E('bureau_balance', 'X')}),
+                                       experiment_directory=config.pipeline.experiment_directory, **kwargs)
+
+    bureau_balance_hand_crafted_merge = Step(name='bureau_balance_hand_crafted_merge{}'.format(suffix),
+                                             transformer=fe.GroupbyMerge(**config.bureau_balance),
+                                             input_data=['application'],
+                                             input_steps=[bureau_balance_hand_crafted],
+                                             adapter=Adapter({'table': E('application', 'X'),
+                                                              'features': E(bureau_balance_hand_crafted.name,
+                                                                            'features_table')}),
+                                             experiment_directory=config.pipeline.experiment_directory, **kwargs)
+
+    if train_mode:
+        bureau_balance_hand_crafted_merge_valid = Step(name='bureau_balance_hand_crafted_merge_valid{}'.format(suffix),
+                                               transformer=bureau_balance_hand_crafted_merge,
+                                               input_data=['application'],
+                                               input_steps=[bureau_balance_hand_crafted],
+                                               adapter=Adapter({'table': E('application', 'X_valid'),
+                                                                'features': E(bureau_balance_hand_crafted.name,
+                                                                              'features_table')}),
+                                               experiment_directory=config.pipeline.experiment_directory, **kwargs)
+        return bureau_balance_hand_crafted_merge, bureau_balance_hand_crafted_merge_valid
+    else:
+        return bureau_balance_hand_crafted_merge
 
 
 def _credit_card_balance_cleaning(config, suffix, **kwargs):
