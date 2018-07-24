@@ -43,7 +43,7 @@ class RandomSearchOptimizer(BaseTransformer):
             logger.info('training run {}'.format(i))
             logger.info('parameters: {}'.format(str(param_set)))
             transformer = self.TransformerClass(**param_set)
-            transformer.fit(**train_inputs)
+            transformer.fit(X=train_inputs['X'], y=train_inputs['y'])
 
             y_pred_valid = transformer.transform(X_valid)
             y_pred_valid_value = list(y_pred_valid.values())[0]

@@ -261,6 +261,12 @@ class ApplicationFeatures(BaseTransformer):
                                              'credit_per_person',
                                              'credit_per_child',
                                              'credit_per_non_child',
+                                             'ext_source_1_plus_2',
+                                             'ext_source_1_plus_3',
+                                             'ext_source_2_plus_3',
+                                             'ext_source_1_is_nan',
+                                             'ext_source_2_is_nan',
+                                             'ext_source_3_is_nan'
                                              ]
 
     def transform(self, X, **kwargs):
@@ -278,13 +284,19 @@ class ApplicationFeatures(BaseTransformer):
         X['payment_rate'] = X['AMT_ANNUITY'] / X['AMT_CREDIT']
         X['phone_to_birth_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_BIRTH']
         X['phone_to_employ_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_EMPLOYED']
-        X['external_sources_weighted'] = X.EXT_SOURCE_1 * 2 + X.EXT_SOURCE_2 * 3 + X.EXT_SOURCE_3 * 4
+        X['external_sources_weighted'] = np.nansum(np.asarray([1.9, 2.1, 2.6])*X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
         X['cnt_non_child'] = X['CNT_FAM_MEMBERS'] - X['CNT_CHILDREN']
         X['child_to_non_child_ratio'] = X['CNT_CHILDREN'] / X['cnt_non_child']
         X['income_per_non_child'] = X['AMT_INCOME_TOTAL'] / X['cnt_non_child']
         X['credit_per_person'] = X['AMT_CREDIT'] / X['CNT_FAM_MEMBERS']
         X['credit_per_child'] = X['AMT_CREDIT'] / (1 + X['CNT_CHILDREN'])
         X['credit_per_non_child'] = X['AMT_CREDIT'] / X['cnt_non_child']
+        X['ext_source_1_plus_2'] = np.nansum(X[['EXT_SOURCE_1', 'EXT_SOURCE_2']], axis=1)
+        X['ext_source_1_plus_3'] = np.nansum(X[['EXT_SOURCE_1', 'EXT_SOURCE_3']], axis=1)
+        X['ext_source_2_plus_3'] = np.nansum(X[['EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
+        X['ext_source_1_is_nan'] = np.isnan(X['EXT_SOURCE_1'])
+        X['ext_source_2_is_nan'] = np.isnan(X['EXT_SOURCE_2'])
+        X['ext_source_3_is_nan'] = np.isnan(X['EXT_SOURCE_3'])
         for function_name in ['min', 'max', 'sum', 'mean', 'nanmedian']:
             X['external_sources_{}'.format(function_name)] = eval('np.{}'.format(function_name))(
                 X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)

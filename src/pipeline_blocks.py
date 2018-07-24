@@ -8,7 +8,7 @@ from . import feature_extraction as fe
 from . import data_cleaning as dc
 from .hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, PersistResults
 from .models import get_sklearn_classifier, XGBoost, LightGBM
-
+from sklearn.linear_model import LogisticRegression
 
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
     model_name = 'light_gbm{}'.format(suffix)
@@ -101,6 +101,50 @@ def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs
                          **kwargs)
     return light_gbm
 
+def classifier_log_reg_stacking(features, config, train_mode, suffix, **kwargs):
+    model_name = 'log_reg{}'.format(suffix)
+
+    if train_mode:
+        features_train, features_valid = features
+        if config.random_search.log_reg.n_runs:
+            transformer = RandomSearchOptimizer(TransformerClass=get_sklearn_classifier(LogisticRegression, normalize=True, **config.log_reg),
+                                                params=config.log_reg,
+                                                train_input_keys=[],
+                                                valid_input_keys=['X_valid', 'y_valid'],
+                                                score_func=roc_auc_score,
+                                                maximize=True,
+                                                n_runs=config.random_search.log_reg.n_runs,
+                                                callbacks=[
+                                                    NeptuneMonitor(
+                                                        **config.random_search.log_reg.callbacks.neptune_monitor),
+                                                    PersistResults(
+                                                        **config.random_search.log_reg.callbacks.persist_results)]
+                                                )
+        else:
+            transformer = get_sklearn_classifier(ClassifierClass=LogisticRegression, normalize=True, **config.log_reg)
+
+        log_reg = Step(name=model_name,
+                         transformer=transformer,
+                         input_data=['input'],
+                         input_steps=[features_train, features_valid],
+                         adapter=Adapter({'X': E(features_train.name, 'features'),
+                                          'y': E('input', 'y'),
+                                          'feature_names': E(features_train.name, 'feature_names'),
+                                          'categorical_features': E(features_train.name, 'categorical_features'),
+                                          'X_valid': E(features_valid.name, 'features'),
+                                          'y_valid': E('input', 'y_valid'),
+                                          }),
+                         force_fitting=True,
+                         experiment_directory=config.pipeline.experiment_directory,
+                         **kwargs)
+    else:
+        log_reg = Step(name=model_name,
+                         transformer=get_sklearn_classifier(ClassifierClass=LogisticRegression, normalize=True, **config.log_reg),
+                         input_steps=[features],
+                         adapter=Adapter({'X': E(features.name, 'features')}),
+                         experiment_directory=config.pipeline.experiment_directory,
+                         **kwargs)
+    return log_reg
 
 def classifier_xgb(features, config, train_mode, suffix, **kwargs):
     if train_mode:
@@ -332,8 +376,10 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
 def preprocessing_fillna(features, config, train_mode, suffix, **kwargs):
     if train_mode:
         features_train, features_valid = features
+        print(features_train)
+        print(features_train.name)
         fillna = Step(name='fillna{}'.format(suffix),
-                      transformer=_fillna(**config.preprocessing),
+                      transformer=_fillna(),
                       input_steps=[features_train, features_valid],
                       adapter=Adapter({'X': E(features_train.name, 'features'),
                                        'X_valid': E(features_valid.name, 'features'),
@@ -343,7 +389,7 @@ def preprocessing_fillna(features, config, train_mode, suffix, **kwargs):
                       )
     else:
         fillna = Step(name='fillna{}'.format(suffix),
-                      transformer=_fillna(**config.preprocessing),
+                      transformer=_fillna(),
                       input_steps=[features],
                       adapter=Adapter({'X': E(features.name, 'features')}),
                       experiment_directory=config.pipeline.experiment_directory,
@@ -895,12 +941,26 @@ def _installment_payments(config, train_mode, suffix, **kwargs):
         return installment_payments_hand_crafted_merge
 
 
-def _fillna(fillna_value):
-    def _inner_fillna(X, X_valid=None):
+def _fillna():
+    def _simple_fillna(X, X_valid=None):
+        print(X)
+        print(X.columns)
+        print(SimpleFill().complete(X))
+        X_fillna = pd.DataFrame(data=SimpleFill().complete(X), columns=X.columns, index=X.index)
         if X_valid is None:
-            return {'X': X.fillna(fillna_value)}
+            return {'X': X_fillna}
         else:
-            return {'X': X.fillna(fillna_value),
-                    'X_valid': X_valid.fillna(fillna_value)}
+            X_valid_fillna = pd.DataFrame(data=SimpleFill().complete(X_valid), columns=X_valid.columns, index=X_valid.index)
+            return {'X': X_fillna,
+                    'X_valid': X_valid_fillna}
 
-    return make_transformer(_inner_fillna)
+    def _inner_fillna(X, X_valid=None):
+        X_fillna = X.fillna(fillna_value)
+        if X_valid is None:
+            return {'X': X_fillna}
+        else:
+            X_valid_fillna = X_valid.fillna(fillna_value)
+            return {'X': X_fillna,
+                    'X_valid': X_valid_fillna}
+
+    return make_transformer(_simple_fillna)
