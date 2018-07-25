@@ -63,6 +63,15 @@ def lightGBM_stacking(config, train_mode, suffix=''):
                                                      cache_output=False)
     return light_gbm
 
+def log_reg_stacking(config, train_mode, suffix=''):
+    features = blocks.stacking_features(config, train_mode, suffix,
+                                        persist_output=False,
+                                        cache_output=False,
+                                        load_persisted_output=False)
+
+    log_reg = blocks.classifier_log_reg_stacking(features, config, train_mode, suffix,
+                                                     cache_output=False)
+    return log_reg
 
 def xgboost(config, train_mode, suffix=''):
     if train_mode:
@@ -122,6 +131,7 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, suffix='', norma
 PIPELINES = {'lightGBM': lightGBM,
              'catboost': catboost,
              'lightGBM_stacking': lightGBM_stacking,
+             'log_reg_stacking': log_reg_stacking,
              'XGBoost': xgboost,
              'random_forest': {'train': partial(sklearn_main,
                                                 ClassifierClass=RandomForestClassifier,
