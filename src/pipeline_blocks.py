@@ -97,6 +97,7 @@ def classifier_catboost(features, config, train_mode, suffix, **kwargs):
                         experiment_directory=config.pipeline.experiment_directory, **kwargs)
     return catboost
 
+
 def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs):
     model_name = 'light_gbm{}'.format(suffix)
 
@@ -141,6 +142,7 @@ def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs
                          experiment_directory=config.pipeline.experiment_directory,
                          **kwargs)
     return light_gbm
+
 
 def classifier_log_reg_stacking(features, config, train_mode, suffix, **kwargs):
     model_name = 'log_reg{}'.format(suffix)
