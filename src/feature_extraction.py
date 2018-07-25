@@ -741,7 +741,6 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
 
         func = partial(InstallmentPaymentsFeatures.generate_features,
                        agg_periods=self.last_k_agg_periods,
-                       period_fractions=self.last_k_agg_period_fractions,
                        trend_periods=self.last_k_trend_periods)
         g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
         features = features.merge(g, on='SK_ID_CURR', how='left')
