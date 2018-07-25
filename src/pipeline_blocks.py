@@ -7,8 +7,8 @@ from steppy.base import Step, make_transformer, IdentityOperation
 from . import feature_extraction as fe
 from . import data_cleaning as dc
 from .hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, PersistResults
+from sklearn.linear_model import LogisticRegression
 from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost
-
 
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
     model_name = 'light_gbm{}'.format(suffix)
@@ -144,29 +144,17 @@ def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs
     return light_gbm
 
 
-def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs):
-    model_name = 'light_gbm{}'.format(suffix)
+def classifier_log_reg_stacking(features, config, train_mode, suffix, **kwargs):
+    model_name = 'log_reg{}'.format(suffix)
 
     if train_mode:
         features_train, features_valid = features
-        if config.random_search.light_gbm.n_runs:
-            transformer = RandomSearchOptimizer(TransformerClass=LightGBM,
-                                                params=config.light_gbm,
-                                                train_input_keys=[],
-                                                valid_input_keys=['X_valid', 'y_valid'],
-                                                score_func=roc_auc_score,
-                                                maximize=True,
-                                                n_runs=config.random_search.light_gbm.n_runs,
-                                                callbacks=[
-                                                    NeptuneMonitor(
-                                                        **config.random_search.light_gbm.callbacks.neptune_monitor),
-                                                    PersistResults(
-                                                        **config.random_search.light_gbm.callbacks.persist_results)]
-                                                )
+        if config.random_search.log_reg.n_runs:
+            raise NotImplementedError
         else:
-            transformer = LightGBM(name=model_name, **config.light_gbm)
+            transformer = get_sklearn_classifier(ClassifierClass=LogisticRegression, normalize=True, **config.log_reg)
 
-        light_gbm = Step(name=model_name,
+        log_reg = Step(name=model_name,
                          transformer=transformer,
                          input_data=['input'],
                          input_steps=[features_train, features_valid],
@@ -181,14 +169,13 @@ def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs
                          experiment_directory=config.pipeline.experiment_directory,
                          **kwargs)
     else:
-        light_gbm = Step(name=model_name,
-                         transformer=LightGBM(name=model_name, **config.light_gbm),
+        log_reg = Step(name=model_name,
+                         transformer=get_sklearn_classifier(ClassifierClass=LogisticRegression, normalize=True, **config.log_reg),
                          input_steps=[features],
                          adapter=Adapter({'X': E(features.name, 'features')}),
                          experiment_directory=config.pipeline.experiment_directory,
                          **kwargs)
-    return light_gbm
-
+    return log_reg
 
 def classifier_xgb(features, config, train_mode, suffix, **kwargs):
     if train_mode:
@@ -1020,10 +1007,12 @@ def _installment_payments(config, train_mode, suffix, **kwargs):
 
 def _fillna(fillna_value):
     def _inner_fillna(X, X_valid=None):
+        X_fillna = X.fillna(fillna_value)
         if X_valid is None:
-            return {'X': X.fillna(fillna_value)}
+            return {'X': X_fillna}
         else:
-            return {'X': X.fillna(fillna_value),
-                    'X_valid': X_valid.fillna(fillna_value)}
+            X_valid_fillna = X_valid.fillna(fillna_value)
+            return {'X': X_fillna,
+                    'X_valid': X_valid_fillna}
 
     return make_transformer(_inner_fillna)
