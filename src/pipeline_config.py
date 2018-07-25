@@ -412,17 +412,17 @@ SOLUTION_CONFIG = AttrDict({
                       'class_weight': parameter_eval(params.rf__class_weight),
                       },
 
-    'logistic_regression': {'penalty': parameter_eval(params.lr__penalty),
-                            'tol': parameter_eval(params.lr__tol),
-                            'C': parameter_eval(params.lr__C),
-                            'fit_intercept': parameter_eval(params.lr__fit_intercept),
-                            'class_weight': parameter_eval(params.lr__class_weight),
-                            'random_state': RANDOM_SEED,
-                            'solver': parameter_eval(params.lr__solver),
-                            'max_iter': parameter_eval(params.lr__max_iter),
-                            'verbose': parameter_eval(params.verbose),
-                            'n_jobs': parameter_eval(params.num_workers),
-                            },
+    'log_reg': {'penalty': parameter_eval(params.lr__penalty),
+                'tol': parameter_eval(params.lr__tol),
+                'C': parameter_eval(params.lr__C),
+                'fit_intercept': parameter_eval(params.lr__fit_intercept),
+                'class_weight': parameter_eval(params.lr__class_weight),
+                'random_state': RANDOM_SEED,
+                'solver': parameter_eval(params.lr__solver),
+                'max_iter': parameter_eval(params.lr__max_iter),
+                'verbose': parameter_eval(params.verbose),
+                'n_jobs': parameter_eval(params.num_workers),
+                },
 
     'svc': {'kernel': parameter_eval(params.svc__kernel),
             'C': parameter_eval(params.svc__C),
@@ -465,12 +465,12 @@ SOLUTION_CONFIG = AttrDict({
                                                                            'random_search_random_forest.pkl')}
                                              },
                                         },
-                      'logistic_regression': {'n_runs': params.lr_random_search_runs,
+                      'log_reg': {'n_runs': params.lr_random_search_runs,
                                               'callbacks':
-                                                  {'neptune_monitor': {'name': 'logistic_regression'},
+                                                  {'neptune_monitor': {'name': 'log_reg'},
                                                    'persist_results':
                                                        {'filepath': os.path.join(params.experiment_directory,
-                                                                                 'random_search_logistic_regression.pkl')}
+                                                                                 'log_reg.pkl')}
                                                    },
                                               },
                       'svc': {'n_runs': params.svc_random_search_runs,

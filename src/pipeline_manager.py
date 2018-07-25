@@ -453,7 +453,7 @@ def _fold_fit_evaluate_predict_loop(train_data_split, valid_data_split, tables, 
     pipeline.clean_cache()
     output_test = pipeline.transform(test_data)
     pipeline.clean_cache()
-    y_test_pred = output_test['prediction']
+    y_test_pred = output_test.get('prediction', output_test.get('predicted', None))
 
     train_out_of_fold_prediction_chunk = valid_data_split[cfg.ID_COLUMNS]
     train_out_of_fold_prediction_chunk['fold_id'] = fold_id
@@ -528,7 +528,7 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
     output_valid = pipeline.transform(valid_data)
     pipeline.clean_cache()
 
-    y_valid_pred = output_valid['prediction']
+    y_valid_pred = output_valid.get('prediction', output_valid.get('predicted', None))
     y_valid_true = valid_data_split[cfg.TARGET_COLUMNS].values
     score = roc_auc_score(y_valid_true, y_valid_pred)
 

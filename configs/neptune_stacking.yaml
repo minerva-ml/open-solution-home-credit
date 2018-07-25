@@ -1,7 +1,7 @@
 project: ORGANIZATION/home-credit
 
 name: home-credit-default-risk
-tags: [solution-6]
+tags: [solution-6, dev]
 
 metric:
   channel: 'ROC_AUC'
@@ -130,7 +130,7 @@ parameters:
   lr_random_search_runs: 0
   lr__penalty: l1
   lr__tol: 0.00001
-  lr__C: 1
+  lr__C: 0.1
   lr__fit_intercept: 1
   lr__class_weight: balanced
   lr__solver: liblinear
