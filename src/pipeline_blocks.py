@@ -10,6 +10,7 @@ from .hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, Persis
 from sklearn.linear_model import LogisticRegression
 from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost
 
+
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
     model_name = 'light_gbm{}'.format(suffix)
 
@@ -152,29 +153,33 @@ def classifier_log_reg_stacking(features, config, train_mode, suffix, **kwargs):
         if config.random_search.log_reg.n_runs:
             raise NotImplementedError
         else:
-            transformer = get_sklearn_classifier(ClassifierClass=LogisticRegression, normalize=True, **config.log_reg)
+            transformer = get_sklearn_classifier(ClassifierClass=LogisticRegression,
+                                                 normalize=True,
+                                                 **config.log_reg)
 
         log_reg = Step(name=model_name,
-                         transformer=transformer,
-                         input_data=['input'],
-                         input_steps=[features_train, features_valid],
-                         adapter=Adapter({'X': E(features_train.name, 'features'),
-                                          'y': E('input', 'y'),
-                                          'feature_names': E(features_train.name, 'feature_names'),
-                                          'categorical_features': E(features_train.name, 'categorical_features'),
-                                          'X_valid': E(features_valid.name, 'features'),
-                                          'y_valid': E('input', 'y_valid'),
-                                          }),
-                         force_fitting=True,
-                         experiment_directory=config.pipeline.experiment_directory,
-                         **kwargs)
+                       transformer=transformer,
+                       input_data=['input'],
+                       input_steps=[features_train, features_valid],
+                       adapter=Adapter({'X': E(features_train.name, 'features'),
+                                        'y': E('input', 'y'),
+                                        'feature_names': E(features_train.name, 'feature_names'),
+                                        'categorical_features': E(features_train.name, 'categorical_features'),
+                                        'X_valid': E(features_valid.name, 'features'),
+                                        'y_valid': E('input', 'y_valid'),
+                                        }),
+                       force_fitting=True,
+                       experiment_directory=config.pipeline.experiment_directory,
+                       **kwargs)
     else:
         log_reg = Step(name=model_name,
-                         transformer=get_sklearn_classifier(ClassifierClass=LogisticRegression, normalize=True, **config.log_reg),
-                         input_steps=[features],
-                         adapter=Adapter({'X': E(features.name, 'features')}),
-                         experiment_directory=config.pipeline.experiment_directory,
-                         **kwargs)
+                       transformer=get_sklearn_classifier(ClassifierClass=LogisticRegression,
+                                                          normalize=True,
+                                                          **config.log_reg),
+                       input_steps=[features],
+                       adapter=Adapter({'X': E(features.name, 'features')}),
+                       experiment_directory=config.pipeline.experiment_directory,
+                       **kwargs)
     return log_reg
 
 
