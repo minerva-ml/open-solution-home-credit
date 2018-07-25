@@ -144,52 +144,6 @@ def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs
     return light_gbm
 
 
-def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs):
-    model_name = 'light_gbm{}'.format(suffix)
-
-    if train_mode:
-        features_train, features_valid = features
-        if config.random_search.light_gbm.n_runs:
-            transformer = RandomSearchOptimizer(TransformerClass=LightGBM,
-                                                params=config.light_gbm,
-                                                train_input_keys=[],
-                                                valid_input_keys=['X_valid', 'y_valid'],
-                                                score_func=roc_auc_score,
-                                                maximize=True,
-                                                n_runs=config.random_search.light_gbm.n_runs,
-                                                callbacks=[
-                                                    NeptuneMonitor(
-                                                        **config.random_search.light_gbm.callbacks.neptune_monitor),
-                                                    PersistResults(
-                                                        **config.random_search.light_gbm.callbacks.persist_results)]
-                                                )
-        else:
-            transformer = LightGBM(name=model_name, **config.light_gbm)
-
-        light_gbm = Step(name=model_name,
-                         transformer=transformer,
-                         input_data=['input'],
-                         input_steps=[features_train, features_valid],
-                         adapter=Adapter({'X': E(features_train.name, 'features'),
-                                          'y': E('input', 'y'),
-                                          'feature_names': E(features_train.name, 'feature_names'),
-                                          'categorical_features': E(features_train.name, 'categorical_features'),
-                                          'X_valid': E(features_valid.name, 'features'),
-                                          'y_valid': E('input', 'y_valid'),
-                                          }),
-                         force_fitting=True,
-                         experiment_directory=config.pipeline.experiment_directory,
-                         **kwargs)
-    else:
-        light_gbm = Step(name=model_name,
-                         transformer=LightGBM(name=model_name, **config.light_gbm),
-                         input_steps=[features],
-                         adapter=Adapter({'X': E(features.name, 'features')}),
-                         experiment_directory=config.pipeline.experiment_directory,
-                         **kwargs)
-    return light_gbm
-
-
 def classifier_xgb(features, config, train_mode, suffix, **kwargs):
     if train_mode:
         features_train, features_valid = features
@@ -283,7 +237,7 @@ def classifier_sklearn(sklearn_features,
 def feature_extraction(config, train_mode, suffix, **kwargs):
     if train_mode:
         application, application_valid = _application(config, train_mode, suffix, **kwargs)
-        bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+        bureau_cleaned = _bureau_cleaning(config, **kwargs)
         bureau, bureau_valid = _bureau(
             bureau_cleaned,
             config,
@@ -291,7 +245,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
             suffix,
             **kwargs)
         bureau_balance, bureau_balance_valid = _bureau_balance(config, train_mode, suffix, **kwargs)
-        credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
+        credit_card_balance_cleaned = _credit_card_balance_cleaning(config, **kwargs)
         credit_card_balance, credit_card_balance_valid = _credit_card_balance(
             credit_card_balance_cleaned,
             config,
@@ -299,7 +253,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
             suffix,
             **kwargs)
         pos_cash_balance, pos_cash_balance_valid = _pos_cash_balance(config, train_mode, suffix, **kwargs)
-        previous_application_cleaned = _previous_application_cleaning(config, suffix, **kwargs)
+        previous_application_cleaned = _previous_application_cleaning(config, **kwargs)
         previous_application, previous_application_valid = _previous_application(
             previous_application_cleaned,
             config,
@@ -377,13 +331,13 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         return feature_combiner, feature_combiner_valid
     else:
         application = _application(config, train_mode, suffix, **kwargs)
-        bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+        bureau_cleaned = _bureau_cleaning(config, **kwargs)
         bureau = _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs)
         bureau_balance = _bureau_balance(config, train_mode, suffix, **kwargs)
-        credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
+        credit_card_balance_cleaned = _credit_card_balance_cleaning(config, **kwargs)
         credit_card_balance = _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix, **kwargs)
         pos_cash_balance = _pos_cash_balance(config, train_mode, suffix, **kwargs)
-        previous_application_cleaned = _previous_application_cleaning(config, suffix, **kwargs)
+        previous_application_cleaned = _previous_application_cleaning(config, **kwargs)
         previous_application = _previous_application(previous_application_cleaned, config, train_mode, suffix, **kwargs)
         installment_payments = _installment_payments(config, train_mode, suffix, **kwargs)
 
@@ -783,7 +737,7 @@ def _application(config, train_mode, suffix, **kwargs):
         return application
 
 
-def _bureau_cleaning(config, suffix, **kwargs):
+def _bureau_cleaning(config, **kwargs):
     bureau_cleaning = Step(name='bureau_cleaning',
                            transformer=dc.BureauCleaning(**config.preprocessing.impute_missing),
                            input_data=['bureau'],
@@ -842,20 +796,21 @@ def _bureau_balance(config, train_mode, suffix, **kwargs):
 
     if train_mode:
         bureau_balance_hand_crafted_merge_valid = Step(name='bureau_balance_hand_crafted_merge_valid{}'.format(suffix),
-                                               transformer=bureau_balance_hand_crafted_merge,
-                                               input_data=['application'],
-                                               input_steps=[bureau_balance_hand_crafted],
-                                               adapter=Adapter({'table': E('application', 'X_valid'),
-                                                                'features': E(bureau_balance_hand_crafted.name,
-                                                                              'features_table')}),
-                                               experiment_directory=config.pipeline.experiment_directory, **kwargs)
+                                                       transformer=bureau_balance_hand_crafted_merge,
+                                                       input_data=['application'],
+                                                       input_steps=[bureau_balance_hand_crafted],
+                                                       adapter=Adapter({'table': E('application', 'X_valid'),
+                                                                        'features': E(bureau_balance_hand_crafted.name,
+                                                                                      'features_table')}),
+                                                       experiment_directory=config.pipeline.experiment_directory,
+                                                       **kwargs)
         return bureau_balance_hand_crafted_merge, bureau_balance_hand_crafted_merge_valid
     else:
         return bureau_balance_hand_crafted_merge
 
 
-def _credit_card_balance_cleaning(config, suffix, **kwargs):
-    credit_card_balance_cleaning = Step(name='credit_card_balance_cleaning{}'.format(suffix),
+def _credit_card_balance_cleaning(config, **kwargs):
+    credit_card_balance_cleaning = Step(name='credit_card_balance_cleaning',
                                         transformer=dc.CreditCardCleaning(
                                             **config.preprocessing.impute_missing),
                                         input_data=['credit_card_balance'],
@@ -933,8 +888,8 @@ def _pos_cash_balance(config, train_mode, suffix, **kwargs):
         return pos_cash_balance_hand_crafted_merge
 
 
-def _previous_application_cleaning(config, suffix, **kwargs):
-    previous_application_cleaning = Step(name='previous_application_cleaning{}'.format(suffix),
+def _previous_application_cleaning(config, **kwargs):
+    previous_application_cleaning = Step(name='previous_application_cleaning',
                                          transformer=dc.PreviousApplicationCleaning(
                                              **config.preprocessing.impute_missing),
                                          input_data=['previous_application'],
