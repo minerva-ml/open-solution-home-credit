@@ -416,15 +416,9 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         return feature_combiner
 
 
-def sklearn_preprocessing(features, features_valid, config, train_mode, suffix, normalize, **kwargs):
+def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwargs):
     if train_mode:
-        persist_output = True
-        cache_output = True
-        load_persisted_output = True
-    else:
-        persist_output = False
-        cache_output = True
-        load_persisted_output = False
+        features, features_valid = features
 
     one_hot_encoder = Step(name='one_hot_encoder{}'.format(suffix),
                            transformer=SklearnTransformer(ce.OneHotEncoder(
@@ -433,7 +427,6 @@ def sklearn_preprocessing(features, features_valid, config, train_mode, suffix, 
                            input_steps=[features],
                            adapter=Adapter({'X': E(features.name, 'features')}),
                            experiment_directory=config.pipeline.experiment_directory,
-                           **kwargs
                            )
 
     fillnaer = Step(name='fillna{}'.format(suffix),
@@ -441,7 +434,6 @@ def sklearn_preprocessing(features, features_valid, config, train_mode, suffix, 
                     input_steps=[one_hot_encoder],
                     adapter=Adapter({'X': E(one_hot_encoder.name, 'transformed')}),
                     experiment_directory=config.pipeline.experiment_directory,
-                    **kwargs
                     )
 
     if normalize:
@@ -450,7 +442,6 @@ def sklearn_preprocessing(features, features_valid, config, train_mode, suffix, 
                           input_steps=[fillnaer],
                           adapter=Adapter({'X': E(fillnaer.name, 'transformed')}),
                           experiment_directory=config.pipeline.experiment_directory,
-                          **kwargs
                           )
         last_step = normalizer
     else:
@@ -464,9 +455,6 @@ def sklearn_preprocessing(features, features_valid, config, train_mode, suffix, 
                                                'categorical_features': E(features.name, 'categorical_features')
                                                }),
                               experiment_directory=config.pipeline.experiment_directory,
-                              persist_output=persist_output,
-                              cache_output=cache_output,
-                              load_persisted_output=load_persisted_output,
                               **kwargs
                               )
 
@@ -476,7 +464,6 @@ def sklearn_preprocessing(features, features_valid, config, train_mode, suffix, 
                                      input_steps=[features_valid],
                                      adapter=Adapter({'X': E(features_valid.name, 'features')}),
                                      experiment_directory=config.pipeline.experiment_directory,
-                                     **kwargs
                                      )
 
         fillnaer_valid = Step(name='fillna_valid{}'.format(suffix),
@@ -484,7 +471,6 @@ def sklearn_preprocessing(features, features_valid, config, train_mode, suffix, 
                               input_steps=[one_hot_encoder_valid],
                               adapter=Adapter({'X': E(one_hot_encoder_valid.name, 'transformed')}),
                               experiment_directory=config.pipeline.experiment_directory,
-                              **kwargs
                               )
 
         if normalize:
@@ -493,7 +479,6 @@ def sklearn_preprocessing(features, features_valid, config, train_mode, suffix, 
                                     input_steps=[fillnaer_valid],
                                     adapter=Adapter({'X': E(fillnaer_valid.name, 'transformed')}),
                                     experiment_directory=config.pipeline.experiment_directory,
-                                    **kwargs
                                     )
             last_step = normalizer_valid
         else:
@@ -508,9 +493,6 @@ def sklearn_preprocessing(features, features_valid, config, train_mode, suffix, 
                                                                                    'categorical_features')
                                                          }),
                                         experiment_directory=config.pipeline.experiment_directory,
-                                        persist_output=persist_output,
-                                        cache_output=cache_output,
-                                        load_persisted_output=load_persisted_output,
                                         **kwargs
                                         )
         return sklearn_preprocess, sklearn_preprocess_valid
@@ -549,36 +531,49 @@ def stacking_features(config, train_mode, suffix, **kwargs):
         return feature_combiner
 
 
-def stacking_features(config, train_mode, suffix, **kwargs):
-    features = Step(name='stacking_features{}'.format(suffix),
-                    transformer=IdentityOperation(),
-                    input_data=['input'],
-                    adapter=Adapter({'numerical_features': E('input', 'X')}),
-                    experiment_directory=config.pipeline.experiment_directory, **kwargs)
+def stacking_normalization(features, config, train_mode, suffix, **kwargs):
+    if train_mode:
+        features, features_valid = features
+
+    normalizer = Step(name='stacking_normalizer{}'.format(suffix),
+                      transformer=SklearnTransformer(Normalizer()),
+                      input_steps=[features],
+                      adapter=Adapter({'X': E(features.name, 'features')}),
+                      experiment_directory=config.pipeline.experiment_directory,
+                      )
+
+    stacking_normalized = Step(name='stacking_normalization{}'.format(suffix),
+                              transformer=IdentityOperation(),
+                              input_steps=[normalizer, features],
+                              adapter=Adapter({'features': E(normalizer.name, 'transformed'),
+                                               'feature_names': E(features.name, 'feature_names'),
+                                               'categorical_features': E(features.name, 'categorical_features')
+                                               }),
+                              experiment_directory=config.pipeline.experiment_directory,
+                              **kwargs
+                              )
 
     if train_mode:
-        features_valid = Step(name='stacking_features_valid{}'.format(suffix),
-                              transformer=IdentityOperation(),
-                              input_data=['input'],
-                              adapter=Adapter({'numerical_features': E('input', 'X_valid')}),
-                              experiment_directory=config.pipeline.experiment_directory, **kwargs)
-        feature_combiner, feature_combiner_valid = _join_features(numerical_features=[features],
-                                                                  numerical_features_valid=[features_valid],
-                                                                  categorical_features=[],
-                                                                  categorical_features_valid=[],
-                                                                  config=config,
-                                                                  train_mode=train_mode,
-                                                                  suffix=suffix, **kwargs)
-        return feature_combiner, feature_combiner_valid
-    else:
-        feature_combiner = _join_features(numerical_features=[features],
-                                          numerical_features_valid=[],
-                                          categorical_features=[],
-                                          categorical_features_valid=[],
-                                          config=config,
-                                          train_mode=train_mode,
-                                          suffix=suffix, **kwargs)
-        return feature_combiner
+        normalizer_valid = Step(name='stacking_normalizer_valid{}'.format(suffix),
+                                transformer=normalizer,
+                                input_steps=[features_valid],
+                                adapter=Adapter({'X': E(features_valid.name, 'features')}),
+                                experiment_directory=config.pipeline.experiment_directory,
+                                )
+
+        stacking_normalized_valid = Step(name='stacking_normalization_valid{}'.format(suffix),
+                                        transformer=IdentityOperation(),
+                                        input_steps=[normalizer_valid, features_valid],
+                                        adapter=Adapter({'features': E(normalizer_valid.name, 'transformed'),
+                                                         'feature_names': E(features_valid.name, 'feature_names'),
+                                                         'categorical_features': E(features_valid.name,
+                                                                                   'categorical_features')
+                                                         }),
+                                        experiment_directory=config.pipeline.experiment_directory,
+                                        **kwargs
+                                        )
+        return stacking_normalized, stacking_normalized_valid
+    return stacking_normalized
 
 
 def _join_features(numerical_features,

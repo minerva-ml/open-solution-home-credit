@@ -70,9 +70,12 @@ def log_reg_stacking(config, train_mode, suffix=''):
                                         cache_output=False,
                                         load_persisted_output=False)
 
-    sklearn_features = blocks.sklearn_preprocessing(features, [], train_mode, config, train_mode, suffix, normalize=True)
-
-    log_reg = blocks.classifier_log_reg_stacking(sklearn_features, config, train_mode, suffix,
+    normalized_features = blocks.stacking_normalization(features, config, train_mode, suffix,
+                                                        persist_output=False,
+                                                        cache_output=False,
+                                                        load_persisted_output=False
+                                                        )
+    log_reg = blocks.classifier_log_reg_stacking(normalized_features, config, train_mode, suffix,
                                                      cache_output=False)
     return log_reg
 
@@ -111,32 +114,33 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, suffix='', norma
                                                              cache_output=True,
                                                              load_persisted_output=True)
 
-        sklearn_features, sklearn_features_valid = blocks.sklearn_preprocessing(features,
-                                                                              features_valid,
-                                                                              config,
-                                                                              train_mode,
-                                                                              suffix,
-                                                                              normalize)
-        sklearn_clf = blocks.classifier_sklearn((sklearn_features, sklearn_features_valid),
-                                                ClassifierClass,
-                                                config,
-                                                clf_name,
-                                                train_mode,
-                                                suffix)
-
+        sklearn_features = blocks.sklearn_preprocessing((features, features_valid),
+                                                        config,
+                                                        train_mode,
+                                                        suffix,
+                                                        normalize,
+                                                        persist_output=True,
+                                                        cache_output=True,
+                                                        load_persisted_output=True)
     else:
         features = blocks.feature_extraction(config,
                                              train_mode,
                                              suffix,
                                              cache_output=True)
-        sklearn_features = blocks.sklearn_preprocessing(features, [], config, train_mode, suffix, normalize)
 
-        sklearn_clf = blocks.classifier_sklearn(sklearn_features,
-                                                ClassifierClass,
-                                                config,
-                                                clf_name,
-                                                train_mode,
-                                                suffix)
+        sklearn_features = blocks.sklearn_preprocessing(features,
+                                                        config,
+                                                        train_mode,
+                                                        suffix,
+                                                        normalize,
+                                                        cache_output=True)
+
+    sklearn_clf = blocks.classifier_sklearn(sklearn_features,
+                                            ClassifierClass,
+                                            config,
+                                            clf_name,
+                                            train_mode,
+                                            suffix)
     return sklearn_clf
 
 
