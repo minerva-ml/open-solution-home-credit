@@ -242,7 +242,6 @@ class SklearnTransformer(BaseTransformer):
         return self
 
 
-
 def get_sklearn_classifier(ClassifierClass, **kwargs):
 
     class SklearnBinaryClassifier(SklearnClassifier):
