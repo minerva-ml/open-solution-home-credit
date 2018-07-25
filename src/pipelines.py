@@ -139,5 +139,5 @@ PIPELINES = {'lightGBM': lightGBM,
                                 clf_name='logistic_regression'),
              'svc': partial(sklearn_main,
                             ClassifierClass=SVC,
-                            clf_name='SVC'),
+                            clf_name='svc'),
              }
