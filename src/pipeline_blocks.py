@@ -5,12 +5,11 @@ from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import Normalizer
 from steppy.adapter import Adapter, E
 from steppy.base import Step, make_transformer, IdentityOperation
-from toolkit.sklearn_transformers.models import make_transformer as make_sklearn_transformer
 
 from . import feature_extraction as fe
 from . import data_cleaning as dc
 from .hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, PersistResults
-from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost
+from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost, SklearnTransformer
 
 
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
@@ -217,22 +216,25 @@ def classifier_sklearn(features,
                                                         **random_search_params.callbacks.persist_results)]
                                                 )
         else:
-            transformer = get_sklearn_classifier(ClassifierClass, model_params)
+            transformer = get_sklearn_classifier(ClassifierClass, **model_params)
 
         sklearn_clf = Step(name=model_name,
                            transformer=transformer,
                            input_data=['application'],
-                           input_steps=[features, features_valid],
+                           input_steps=[features_train, features_valid],
                            adapter=Adapter({'X': E(features_train.name, 'features'),
                                             'y': E('application', 'y'),
+                                            'feature_names': E(features_train.name, 'feature_names'),
+                                            'X_valid': E(features_valid.name, 'features'),
+                                            'y_valid': E('application', 'y_valid'),
                                             }),
                            experiment_directory=config.pipeline.experiment_directory,
                            **kwargs)
     else:
         sklearn_clf = Step(name=model_name,
-                           transformer=get_sklearn_classifier(ClassifierClass, model_params),
+                           transformer=get_sklearn_classifier(ClassifierClass, **model_params),
                            input_steps=[features],
-                           adapter=Adapter({'X': E(features.name, 'X')}),
+                           adapter=Adapter({'X': E(features.name, 'features')}),
                            experiment_directory=config.pipeline.experiment_directory,
                            **kwargs)
     return sklearn_clf
@@ -381,20 +383,27 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
 
 
 def sklearn_preprocessing(features, features_valid, config, train_mode, normalize, suffix, **kwargs):
-    one_hot_encoder = Step(name='one_hot_encode{}'.format(suffix),
-                           transformer=make_sklearn_transformer(ce.OneHotEncoder(cols=features['categorical_features'],
-                                                                                 drop_invariant=True
-                                                                                 ),
-                                                                mode='transformer'
-                                                                ),
-                           input_steps=features,
+    if train_mode:
+        persist_output = True
+        cache_output = True
+        load_persisted_output = True
+    else:
+        persist_output = False
+        cache_output = True
+        load_persisted_output = False
+
+    one_hot_encoder = Step(name='one_hot_encoder{}'.format(suffix),
+                           transformer=SklearnTransformer(ce.OneHotEncoder(
+                               **config.sklearn_preprocessing.one_hot_encoder)
+                           ),
+                           input_steps=[features],
                            adapter=Adapter({'X': E(features.name, 'features')}),
                            experiment_directory=config.pipeline.experiment_directory,
                            **kwargs
                            )
 
     fillnaer = Step(name='fillna{}'.format(suffix),
-                    transformer=_fillna(**config.sklearn_preprocessing),
+                    transformer=_fillna(**config.sklearn_preprocessing.fillna),
                     input_steps=[one_hot_encoder],
                     adapter=Adapter({'X': E(one_hot_encoder.name, 'transformed')}),
                     experiment_directory=config.pipeline.experiment_directory,
@@ -403,68 +412,73 @@ def sklearn_preprocessing(features, features_valid, config, train_mode, normaliz
 
     if normalize:
         normalizer = Step(name='normalizer{}'.format(suffix),
-                      transformer=make_sklearn_transformer(Normalizer(),
-                                                           mode='transformer'
-                                                           ),
-                      input_steps=fillnaer,
-                      adapter=Adapter({'X': E(fillnaer.name, 'transformed')}),
-                      experiment_directory=config.pipeline.experiment_directory,
-                      **kwargs
-                      )
+                          transformer=SklearnTransformer(Normalizer()),
+                          input_steps=[fillnaer],
+                          adapter=Adapter({'X': E(fillnaer.name, 'transformed')}),
+                          experiment_directory=config.pipeline.experiment_directory,
+                          **kwargs
+                          )
         last_step = normalizer
     else:
         last_step = fillnaer
 
     sklearn_preprocess = Step(name='sklearn_preprocess{}'.format(suffix),
-                                  transformer=IdentityOperation(),
-                                  input_steps=[last_step, features],
-                                  adapter=Adapter({'features': E(last_step.name, 'transformed'),
-                                                   'feature_names': E(features.name, 'feature_names'),
-                                                   'categorical_features': E(features.name, 'categorical_features')
-                                                   }),
-                                  experiment_directory=config.pipeline.experiment_directory,
-                                  **kwargs
-                                  )
+                              transformer=IdentityOperation(),
+                              input_steps=[last_step, features],
+                              adapter=Adapter({'features': E(last_step.name, 'transformed'),
+                                               'feature_names': E(features.name, 'feature_names'),
+                                               'categorical_features': E(features.name, 'categorical_features')
+                                               }),
+                              experiment_directory=config.pipeline.experiment_directory,
+                              persist_output=persist_output,
+                              cache_output=cache_output,
+                              load_persisted_output=load_persisted_output,
+                              **kwargs
+                              )
 
     if train_mode:
-        one_hot_encoder_valid = Step(name='one_hot_encode{}'.format(suffix),
-                               transformer=one_hot_encoder,
-                               input_steps=features_valid,
-                               adapter=Adapter({'X': E(features_valid.name, 'features')}),
-                               experiment_directory=config.pipeline.experiment_directory,
-                               **kwargs
-                               )
+        one_hot_encoder_valid = Step(name='one_hot_encoder_valid{}'.format(suffix),
+                                     transformer=one_hot_encoder,
+                                     input_steps=[features_valid],
+                                     adapter=Adapter({'X': E(features_valid.name, 'features')}),
+                                     experiment_directory=config.pipeline.experiment_directory,
+                                     **kwargs
+                                     )
 
         fillnaer_valid = Step(name='fillna_valid{}'.format(suffix),
-                        transformer=fillnaer,
-                        input_steps=[one_hot_encoder_valid],
-                        adapter=Adapter({'X': E(one_hot_encoder_valid.name, 'transformed')}),
-                        experiment_directory=config.pipeline.experiment_directory,
-                        **kwargs
-                        )
-
-        if normalize:
-            normalizer_valid = Step(name='normalizer_valid{}'.format(suffix),
-                              transformer=normalizer,
-                              input_steps=fillnaer_valid,
-                              adapter=Adapter({'X': E(fillnaer_valid.name, 'transformed')}),
+                              transformer=fillnaer,
+                              input_steps=[one_hot_encoder_valid],
+                              adapter=Adapter({'X': E(one_hot_encoder_valid.name, 'transformed')}),
                               experiment_directory=config.pipeline.experiment_directory,
                               **kwargs
                               )
+
+        if normalize:
+            normalizer_valid = Step(name='normalizer_valid{}'.format(suffix),
+                                    transformer=normalizer,
+                                    input_steps=[fillnaer_valid],
+                                    adapter=Adapter({'X': E(fillnaer_valid.name, 'transformed')}),
+                                    experiment_directory=config.pipeline.experiment_directory,
+                                    **kwargs
+                                    )
             last_step = normalizer_valid
         else:
             last_step = fillnaer_valid
 
         sklearn_preprocess_valid = Step(name='sklearn_preprocess_valid{}'.format(suffix),
-                                  transformer=IdentityOperation(),
-                                  input_steps=[last_step, features_valid],
-                                  adapter=Adapter({'features': E(last_step.name, 'transformed'),
-                                                   'feature_names': E(features_valid.name, 'feature_names'),
-                                                   'categorical_features': E(features_valid.name, 'categorical_features')
-                                                   }),
-                                  experiment_directory=config.pipeline.experiment_directory,
-                                  **kwargs
-                                  )
+                                        transformer=IdentityOperation(),
+                                        input_steps=[last_step, features_valid],
+                                        adapter=Adapter({'features': E(last_step.name, 'transformed'),
+                                                         'feature_names': E(features_valid.name, 'feature_names'),
+                                                         'categorical_features': E(features_valid.name,
+                                                                                   'categorical_features')
+                                                         }),
+                                        experiment_directory=config.pipeline.experiment_directory,
+                                        persist_output=persist_output,
+                                        cache_output=cache_output,
+                                        load_persisted_output=load_persisted_output,
+                                        **kwargs
+                                        )
         return sklearn_preprocess, sklearn_preprocess_valid
     return sklearn_preprocess
 
@@ -866,20 +880,21 @@ def _bureau_balance(config, train_mode, suffix, **kwargs):
 
     if train_mode:
         bureau_balance_hand_crafted_merge_valid = Step(name='bureau_balance_hand_crafted_merge_valid{}'.format(suffix),
-                                               transformer=bureau_balance_hand_crafted_merge,
-                                               input_data=['application'],
-                                               input_steps=[bureau_balance_hand_crafted],
-                                               adapter=Adapter({'table': E('application', 'X_valid'),
-                                                                'features': E(bureau_balance_hand_crafted.name,
-                                                                              'features_table')}),
-                                               experiment_directory=config.pipeline.experiment_directory, **kwargs)
+                                                       transformer=bureau_balance_hand_crafted_merge,
+                                                       input_data=['application'],
+                                                       input_steps=[bureau_balance_hand_crafted],
+                                                       adapter=Adapter({'table': E('application', 'X_valid'),
+                                                                        'features': E(bureau_balance_hand_crafted.name,
+                                                                                      'features_table')}),
+                                                       experiment_directory=config.pipeline.experiment_directory,
+                                                       **kwargs)
         return bureau_balance_hand_crafted_merge, bureau_balance_hand_crafted_merge_valid
     else:
         return bureau_balance_hand_crafted_merge
 
 
 def _credit_card_balance_cleaning(config, suffix, **kwargs):
-    credit_card_balance_cleaning = Step(name='credit_card_balance_cleaning{}'.format(suffix),
+    credit_card_balance_cleaning = Step(name='credit_card_balance_cleaning',
                                         transformer=dc.CreditCardCleaning(
                                             **config.preprocessing.impute_missing),
                                         input_data=['credit_card_balance'],
@@ -958,7 +973,7 @@ def _pos_cash_balance(config, train_mode, suffix, **kwargs):
 
 
 def _previous_application_cleaning(config, suffix, **kwargs):
-    previous_application_cleaning = Step(name='previous_application_cleaning{}'.format(suffix),
+    previous_application_cleaning = Step(name='previous_application_cleaning',
                                          transformer=dc.PreviousApplicationCleaning(
                                              **config.preprocessing.impute_missing),
                                          input_data=['previous_application'],
@@ -1046,15 +1061,4 @@ def _fillna(fill_value, **kwargs):
     def _inner_fillna(X):
         return {'transformed': X.fillna(fill_value)}
     return make_transformer(_inner_fillna)
-
-
-#def _fillna(fillna_value):
- #   def _inner_fillna(X, X_valid=None):
- #       if X_valid is None:
- #           return {'X': X.fillna(fillna_value)}
- ##       else:
- #           return {'X': X.fillna(fillna_value),
- #                   'X_valid': X_valid.fillna(fillna_value)}
-#
-#    return make_transformer(_inner_fillna)
 

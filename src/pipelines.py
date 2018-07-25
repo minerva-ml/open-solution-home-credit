@@ -90,9 +90,6 @@ def xgboost(config, train_mode, suffix=''):
 
 
 def sklearn_main(config, ClassifierClass, clf_name, train_mode, suffix='', normalize=False):
-    model_params = getattr(config, clf_name)
-    random_search_config = getattr(config.random_search, clf_name)
-    full_config = (config, model_params, random_search_config)
     if train_mode:
         features, features_valid = blocks.feature_extraction(config,
                                                              train_mode,
@@ -109,7 +106,7 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, suffix='', norma
                                                                               suffix)
         sklearn_clf = blocks.classifier_sklearn((sklearn_preproc, sklearn_preproc_valid),
                                                 ClassifierClass,
-                                                full_config,
+                                                config,
                                                 clf_name,
                                                 train_mode,
                                                 suffix)
@@ -123,7 +120,7 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, suffix='', norma
 
         sklearn_clf = blocks.classifier_sklearn(sklearn_preproc,
                                                 ClassifierClass,
-                                                full_config,
+                                                config,
                                                 clf_name,
                                                 train_mode,
                                                 suffix)
@@ -134,35 +131,13 @@ PIPELINES = {'lightGBM': lightGBM,
              'catboost': catboost,
              'lightGBM_stacking': lightGBM_stacking,
              'XGBoost': xgboost,
-             'random_forest': {'train': partial(sklearn_main,
-                                                ClassifierClass=RandomForestClassifier,
-                                                clf_name='random_forest',
-                                                train_mode=True),
-                               'inference': partial(sklearn_main,
-                                                    ClassifierClass=RandomForestClassifier,
-                                                    clf_name='random_forest',
-                                                    train_mode=False)
-                               },
-             'log_reg': {'train': partial(sklearn_main,
-                                          ClassifierClass=LogisticRegression,
-                                          clf_name='logistic_regression',
-                                          train_mode=True,
-                                          normalize=True),
-                         'inference': partial(sklearn_main,
-                                              ClassifierClass=LogisticRegression,
-                                              clf_name='logistic_regression',
-                                              train_mode=False,
-                                              normalize=True)
-                         },
-             'svc': {'train': partial(sklearn_main,
-                                      ClassifierClass=SVC,
-                                      clf_name='svc',
-                                      train_mode=True,
-                                      normalize=True),
-                     'inference': partial(sklearn_main,
-                                          ClassifierClass=SVC,
-                                          clf_name='svc',
-                                          train_mode=False,
-                                          normalize=True)
-                     }
+             'random_forest': partial(sklearn_main,
+                                      ClassifierClass=RandomForestClassifier,
+                                      clf_name='random_forest'),
+             'log_reg': partial(sklearn_main,
+                                ClassifierClass=LogisticRegression,
+                                clf_name='logistic_regression'),
+             'svc': partial(sklearn_main,
+                            ClassifierClass=SVC,
+                            clf_name='SVC'),
              }

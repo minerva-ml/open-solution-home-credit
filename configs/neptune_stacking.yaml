@@ -124,7 +124,7 @@ parameters:
   rf__max_features: 0.2
   rf__min_samples_split: 10
   rf__min_samples_leaf: 5
-  rf__class_weight: 1
+  rf__class_weight: balanced
 
 # Logistic regression
   lr_random_search_runs: 0
@@ -132,7 +132,7 @@ parameters:
   lr__tol: 0.00001
   lr__C: 1
   lr__fit_intercept: 1
-  lr__class_weight: 1
+  lr__class_weight: balanced
   lr__solver: liblinear
   lr__max_iter: 10000
 

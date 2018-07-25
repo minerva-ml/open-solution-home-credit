@@ -410,6 +410,7 @@ def _read_data(dev_mode, read_train=True, read_test=False):
                                                                   on='SK_ID_BUREAU', how='right')
     if dev_mode:
         raw_data['bureau'] = raw_data['bureau'].head(nrows)
+        raw_data['bureau_balance'] = raw_data['bureau_balance'].head(nrows)
     raw_data['installments_payments'] = pd.read_csv(params.installments_payments_filepath, nrows=nrows)
 
     return AttrDict(raw_data)

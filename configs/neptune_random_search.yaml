@@ -124,7 +124,7 @@ parameters:
   rf__max_features: '[0.01, 0.5, "uniform"]'
   rf__min_samples_split: '[2, 50]'
   rf__min_samples_leaf: '[1, 50]'
-  rf__class_weight: '[None, "balanced_subsample", "balanced", "list"]'
+  rf__class_weight: balanced
 
 # Logistic regression
   lr_random_search_runs: 50
@@ -132,7 +132,7 @@ parameters:
   lr__tol: '[0.00001, 0.01, "log-uniform"]'
   lr__C: '[0.1, 100, "log-uniform"]'
   lr__fit_intercept: '[0, 1, "list"]'
-  lr__class_weight: '[None, "balanced", "list"]'
+  lr__class_weight: balanced
   lr__solver: '["liblinear", "saga", "list"]'
   lr__max_iter: '[100, 1000, 10000, 50000, "list"]'
 

@@ -221,12 +221,35 @@ class CatBoost(BaseTransformer):
             return None
 
 
+class SklearnTransformer(BaseTransformer):
+    def __init__(self, estimator):
+        super().__init__()
+        self.estimator = estimator
+
+    def fit(self, X, y=None, **kwargs):
+        self.estimator.fit(X, y)
+        return self
+
+    def transform(self, X, y=None, **kwargs):
+        transformed = self.estimator.transform(X)
+        return {'transformed': transformed}
+
+    def persist(self, filepath):
+        joblib.dump(self.estimator, filepath)
+
+    def load(self, filepath):
+        self.estimator = joblib.load(filepath)
+        return self
+
+
+
 def get_sklearn_classifier(ClassifierClass, **kwargs):
 
     class SklearnBinaryClassifier(SklearnClassifier):
+
         def transform(self, X, y=None, target=1, **kwargs):
             prediction = self.estimator.predict_proba(X)[:, target]
-            return {SklearnClassifier.RESULT_KEY: prediction}
+            return {'prediction': prediction}
 
     return SklearnBinaryClassifier(ClassifierClass(**kwargs))
 
