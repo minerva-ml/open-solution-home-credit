@@ -765,21 +765,6 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
         return InstallmentPaymentsFeatures.last_k_installment_features(gr, periods=[10e16])
 
     @staticmethod
-    def last_k_installment_features_with_fractions(gr, periods, period_fractions):
-        features = InstallmentPaymentsFeatures.last_k_installment_features(gr, periods)
-
-        for short_period, long_period in period_fractions:
-            short_feature_names = get_feature_names_by_period(features, short_period)
-            long_feature_names = get_feature_names_by_period(features, long_period)
-
-            for short_feature, long_feature in zip(short_feature_names, long_feature_names):
-                old_name_chunk = '_{}_'.format(short_period)
-                new_name_chunk = '_{}by{}_fraction_'.format(short_period, long_period)
-                fraction_feature_name = short_feature.replace(old_name_chunk, new_name_chunk)
-                features[fraction_feature_name] = safe_div(features[short_feature], features[long_feature])
-        return features
-
-    @staticmethod
     def last_k_installment_features(gr, periods):
         gr_ = gr.copy()
 
