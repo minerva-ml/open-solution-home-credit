@@ -1,5 +1,6 @@
 from functools import partial
 import category_encoders as ce
+import numpy as np
 
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import Normalizer
@@ -1123,6 +1124,8 @@ def _installment_payments(config, train_mode, suffix, **kwargs):
 
 def _fillna(fill_value, **kwargs):
     def _inner_fillna(X):
-        return {'transformed': X.fillna(fill_value)}
+        X_filled = X.replace([np.inf, -np.inf], fill_value)
+        X_filled = X_filled.fillna(fill_value)
+        return {'transformed': X_filled}
     return make_transformer(_inner_fillna)
 
