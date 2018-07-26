@@ -406,6 +406,7 @@ SOLUTION_CONFIG = AttrDict({
                       'max_features': parameter_eval(params.rf__max_features),
                       'min_samples_split': parameter_eval(params.rf__min_samples_split),
                       'min_samples_leaf': parameter_eval(params.rf__min_samples_leaf),
+                      'max_leaf_nodes': parameter_eval(params.rf__max_leaf_nodes),
                       'n_jobs': parameter_eval(params.num_workers),
                       'random_state': RANDOM_SEED,
                       'verbose': parameter_eval(params.verbose),

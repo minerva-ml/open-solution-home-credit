@@ -124,6 +124,7 @@ parameters:
   rf__max_features: 0.2
   rf__min_samples_split: 10
   rf__min_samples_leaf: 5
+  rf__max_leaf_nodes: None
   rf__class_weight: balanced
 
 # Logistic regression

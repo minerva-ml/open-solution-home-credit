@@ -105,7 +105,7 @@ def xgboost(config, train_mode, suffix=''):
     return xgb
 
 
-def sklearn_main(config, ClassifierClass, clf_name, train_mode, suffix='', normalize=False):
+def sklearn_pipeline(config, ClassifierClass, clf_name, train_mode, suffix='', normalize=False):
     if train_mode:
         features, features_valid = blocks.feature_extraction(config,
                                                              train_mode,
@@ -149,14 +149,14 @@ PIPELINES = {'lightGBM': lightGBM,
              'lightGBM_stacking': lightGBM_stacking,
              'log_reg_stacking': log_reg_stacking,
              'XGBoost': xgboost,
-             'random_forest': partial(sklearn_main,
+             'random_forest': partial(sklearn_pipeline,
                                       ClassifierClass=RandomForestClassifier,
                                       clf_name='random_forest'),
-             'log_reg': partial(sklearn_main,
+             'log_reg': partial(sklearn_pipeline,
                                 ClassifierClass=LogisticRegression,
                                 clf_name='logistic_regression',
                                 normalize=True),
-             'svc': partial(sklearn_main,
+             'svc': partial(sklearn_pipeline,
                             ClassifierClass=SVC,
                             clf_name='svc',
                             normalize=True),

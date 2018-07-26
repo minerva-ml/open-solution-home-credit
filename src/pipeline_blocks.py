@@ -235,7 +235,7 @@ def classifier_sklearn(features,
     random_search_params = getattr(config.random_search, clf_name)
     if train_mode:
         features_train, features_valid = features
-        if getattr(config.random_search, clf_name).n_runs:
+        if random_search_params.n_runs:
             transformer = RandomSearchOptimizer(TransformerClass=partial(get_sklearn_classifier,
                                                                          ClassifierClass=ClassifierClass),
                                                 params=model_params,
@@ -497,7 +497,8 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
                                         **kwargs
                                         )
         return sklearn_preprocess, sklearn_preprocess_valid
-    return sklearn_preprocess
+    else:
+        return sklearn_preprocess
 
 
 def stacking_features(config, train_mode, suffix, **kwargs):
@@ -574,7 +575,8 @@ def stacking_normalization(features, config, train_mode, suffix, **kwargs):
                                         **kwargs
                                         )
         return stacking_normalized, stacking_normalized_valid
-    return stacking_normalized
+    else:
+        return stacking_normalized
 
 
 def _join_features(numerical_features,
