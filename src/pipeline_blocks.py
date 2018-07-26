@@ -101,50 +101,38 @@ def classifier_catboost(features, config, train_mode, suffix, **kwargs):
     return catboost
 
 
-def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs):
-    model_name = 'light_gbm{}'.format(suffix)
+def classifier_xgboost_stacking(features, config, train_mode, suffix, **kwargs):
+    model_name = 'xgb{}'.format(suffix)
 
     if train_mode:
         features_train, features_valid = features
-        if config.random_search.light_gbm.n_runs:
-            transformer = RandomSearchOptimizer(TransformerClass=LightGBM,
-                                                params=config.light_gbm,
-                                                train_input_keys=[],
-                                                valid_input_keys=['X_valid', 'y_valid'],
-                                                score_func=roc_auc_score,
-                                                maximize=True,
-                                                n_runs=config.random_search.light_gbm.n_runs,
-                                                callbacks=[
-                                                    NeptuneMonitor(
-                                                        **config.random_search.light_gbm.callbacks.neptune_monitor),
-                                                    PersistResults(
-                                                        **config.random_search.light_gbm.callbacks.persist_results)]
-                                                )
+        if config.random_search.xgboost.n_runs:
+            raise NotImplementedError
         else:
-            transformer = LightGBM(name=model_name, **config.light_gbm)
+            transformer = XGBoost(**config.xgboost)
 
-        light_gbm = Step(name=model_name,
-                         transformer=transformer,
-                         input_data=['input'],
-                         input_steps=[features_train, features_valid],
-                         adapter=Adapter({'X': E(features_train.name, 'features'),
-                                          'y': E('input', 'y'),
-                                          'feature_names': E(features_train.name, 'feature_names'),
-                                          'categorical_features': E(features_train.name, 'categorical_features'),
-                                          'X_valid': E(features_valid.name, 'features'),
-                                          'y_valid': E('input', 'y_valid'),
-                                          }),
-                         force_fitting=True,
-                         experiment_directory=config.pipeline.experiment_directory,
-                         **kwargs)
+        xgb = Step(name=model_name,
+                   transformer=transformer,
+                   input_data=['input'],
+                   input_steps=[features_train, features_valid],
+                   adapter=Adapter({'X': E(features_train.name, 'features'),
+                                    'y': E('input', 'y'),
+                                    'feature_names': E(features_train.name, 'feature_names'),
+                                    'categorical_features': E(features_train.name, 'categorical_features'),
+                                    'X_valid': E(features_valid.name, 'features'),
+                                    'y_valid': E('input', 'y_valid'),
+                                    }),
+                   force_fitting=True,
+                   experiment_directory=config.pipeline.experiment_directory,
+                   **kwargs)
     else:
-        light_gbm = Step(name=model_name,
-                         transformer=LightGBM(name=model_name, **config.light_gbm),
-                         input_steps=[features],
-                         adapter=Adapter({'X': E(features.name, 'features')}),
-                         experiment_directory=config.pipeline.experiment_directory,
-                         **kwargs)
-    return light_gbm
+        xgb = Step(name=model_name,
+                   transformer=XGBoost(**config.xgboost),
+                   input_steps=[features],
+                   adapter=Adapter({'X': E(features.name, 'features')}),
+                   experiment_directory=config.pipeline.experiment_directory,
+                   **kwargs)
+    return xgb
 
 
 def classifier_log_reg_stacking(features, config, train_mode, suffix, **kwargs):
@@ -545,15 +533,15 @@ def stacking_normalization(features, config, train_mode, suffix, **kwargs):
                       )
 
     stacking_normalized = Step(name='stacking_normalization{}'.format(suffix),
-                              transformer=IdentityOperation(),
-                              input_steps=[normalizer, features],
-                              adapter=Adapter({'features': E(normalizer.name, 'transformed'),
-                                               'feature_names': E(features.name, 'feature_names'),
-                                               'categorical_features': E(features.name, 'categorical_features')
-                                               }),
-                              experiment_directory=config.pipeline.experiment_directory,
-                              **kwargs
-                              )
+                               transformer=IdentityOperation(),
+                               input_steps=[normalizer, features],
+                               adapter=Adapter({'features': E(normalizer.name, 'transformed'),
+                                                'feature_names': E(features.name, 'feature_names'),
+                                                'categorical_features': E(features.name, 'categorical_features')
+                                                }),
+                               experiment_directory=config.pipeline.experiment_directory,
+                               **kwargs
+                               )
 
     if train_mode:
         normalizer_valid = Step(name='stacking_normalizer_valid{}'.format(suffix),
@@ -564,16 +552,16 @@ def stacking_normalization(features, config, train_mode, suffix, **kwargs):
                                 )
 
         stacking_normalized_valid = Step(name='stacking_normalization_valid{}'.format(suffix),
-                                        transformer=IdentityOperation(),
-                                        input_steps=[normalizer_valid, features_valid],
-                                        adapter=Adapter({'features': E(normalizer_valid.name, 'transformed'),
-                                                         'feature_names': E(features_valid.name, 'feature_names'),
-                                                         'categorical_features': E(features_valid.name,
-                                                                                   'categorical_features')
-                                                         }),
-                                        experiment_directory=config.pipeline.experiment_directory,
-                                        **kwargs
-                                        )
+                                         transformer=IdentityOperation(),
+                                         input_steps=[normalizer_valid, features_valid],
+                                         adapter=Adapter({'features': E(normalizer_valid.name, 'transformed'),
+                                                          'feature_names': E(features_valid.name, 'feature_names'),
+                                                          'categorical_features': E(features_valid.name,
+                                                                                    'categorical_features')
+                                                          }),
+                                         experiment_directory=config.pipeline.experiment_directory,
+                                         **kwargs
+                                         )
         return stacking_normalized, stacking_normalized_valid
     else:
         return stacking_normalized
@@ -1124,5 +1112,5 @@ def _installment_payments(config, train_mode, suffix, **kwargs):
 def _fillna(fill_value, **kwargs):
     def _inner_fillna(X):
         return {'transformed': X.fillna(fill_value)}
-    return make_transformer(_inner_fillna)
 
+    return make_transformer(_inner_fillna)
