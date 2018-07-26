@@ -572,15 +572,15 @@ def stacking_normalization(features, config, train_mode, suffix, **kwargs):
                       )
 
     stacking_normalized = Step(name='stacking_normalization{}'.format(suffix),
-                              transformer=IdentityOperation(),
-                              input_steps=[normalizer, features],
-                              adapter=Adapter({'features': E(normalizer.name, 'transformed'),
-                                               'feature_names': E(features.name, 'feature_names'),
-                                               'categorical_features': E(features.name, 'categorical_features')
-                                               }),
-                              experiment_directory=config.pipeline.experiment_directory,
-                              **kwargs
-                              )
+                               transformer=IdentityOperation(),
+                               input_steps=[normalizer, features],
+                               adapter=Adapter({'features': E(normalizer.name, 'transformed'),
+                                                'feature_names': E(features.name, 'feature_names'),
+                                                'categorical_features': E(features.name, 'categorical_features')
+                                                }),
+                               experiment_directory=config.pipeline.experiment_directory,
+                               **kwargs
+                               )
 
     if train_mode:
         normalizer_valid = Step(name='stacking_normalizer_valid{}'.format(suffix),
@@ -591,16 +591,16 @@ def stacking_normalization(features, config, train_mode, suffix, **kwargs):
                                 )
 
         stacking_normalized_valid = Step(name='stacking_normalization_valid{}'.format(suffix),
-                                        transformer=IdentityOperation(),
-                                        input_steps=[normalizer_valid, features_valid],
-                                        adapter=Adapter({'features': E(normalizer_valid.name, 'transformed'),
-                                                         'feature_names': E(features_valid.name, 'feature_names'),
-                                                         'categorical_features': E(features_valid.name,
-                                                                                   'categorical_features')
-                                                         }),
-                                        experiment_directory=config.pipeline.experiment_directory,
-                                        **kwargs
-                                        )
+                                         transformer=IdentityOperation(),
+                                         input_steps=[normalizer_valid, features_valid],
+                                         adapter=Adapter({'features': E(normalizer_valid.name, 'transformed'),
+                                                          'feature_names': E(features_valid.name, 'feature_names'),
+                                                          'categorical_features': E(features_valid.name,
+                                                                                    'categorical_features')
+                                                          }),
+                                         experiment_directory=config.pipeline.experiment_directory,
+                                         **kwargs
+                                         )
         return stacking_normalized, stacking_normalized_valid
     else:
         return stacking_normalized
