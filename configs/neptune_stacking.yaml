@@ -105,17 +105,17 @@ parameters:
   xgb__eval_metric: auc
   xgb__nrounds: 10000
   xgb__early_stopping_rounds: 100
-  xgb__eta: 0.001
-  xgb__max_leaves: 40
-  xgb__max_depth: 16
+  xgb__eta: 0.01
+  xgb__max_leaves: 100
+  xgb__max_depth: 2
+  xgb__min_child_weight: 1000
   xgb__max_bin: 255
-  xgb__subsample: 0.5
-  xgb__colsample_bytree: 0.5
-  xgb__colsample_bylevel: 1
-  xgb__min_child_weight: 4
-  xgb__lambda: 0.001
-  xgb__alpha: 0.001
-  xgb__scale_pos_weight: 1
+  xgb__subsample: 1.0
+  xgb__colsample_bytree: 1.0
+  xgb__colsample_bylevel: 1.0
+  xgb__lambda: 5
+  xgb__alpha: 0.02
+  xgb__scale_pos_weight: 2
 
 # Random forest
   rf_random_search_runs: 0
