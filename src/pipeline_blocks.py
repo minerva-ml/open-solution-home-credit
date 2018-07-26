@@ -1,14 +1,16 @@
 from functools import partial
+import category_encoders as ce
 
 from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import Normalizer
+from sklearn.linear_model import LogisticRegression
 from steppy.adapter import Adapter, E
 from steppy.base import Step, make_transformer, IdentityOperation
 
 from . import feature_extraction as fe
 from . import data_cleaning as dc
 from .hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, PersistResults
-from sklearn.linear_model import LogisticRegression
-from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost
+from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost, SklearnTransformer
 
 
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
@@ -153,9 +155,7 @@ def classifier_log_reg_stacking(features, config, train_mode, suffix, **kwargs):
         if config.random_search.log_reg.n_runs:
             raise NotImplementedError
         else:
-            transformer = get_sklearn_classifier(ClassifierClass=LogisticRegression,
-                                                 normalize=True,
-                                                 **config.log_reg)
+            transformer = get_sklearn_classifier(ClassifierClass=LogisticRegression, **config.log_reg)
 
         log_reg = Step(name=model_name,
                        transformer=transformer,
@@ -173,9 +173,7 @@ def classifier_log_reg_stacking(features, config, train_mode, suffix, **kwargs):
                        **kwargs)
     else:
         log_reg = Step(name=model_name,
-                       transformer=get_sklearn_classifier(ClassifierClass=LogisticRegression,
-                                                          normalize=True,
-                                                          **config.log_reg),
+                       transformer=get_sklearn_classifier(ClassifierClass=LogisticRegression, **config.log_reg),
                        input_steps=[features],
                        adapter=Adapter({'X': E(features.name, 'features')}),
                        experiment_directory=config.pipeline.experiment_directory,
@@ -225,49 +223,53 @@ def classifier_xgb(features, config, train_mode, suffix, **kwargs):
     return xgboost
 
 
-def classifier_sklearn(sklearn_features,
+def classifier_sklearn(features,
                        ClassifierClass,
-                       full_config,
+                       config,
                        clf_name,
                        train_mode,
                        suffix,
-                       normalize,
                        **kwargs):
-    config, model_params, rs_config = full_config
+    model_name = '{}{}'.format(clf_name, suffix)
+    model_params = getattr(config, clf_name)
+    random_search_params = getattr(config.random_search, clf_name)
     if train_mode:
-        if config.random_search.random_forest.n_runs:
-            transformer = RandomSearchOptimizer(
-                partial(get_sklearn_classifier,
-                        ClassifierClass=ClassifierClass,
-                        normalize=normalize),
-                model_params,
-                train_input_keys=[],
-                valid_input_keys=['X_valid', 'y_valid'],
-                score_func=roc_auc_score,
-                maximize=True,
-                n_runs=rs_config.n_runs,
-                callbacks=[NeptuneMonitor(**rs_config.callbacks.neptune_monitor),
-                           PersistResults(**rs_config.callbacks.persist_results)]
-            )
+        features_train, features_valid = features
+        if random_search_params.n_runs:
+            transformer = RandomSearchOptimizer(TransformerClass=partial(get_sklearn_classifier,
+                                                                         ClassifierClass=ClassifierClass),
+                                                params=model_params,
+                                                train_input_keys=['X', 'y'],
+                                                valid_input_keys=['X_valid', 'y_valid'],
+                                                score_func=roc_auc_score,
+                                                maximize=True,
+                                                n_runs=random_search_params.n_runs,
+                                                callbacks=[
+                                                    NeptuneMonitor(
+                                                        **random_search_params.callbacks.neptune_monitor),
+                                                    PersistResults(
+                                                        **random_search_params.callbacks.persist_results)]
+                                                )
         else:
-            transformer = get_sklearn_classifier(ClassifierClass, normalize, **model_params)
+            transformer = get_sklearn_classifier(ClassifierClass, **model_params)
 
-        sklearn_clf = Step(name='{}{}'.format(clf_name, suffix),
+        sklearn_clf = Step(name=model_name,
                            transformer=transformer,
                            input_data=['application'],
-                           input_steps=[sklearn_features],
-                           adapter=Adapter({'X': E(sklearn_features.name, 'X'),
+                           input_steps=[features_train, features_valid],
+                           adapter=Adapter({'X': E(features_train.name, 'features'),
                                             'y': E('application', 'y'),
-                                            'X_valid': E(sklearn_features.name, 'X_valid'),
+                                            'feature_names': E(features_train.name, 'feature_names'),
+                                            'X_valid': E(features_valid.name, 'features'),
                                             'y_valid': E('application', 'y_valid'),
                                             }),
                            experiment_directory=config.pipeline.experiment_directory,
                            **kwargs)
     else:
-        sklearn_clf = Step(name='{}{}'.format(clf_name, suffix),
-                           transformer=get_sklearn_classifier(ClassifierClass, normalize, **model_params),
-                           input_steps=[sklearn_features],
-                           adapter=Adapter({'X': E(sklearn_features.name, 'X')}),
+        sklearn_clf = Step(name=model_name,
+                           transformer=get_sklearn_classifier(ClassifierClass, **model_params),
+                           input_steps=[features],
+                           adapter=Adapter({'X': E(features.name, 'features')}),
                            experiment_directory=config.pipeline.experiment_directory,
                            **kwargs)
     return sklearn_clf
@@ -415,27 +417,88 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         return feature_combiner
 
 
-def preprocessing_fillna(features, config, train_mode, suffix, **kwargs):
+def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwargs):
     if train_mode:
-        features_train, features_valid = features
-        fillna = Step(name='fillna{}'.format(suffix),
-                      transformer=_fillna(**config.preprocessing),
-                      input_steps=[features_train, features_valid],
-                      adapter=Adapter({'X': E(features_train.name, 'features'),
-                                       'X_valid': E(features_valid.name, 'features'),
-                                       }),
-                      experiment_directory=config.pipeline.experiment_directory,
-                      **kwargs
-                      )
+        features, features_valid = features
+
+    one_hot_encoder = Step(name='one_hot_encoder{}'.format(suffix),
+                           transformer=SklearnTransformer(ce.OneHotEncoder(
+                               **config.sklearn_preprocessing.one_hot_encoder)
+                           ),
+                           input_steps=[features],
+                           adapter=Adapter({'X': E(features.name, 'features')}),
+                           experiment_directory=config.pipeline.experiment_directory,
+                           )
+
+    fillnaer = Step(name='fillna{}'.format(suffix),
+                    transformer=_fillna(**config.sklearn_preprocessing.fillna),
+                    input_steps=[one_hot_encoder],
+                    adapter=Adapter({'X': E(one_hot_encoder.name, 'transformed')}),
+                    experiment_directory=config.pipeline.experiment_directory,
+                    )
+
+    if normalize:
+        normalizer = Step(name='normalizer{}'.format(suffix),
+                          transformer=SklearnTransformer(Normalizer()),
+                          input_steps=[fillnaer],
+                          adapter=Adapter({'X': E(fillnaer.name, 'transformed')}),
+                          experiment_directory=config.pipeline.experiment_directory,
+                          )
+        last_step = normalizer
     else:
-        fillna = Step(name='fillna{}'.format(suffix),
-                      transformer=_fillna(**config.preprocessing),
-                      input_steps=[features],
-                      adapter=Adapter({'X': E(features.name, 'features')}),
-                      experiment_directory=config.pipeline.experiment_directory,
-                      **kwargs
-                      )
-    return fillna
+        last_step = fillnaer
+
+    sklearn_preprocess = Step(name='sklearn_preprocess{}'.format(suffix),
+                              transformer=IdentityOperation(),
+                              input_steps=[last_step, features],
+                              adapter=Adapter({'features': E(last_step.name, 'transformed'),
+                                               'feature_names': E(features.name, 'feature_names'),
+                                               'categorical_features': E(features.name, 'categorical_features')
+                                               }),
+                              experiment_directory=config.pipeline.experiment_directory,
+                              **kwargs
+                              )
+
+    if train_mode:
+        one_hot_encoder_valid = Step(name='one_hot_encoder_valid{}'.format(suffix),
+                                     transformer=one_hot_encoder,
+                                     input_steps=[features_valid],
+                                     adapter=Adapter({'X': E(features_valid.name, 'features')}),
+                                     experiment_directory=config.pipeline.experiment_directory,
+                                     )
+
+        fillnaer_valid = Step(name='fillna_valid{}'.format(suffix),
+                              transformer=fillnaer,
+                              input_steps=[one_hot_encoder_valid],
+                              adapter=Adapter({'X': E(one_hot_encoder_valid.name, 'transformed')}),
+                              experiment_directory=config.pipeline.experiment_directory,
+                              )
+
+        if normalize:
+            normalizer_valid = Step(name='normalizer_valid{}'.format(suffix),
+                                    transformer=normalizer,
+                                    input_steps=[fillnaer_valid],
+                                    adapter=Adapter({'X': E(fillnaer_valid.name, 'transformed')}),
+                                    experiment_directory=config.pipeline.experiment_directory,
+                                    )
+            last_step = normalizer_valid
+        else:
+            last_step = fillnaer_valid
+
+        sklearn_preprocess_valid = Step(name='sklearn_preprocess_valid{}'.format(suffix),
+                                        transformer=IdentityOperation(),
+                                        input_steps=[last_step, features_valid],
+                                        adapter=Adapter({'features': E(last_step.name, 'transformed'),
+                                                         'feature_names': E(features_valid.name, 'feature_names'),
+                                                         'categorical_features': E(features_valid.name,
+                                                                                   'categorical_features')
+                                                         }),
+                                        experiment_directory=config.pipeline.experiment_directory,
+                                        **kwargs
+                                        )
+        return sklearn_preprocess, sklearn_preprocess_valid
+    else:
+        return sklearn_preprocess
 
 
 def stacking_features(config, train_mode, suffix, **kwargs):
@@ -468,6 +531,52 @@ def stacking_features(config, train_mode, suffix, **kwargs):
                                           train_mode=train_mode,
                                           suffix=suffix, **kwargs)
         return feature_combiner
+
+
+def stacking_normalization(features, config, train_mode, suffix, **kwargs):
+    if train_mode:
+        features, features_valid = features
+
+    normalizer = Step(name='stacking_normalizer{}'.format(suffix),
+                      transformer=SklearnTransformer(Normalizer()),
+                      input_steps=[features],
+                      adapter=Adapter({'X': E(features.name, 'features')}),
+                      experiment_directory=config.pipeline.experiment_directory,
+                      )
+
+    stacking_normalized = Step(name='stacking_normalization{}'.format(suffix),
+                              transformer=IdentityOperation(),
+                              input_steps=[normalizer, features],
+                              adapter=Adapter({'features': E(normalizer.name, 'transformed'),
+                                               'feature_names': E(features.name, 'feature_names'),
+                                               'categorical_features': E(features.name, 'categorical_features')
+                                               }),
+                              experiment_directory=config.pipeline.experiment_directory,
+                              **kwargs
+                              )
+
+    if train_mode:
+        normalizer_valid = Step(name='stacking_normalizer_valid{}'.format(suffix),
+                                transformer=normalizer,
+                                input_steps=[features_valid],
+                                adapter=Adapter({'X': E(features_valid.name, 'features')}),
+                                experiment_directory=config.pipeline.experiment_directory,
+                                )
+
+        stacking_normalized_valid = Step(name='stacking_normalization_valid{}'.format(suffix),
+                                        transformer=IdentityOperation(),
+                                        input_steps=[normalizer_valid, features_valid],
+                                        adapter=Adapter({'features': E(normalizer_valid.name, 'transformed'),
+                                                         'feature_names': E(features_valid.name, 'feature_names'),
+                                                         'categorical_features': E(features_valid.name,
+                                                                                   'categorical_features')
+                                                         }),
+                                        experiment_directory=config.pipeline.experiment_directory,
+                                        **kwargs
+                                        )
+        return stacking_normalized, stacking_normalized_valid
+    else:
+        return stacking_normalized
 
 
 def _join_features(numerical_features,
@@ -1012,14 +1121,8 @@ def _installment_payments(config, train_mode, suffix, **kwargs):
         return installment_payments_hand_crafted_merge
 
 
-def _fillna(fillna_value):
-    def _inner_fillna(X, X_valid=None):
-        X_fillna = X.fillna(fillna_value)
-        if X_valid is None:
-            return {'X': X_fillna}
-        else:
-            X_valid_fillna = X_valid.fillna(fillna_value)
-            return {'X': X_fillna,
-                    'X_valid': X_valid_fillna}
-
+def _fillna(fill_value, **kwargs):
+    def _inner_fillna(X):
+        return {'transformed': X.fillna(fill_value)}
     return make_transformer(_inner_fillna)
+

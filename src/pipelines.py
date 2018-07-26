@@ -63,15 +63,22 @@ def lightGBM_stacking(config, train_mode, suffix=''):
                                                      cache_output=False)
     return light_gbm
 
+
 def log_reg_stacking(config, train_mode, suffix=''):
     features = blocks.stacking_features(config, train_mode, suffix,
                                         persist_output=False,
                                         cache_output=False,
                                         load_persisted_output=False)
 
-    log_reg = blocks.classifier_log_reg_stacking(features, config, train_mode, suffix,
+    normalized_features = blocks.stacking_normalization(features, config, train_mode, suffix,
+                                                        persist_output=False,
+                                                        cache_output=False,
+                                                        load_persisted_output=False
+                                                        )
+    log_reg = blocks.classifier_log_reg_stacking(normalized_features, config, train_mode, suffix,
                                                      cache_output=False)
     return log_reg
+
 
 def xgboost(config, train_mode, suffix=''):
     if train_mode:
@@ -98,10 +105,7 @@ def xgboost(config, train_mode, suffix=''):
     return xgb
 
 
-def sklearn_main(config, ClassifierClass, clf_name, train_mode, suffix='', normalize=False):
-    model_params = getattr(config, clf_name)
-    random_search_config = getattr(config.random_search, clf_name)
-    full_config = (config, model_params, random_search_config)
+def sklearn_pipeline(config, ClassifierClass, clf_name, train_mode, suffix='', normalize=False):
     if train_mode:
         features, features_valid = blocks.feature_extraction(config,
                                                              train_mode,
@@ -110,21 +114,33 @@ def sklearn_main(config, ClassifierClass, clf_name, train_mode, suffix='', norma
                                                              cache_output=True,
                                                              load_persisted_output=True)
 
-        sklearn_preproc = blocks.preprocessing_fillna((features, features_valid), config, train_mode, suffix)
+        sklearn_features = blocks.sklearn_preprocessing((features, features_valid),
+                                                        config,
+                                                        train_mode,
+                                                        suffix,
+                                                        normalize,
+                                                        persist_output=True,
+                                                        cache_output=True,
+                                                        load_persisted_output=True)
     else:
         features = blocks.feature_extraction(config,
                                              train_mode,
                                              suffix,
                                              cache_output=True)
-        sklearn_preproc = blocks.preprocessing_fillna(features, config, train_mode, suffix)
 
-    sklearn_clf = blocks.classifier_sklearn(sklearn_preproc,
+        sklearn_features = blocks.sklearn_preprocessing(features,
+                                                        config,
+                                                        train_mode,
+                                                        suffix,
+                                                        normalize,
+                                                        cache_output=True)
+
+    sklearn_clf = blocks.classifier_sklearn(sklearn_features,
                                             ClassifierClass,
-                                            full_config,
+                                            config,
                                             clf_name,
                                             train_mode,
-                                            suffix,
-                                            normalize)
+                                            suffix)
     return sklearn_clf
 
 
@@ -133,35 +149,15 @@ PIPELINES = {'lightGBM': lightGBM,
              'lightGBM_stacking': lightGBM_stacking,
              'log_reg_stacking': log_reg_stacking,
              'XGBoost': xgboost,
-             'random_forest': {'train': partial(sklearn_main,
-                                                ClassifierClass=RandomForestClassifier,
-                                                clf_name='random_forest',
-                                                train_mode=True),
-                               'inference': partial(sklearn_main,
-                                                    ClassifierClass=RandomForestClassifier,
-                                                    clf_name='random_forest',
-                                                    train_mode=False)
-                               },
-             'log_reg': {'train': partial(sklearn_main,
-                                          ClassifierClass=LogisticRegression,
-                                          clf_name='logistic_regression',
-                                          train_mode=True,
-                                          normalize=True),
-                         'inference': partial(sklearn_main,
-                                              ClassifierClass=LogisticRegression,
-                                              clf_name='logistic_regression',
-                                              train_mode=False,
-                                              normalize=True)
-                         },
-             'svc': {'train': partial(sklearn_main,
-                                      ClassifierClass=SVC,
-                                      clf_name='svc',
-                                      train_mode=True,
-                                      normalize=True),
-                     'inference': partial(sklearn_main,
-                                          ClassifierClass=SVC,
-                                          clf_name='svc',
-                                          train_mode=False,
-                                          normalize=True)
-                     }
+             'random_forest': partial(sklearn_pipeline,
+                                      ClassifierClass=RandomForestClassifier,
+                                      clf_name='random_forest'),
+             'log_reg': partial(sklearn_pipeline,
+                                ClassifierClass=LogisticRegression,
+                                clf_name='logistic_regression',
+                                normalize=True),
+             'svc': partial(sklearn_pipeline,
+                            ClassifierClass=SVC,
+                            clf_name='svc',
+                            normalize=True),
              }

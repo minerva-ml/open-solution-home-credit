@@ -155,6 +155,7 @@ cols_to_agg = ['AMT_CREDIT',
                'DAYS_BIRTH',
                'DAYS_EMPLOYED'
                ]
+
 aggs = ['min', 'mean', 'max', 'sum', 'var']
 aggregation_pairs = [(col, agg) for col in cols_to_agg for agg in aggs]
 
@@ -283,6 +284,11 @@ SOLUTION_CONFIG = AttrDict({
                                               },
                       },
 
+    'sklearn_preprocessing': {'one_hot_encoder': {'cols': CATEGORICAL_COLUMNS,
+                                                  'drop_invariant': True},
+                              'fillna': {'fill_value': params.fill_value},
+                              },
+
     'applications': {'columns': {'categorical_columns': CATEGORICAL_COLUMNS,
                                  'numerical_columns': NUMERICAL_COLUMNS
                                  },
@@ -400,6 +406,7 @@ SOLUTION_CONFIG = AttrDict({
                       'max_features': parameter_eval(params.rf__max_features),
                       'min_samples_split': parameter_eval(params.rf__min_samples_split),
                       'min_samples_leaf': parameter_eval(params.rf__min_samples_leaf),
+                      'max_leaf_nodes': parameter_eval(params.rf__max_leaf_nodes),
                       'n_jobs': parameter_eval(params.num_workers),
                       'random_state': RANDOM_SEED,
                       'verbose': parameter_eval(params.verbose),
