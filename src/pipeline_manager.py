@@ -17,7 +17,7 @@ from .utils import init_logger, read_params, set_seed, create_submission, verify
 set_seed(cfg.RANDOM_SEED)
 logger = init_logger()
 ctx = neptune.Context()
-params = read_params(ctx, fallback_file='../configs/neptune.yaml')
+params = read_params(ctx, fallback_file='neptune_local.yaml')
 
 
 class PipelineManager:

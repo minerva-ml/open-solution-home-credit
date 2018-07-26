@@ -76,7 +76,7 @@ def log_reg_stacking(config, train_mode, suffix=''):
                                                         load_persisted_output=False
                                                         )
     log_reg = blocks.classifier_log_reg_stacking(normalized_features, config, train_mode, suffix,
-                                                     cache_output=False)
+                                                 cache_output=False)
     return log_reg
 
 
@@ -88,7 +88,16 @@ def xgboost(config, train_mode, suffix=''):
                                                              persist_output=True,
                                                              cache_output=True,
                                                              load_persisted_output=True)
-        xgb = blocks.classifier_xgb((features, features_valid),
+
+        xgb_features, xgb_features_valid = blocks.xgb_preprocessing((features, features_valid),
+                                                                    config,
+                                                                    train_mode,
+                                                                    suffix,
+                                                                    persist_output=True,
+                                                                    cache_output=True,
+                                                                    load_persisted_output=True)
+
+        xgb = blocks.classifier_xgb((xgb_features, xgb_features_valid),
                                     config,
                                     train_mode,
                                     suffix)
@@ -97,7 +106,12 @@ def xgboost(config, train_mode, suffix=''):
                                              train_mode,
                                              suffix,
                                              cache_output=True)
-        xgb = blocks.classifier_xgb(features,
+        xgb_features = blocks.xgb_preprocessing(features,
+                                                config,
+                                                train_mode,
+                                                suffix,
+                                                cache_output=True)
+        xgb = blocks.classifier_xgb(xgb_features,
                                     config,
                                     train_mode,
                                     suffix)

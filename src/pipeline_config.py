@@ -6,7 +6,7 @@ from deepsense import neptune
 from .utils import read_params, parameter_eval
 
 ctx = neptune.Context()
-params = read_params(ctx, fallback_file='../configs/neptune.yaml')
+params = read_params(ctx, fallback_file='neptune_local.yaml')
 
 RANDOM_SEED = 90210
 DEV_SAMPLE_SIZE = 1000
@@ -283,6 +283,10 @@ SOLUTION_CONFIG = AttrDict({
                       'categorical_encoder': {'categorical_columns': CATEGORICAL_COLUMNS
                                               },
                       },
+
+    'xgb_preprocessing': {'one_hot_encoder': {'cols': CATEGORICAL_COLUMNS,
+                                              'drop_invariant': False}
+                          },
 
     'sklearn_preprocessing': {'one_hot_encoder': {'cols': CATEGORICAL_COLUMNS,
                                                   'drop_invariant': True},

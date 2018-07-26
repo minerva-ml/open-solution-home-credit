@@ -221,7 +221,7 @@ class CatBoost(BaseTransformer):
             return None
 
 
-class SklearnTransformer(BaseTransformer):
+class OneHotEncoder(BaseTransformer):
     def __init__(self, estimator):
         super().__init__()
         self.estimator = estimator
@@ -232,7 +232,9 @@ class SklearnTransformer(BaseTransformer):
 
     def transform(self, X, y=None, **kwargs):
         transformed = self.estimator.transform(X)
-        return {'transformed': transformed}
+        return {'features': transformed,
+                'feature_names': transformed.columns,
+                'categorical_features': set(transformed.columns) - set(X.columns)}
 
     def persist(self, filepath):
         joblib.dump(self.estimator, filepath)
