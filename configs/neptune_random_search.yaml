@@ -89,64 +89,67 @@ parameters:
   catboost_random_search_runs: 0
   catboost__loss_function: Logloss
   catboost__eval_metric: AUC
-  catboost__iterations: 5000
+  catboost__iterations: 10000
   catboost__learning_rate: 0.05
   catboost__depth: 6
   catboost__l2_leaf_reg: 3
   catboost__border_count: 128
   catboost__model_size_reg: 0.5
   catboost__colsample_bylevel: 1.0
+  catboost__max_ctr_complexity: 1
+  catboost__od_type: 'Iter'
+  catboost__od_wait: 100
 
 # XGBoost
-  xgb_random_search_runs: 50
+  xgb_random_search_runs: 0
   xgb__booster: gbtree
   xgb__tree_method: hist # gpu_hist  # auto  hist
   xgb__objective: binary:logistic
   xgb__eval_metric: auc
   xgb__nrounds: 10000
   xgb__early_stopping_rounds: 100
-  xgb__eta: '[0.001, 0.1, "log-uniform"]'
-  xgb__max_leaves: '[21, 41, "choice"]'
+  xgb__eta: 0.001
+  xgb__max_leaves: 40
   xgb__max_depth: 16
-  xgb__max_bin: '[155, 355, "choice"]'
-  xgb__subsample: '[0.5, 1., "uniform"]'
-  xgb__colsample_bytree: '[0.5, 1., "uniform"]'
+  xgb__max_bin: 255
+  xgb__subsample: 0.5
+  xgb__colsample_bytree: 0.5
   xgb__colsample_bylevel: 1
   xgb__min_child_weight: 4
-  xgb__lambda: '[0.00001, 1.0, "log-uniform"]'
-  xgb__alpha: '[0.00001, 1.0, "log-uniform"]'
+  xgb__lambda: 0.001
+  xgb__alpha: 0.001
   xgb__scale_pos_weight: 1
 
 # Random forest
-  rf_random_search_runs: 50
-  rf__n_estimators: '[100, 500]'
-  rf__criterion: '["gini", "entropy", "list"]'
-  rf__max_features: '[0.01, 0.5, "uniform"]'
-  rf__min_samples_split: '[2, 50]'
-  rf__min_samples_leaf: '[1, 50]'
+  rf_random_search_runs: 0
+  rf__n_estimators: 500
+  rf__criterion: gini
+  rf__max_features: 0.2
+  rf__min_samples_split: 10
+  rf__min_samples_leaf: 5
   rf__max_leaf_nodes: None
   rf__class_weight: balanced
 
 # Logistic regression
-  lr_random_search_runs: 50
-  lr__penalty: '["l2", "l1", "list"]'
-  lr__tol: '[0.00001, 0.01, "log-uniform"]'
-  lr__C: '[0.1, 100, "log-uniform"]'
-  lr__fit_intercept: '[0, 1, "list"]'
+  lr_random_search_runs: 0
+  lr__penalty: l1
+  lr__tol: 0.00001
+  lr__C: 0.1
+  lr__fit_intercept: 1
   lr__class_weight: balanced
-  lr__solver: '["liblinear", "saga", "list"]'
-  lr__max_iter: '[100, 1000, 10000, 50000, "list"]'
+  lr__solver: liblinear
+  lr__max_iter: 10000
 
 # SVC
-  svc_random_search_runs: 50
-  svc__kernel: '["poly", "rbf", "sigmoid", "list"]'
-  svc__C: '[0.1, 100, "log-uniform"]'
-  svc__degree: '[2, 7]'
+  svc_random_search_runs: 0
+  svc__kernel: rbf
+  svc__C: 1
+  svc__degree: 5
   svc__gamma: auto
-  svc__coef0: '[0.0, 1.0, "uniform"]'
+  svc__coef0: 0.0
   svc__probability: True
-  svc__tol: '[0.00001, 0.01, "log-uniform"]'
-  svc__max_iter: '[-1, 100, 1000, 10000, 50000, "list"]'
+  svc__tol: 0.00001
+  svc__max_iter: -1
 
 # Postprocessing
   aggregation_method: rank_mean
