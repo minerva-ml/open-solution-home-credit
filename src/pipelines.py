@@ -7,7 +7,7 @@ from sklearn.svm import SVC
 from . import pipeline_blocks as blocks
 
 
-def lightGBM(config, train_mode, suffix=''):
+def light_gbm(config, train_mode, suffix=''):
     if train_mode:
         features, features_valid = blocks.feature_extraction(config,
                                                              train_mode,
@@ -144,7 +144,18 @@ def log_reg_stacking(config, train_mode, suffix=''):
     return log_reg
 
 
-PIPELINES = {'lightGBM': lightGBM,
+def light_gbm_stacking(config, train_mode, suffix=''):
+    features = blocks.stacking_features(config, train_mode, suffix,
+                                        persist_output=False,
+                                        cache_output=False,
+                                        load_persisted_output=False)
+
+    light_gbm = blocks.classifier_light_gbm_stacking(features, config, train_mode, suffix,
+                                                     cache_output=False)
+    return light_gbm
+
+
+PIPELINES = {'lightGBM': light_gbm,
              'catboost': catboost,
              'XGBoost': xgboost,
              'random_forest': partial(sklearn_pipeline,
@@ -159,5 +170,6 @@ PIPELINES = {'lightGBM': lightGBM,
                             clf_name='svc',
                             normalize=True),
              'XGBoost_stacking': xgboost_stacking,
+             'lightGBM_stacking': light_gbm_stacking,
              'log_reg_stacking': log_reg_stacking,
              }
