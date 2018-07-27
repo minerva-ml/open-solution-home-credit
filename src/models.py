@@ -221,7 +221,7 @@ class CatBoost(BaseTransformer):
             return None
 
 
-class CategoryEncoder(BaseTransformer):
+class OneHotEncoder(BaseTransformer):
     def __init__(self, estimator):
         super().__init__()
         self.encoder = estimator

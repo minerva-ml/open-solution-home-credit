@@ -6,12 +6,12 @@ from sklearn.preprocessing import Normalizer
 from sklearn.linear_model import LogisticRegression
 from steppy.adapter import Adapter, E
 from steppy.base import Step, make_transformer, IdentityOperation
-from toolkit.sklearn_transformers.models import SklearnClassifier
+from toolkit.sklearn_transformers.models import SklearnTransformer
 
 from . import feature_extraction as fe
 from . import data_cleaning as dc
 from .hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, PersistResults
-from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost, CategoryEncoder
+from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost, OneHotEncoder
 
 
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
@@ -423,7 +423,7 @@ def xgb_preprocessing(features, config, train_mode, suffix, **kwargs):
         features, features_valid = features
 
     one_hot_encoder = Step(name='one_hot_encoder{}'.format(suffix),
-                           transformer=CategoryEncoder(ce.OneHotEncoder(
+                           transformer=OneHotEncoder(ce.OneHotEncoder(
                                **config.xgb_preprocessing.one_hot_encoder)
                            ),
                            input_steps=[features],
@@ -449,7 +449,7 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
         features, features_valid = features
 
     one_hot_encoder = Step(name='one_hot_encoder{}'.format(suffix),
-                           transformer=CategoryEncoder(ce.OneHotEncoder(
+                           transformer=OneHotEncoder(ce.OneHotEncoder(
                                **config.sklearn_preprocessing.one_hot_encoder)
                            ),
                            input_steps=[features],
@@ -466,7 +466,7 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
 
     if normalize:
         normalizer = Step(name='normalizer{}'.format(suffix),
-                          transformer=SklearnClassifier(Normalizer()),
+                          transformer=SklearnTransformer(Normalizer()),
                           input_steps=[fillnaer],
                           adapter=Adapter({'X': E(fillnaer.name, 'transformed')}),
                           experiment_directory=config.pipeline.experiment_directory,
@@ -497,7 +497,7 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
         fillnaer_valid = Step(name='fillna_valid{}'.format(suffix),
                               transformer=fillnaer,
                               input_steps=[one_hot_encoder_valid],
-                              adapter=Adapter({'X': E(one_hot_encoder_valid.name, 'transformed')}),
+                              adapter=Adapter({'X': E(one_hot_encoder_valid.name, 'features')}),
                               experiment_directory=config.pipeline.experiment_directory,
                               )
 
@@ -565,7 +565,7 @@ def stacking_normalization(features, config, train_mode, suffix, **kwargs):
         features, features_valid = features
 
     normalizer = Step(name='stacking_normalizer{}'.format(suffix),
-                      transformer=SklearnClassifier(Normalizer()),
+                      transformer=SklearnTransformer(Normalizer()),
                       input_steps=[features],
                       adapter=Adapter({'X': E(features.name, 'features')}),
                       experiment_directory=config.pipeline.experiment_directory,
