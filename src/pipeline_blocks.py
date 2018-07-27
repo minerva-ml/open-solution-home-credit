@@ -446,7 +446,9 @@ def xgb_preprocessing(features, config, train_mode, suffix, **kwargs):
         features, features_valid = features
 
     one_hot_encoder = Step(name='one_hot_encoder{}'.format(suffix),
-                           transformer=fe.OneHotEncoder(**config.xgb_preprocessing.one_hot_encoder),
+                           transformer=fe.CategoricalEncodingWrapper(
+                               encoder=ce.OneHotEncoder,
+                               **config.xgb_preprocessing.one_hot_encoder),
                            input_steps=[features],
                            adapter=Adapter({'X': E(features.name, 'features'),
                                             'cols': E(features.name, 'categorical_features')}),
@@ -472,7 +474,9 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
         features, features_valid = features
 
     one_hot_encoder = Step(name='one_hot_encoder{}'.format(suffix),
-                           transformer=fe.OneHotEncoder(**config.sklearn_preprocessing.one_hot_encoder),
+                           transformer=fe.CategoricalEncodingWrapper(
+                               encoder=ce.OneHotEncoder,
+                               **config.sklearn_preprocessing.one_hot_encoder),
                            input_steps=[features],
                            adapter=Adapter({'X': E(features.name, 'features'),
                                             'cols': E(features.name, 'categorical_features')}),

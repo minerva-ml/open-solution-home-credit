@@ -75,10 +75,10 @@ class CategoricalEncoder(BaseTransformer):
         joblib.dump(self.categorical_encoder, filepath)
 
 
-class OneHotEncoder(BaseTransformer):
-    def __init__(self, **kwargs):
+class CategoricalEncodingWrapper(BaseTransformer):
+    def __init__(self, encoder, **kwargs):
         super().__init__()
-        self.encoder = ce.OneHotEncoder
+        self.encoder = encoder
         self.params = deepcopy(kwargs)
 
     def fit(self, X, y=None, cols=[], **kwargs):
