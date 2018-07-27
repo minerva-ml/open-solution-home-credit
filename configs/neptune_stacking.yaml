@@ -57,6 +57,8 @@ parameters:
   pos_cash__last_k_trend_periods: None
   pos_cash__last_k_agg_periods: None
   pos_cash__last_k_agg_period_fractions: None
+  bureau__last_k_agg_periods: None
+  bureau__last_k_agg_period_fractions:  None
   bureau_balance__last_k_trend_periods: None
   bureau_balance__last_k_agg_periods: None
   bureau_balance__last_k_agg_period_fractions: None
