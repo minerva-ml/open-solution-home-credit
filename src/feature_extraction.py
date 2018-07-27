@@ -75,6 +75,31 @@ class CategoricalEncoder(BaseTransformer):
         joblib.dump(self.categorical_encoder, filepath)
 
 
+class OneHotEncoder(BaseTransformer):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.encoder = ce.OneHotEncoder
+        self.params = deepcopy(kwargs)
+
+    def fit(self, X, y=None, cols=[], **kwargs):
+        self.encoder = self.encoder(cols=cols, **self.params)
+        self.encoder.fit(X, y)
+        return self
+
+    def transform(self, X, y=None, **kwargs):
+        transformed = self.encoder.transform(X)
+        return {'features': transformed,
+                'feature_names': transformed.columns,
+                'categorical_features': set(transformed.columns) - set(X.columns)}
+
+    def persist(self, filepath):
+        joblib.dump(self.encoder, filepath)
+
+    def load(self, filepath):
+        self.encoder = joblib.load(filepath)
+        return self
+
+
 class GroupbyAggregateDiffs(BaseTransformer):
     def __init__(self, groupby_aggregations, use_diffs_only=False, **kwargs):
         super().__init__()

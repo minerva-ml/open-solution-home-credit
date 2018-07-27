@@ -12,7 +12,7 @@ from toolkit.sklearn_transformers.models import SklearnTransformer
 from . import feature_extraction as fe
 from . import data_cleaning as dc
 from .hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, PersistResults
-from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost, OneHotEncoder
+from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost
 
 
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
@@ -446,11 +446,10 @@ def xgb_preprocessing(features, config, train_mode, suffix, **kwargs):
         features, features_valid = features
 
     one_hot_encoder = Step(name='one_hot_encoder{}'.format(suffix),
-                           transformer=OneHotEncoder(ce.OneHotEncoder(
-                               **config.xgb_preprocessing.one_hot_encoder)
-                           ),
+                           transformer=fe.OneHotEncoder(**config.xgb_preprocessing.one_hot_encoder),
                            input_steps=[features],
-                           adapter=Adapter({'X': E(features.name, 'features')}),
+                           adapter=Adapter({'X': E(features.name, 'features'),
+                                            'cols': E(features.name, 'categorical_features')}),
                            experiment_directory=config.pipeline.experiment_directory,
                            )
 
@@ -458,7 +457,8 @@ def xgb_preprocessing(features, config, train_mode, suffix, **kwargs):
         one_hot_encoder_valid = Step(name='one_hot_encoder_valid{}'.format(suffix),
                                      transformer=one_hot_encoder,
                                      input_steps=[features_valid],
-                                     adapter=Adapter({'X': E(features_valid.name, 'features')}),
+                                     adapter=Adapter({'X': E(features_valid.name, 'features'),
+                                                      'cols': E(features_valid.name, 'categorical_features')}),
                                      experiment_directory=config.pipeline.experiment_directory,
                                      )
 
@@ -472,11 +472,10 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
         features, features_valid = features
 
     one_hot_encoder = Step(name='one_hot_encoder{}'.format(suffix),
-                           transformer=OneHotEncoder(ce.OneHotEncoder(
-                               **config.sklearn_preprocessing.one_hot_encoder)
-                           ),
+                           transformer=fe.OneHotEncoder(**config.sklearn_preprocessing.one_hot_encoder),
                            input_steps=[features],
-                           adapter=Adapter({'X': E(features.name, 'features')}),
+                           adapter=Adapter({'X': E(features.name, 'features'),
+                                            'cols': E(features.name, 'categorical_features')}),
                            experiment_directory=config.pipeline.experiment_directory,
                            )
 
@@ -513,7 +512,8 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
         one_hot_encoder_valid = Step(name='one_hot_encoder_valid{}'.format(suffix),
                                      transformer=one_hot_encoder,
                                      input_steps=[features_valid],
-                                     adapter=Adapter({'X': E(features_valid.name, 'features')}),
+                                     adapter=Adapter({'X': E(features_valid.name, 'features'),
+                                                      'cols': E(features_valid.name, 'categorical_features')}),
                                      experiment_directory=config.pipeline.experiment_directory,
                                      )
 
