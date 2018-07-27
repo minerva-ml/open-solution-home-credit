@@ -335,11 +335,30 @@ class ApplicationFeatures(BaseTransformer):
 
 
 class BureauFeatures(BasicHandCraftedFeatures):
+    def __init__(self, last_k_agg_periods, last_k_agg_period_fractions, num_workers=1, **kwargs):
+        super().__init__(num_workers=num_workers)
+        self.last_k_agg_periods = last_k_agg_periods
+        self.last_k_agg_period_fractions = last_k_agg_period_fractions
+
+        self.num_workers = num_workers
+        self.features = None
+
     def fit(self, bureau, **kwargs):
+        bureau.sort_values(['SK_ID_CURR', 'DAYS_CREDIT'], ascending=False, inplace=True)
         bureau['bureau_credit_active_binary'] = (bureau['CREDIT_ACTIVE'] != 'Closed').astype(int)
         bureau['bureau_credit_enddate_binary'] = (bureau['DAYS_CREDIT_ENDDATE'] > 0).astype(int)
-        features = pd.DataFrame({'SK_ID_CURR': bureau['SK_ID_CURR'].unique()})
+        bureau['bureau_credit_type_consumer'] = (bureau['CREDIT_TYPE'] == 'Consumer credit').astype(int)
+        bureau['bureau_credit_type_car'] = (bureau['CREDIT_TYPE'] == 'Car loan').astype(int)
+        bureau['bureau_credit_type_mortgage'] = (bureau['CREDIT_TYPE'] == 'Mortgage').astype(int)
+        bureau['bureau_credit_type_credit_card'] = (bureau['CREDIT_TYPE'] == 'Credit card').astype(int)
+        bureau['bureau_credit_type_other'] = (~(bureau['CREDIT_TYPE'].isin(['Consumer credit',
+                                                                            'Car loan', 'Mortgage',
+                                                                            'Credit card']))).astype(int)
+        bureau['bureau_unusual_currency'] = (~(bureau['CREDIT_CURRENCY'] == 'currency 1')).astype(int)
 
+        bureau['days_credit_diff'] = bureau['DAYS_CREDIT'].diff().replace(np.nan, 0)
+
+        features = pd.DataFrame({'SK_ID_CURR': bureau['SK_ID_CURR'].unique()})
         groupby = bureau.groupby(by=['SK_ID_CURR'])
 
         g = groupby['DAYS_CREDIT'].agg('count').reset_index()
@@ -348,10 +367,6 @@ class BureauFeatures(BasicHandCraftedFeatures):
 
         g = groupby['CREDIT_TYPE'].agg('nunique').reset_index()
         g.rename(index=str, columns={'CREDIT_TYPE': 'bureau_number_of_loan_types'}, inplace=True)
-        features = features.merge(g, on=['SK_ID_CURR'], how='left')
-
-        g = groupby['bureau_credit_active_binary'].agg('mean').reset_index()
-        g.rename(index=str, columns={'bureau_credit_active_binary': 'bureau_credit_active_binary'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
         g = groupby['AMT_CREDIT_SUM_DEBT'].agg('sum').reset_index()
@@ -383,8 +398,65 @@ class BureauFeatures(BasicHandCraftedFeatures):
         features['bureau_overdue_debt_ratio'] = \
             features['bureau_total_customer_overdue'] / features['bureau_total_customer_debt']
 
+        func = partial(BureauFeatures.generate_features, agg_periods=self.last_k_agg_periods)
+        g = parallel_apply(groupby, func, index_name='SK_ID_CURR', num_workers=self.num_workers).reset_index()
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+
+        g = add_last_k_features_fractions(features, 'SK_ID_CURR', period_fractions=self.last_k_agg_period_fractions)
+        features = features.merge(g, on='SK_ID_CURR', how='left')
+
         self.features = features
         return self
+
+    @staticmethod
+    def generate_features(gr, agg_periods):
+        all = BureauFeatures.all_installment_features(gr)
+        agg = BureauFeatures.last_k_installment_features(gr, agg_periods)
+        features = {**all, **agg}
+        return pd.Series(features)
+
+    @staticmethod
+    def all_installment_features(gr):
+        return BureauFeatures.last_k_installment_features(gr, periods=[10e16])
+
+    @staticmethod
+    def last_k_installment_features(gr, periods):
+        gr_ = gr.copy()
+
+        features = {}
+        for period in periods:
+            if period > 10e10:
+                period_name = 'all_installment_'
+                gr_period = gr_.copy()
+            else:
+                period_name = 'last_{}_'.format(period)
+                gr_period = gr_[gr_['DAYS_CREDIT'] >= (-1) * period]
+
+            features = add_features_in_group(features, gr_period, 'days_credit_diff',
+                                             ['sum', 'min', 'max', 'median', 'std'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'CNT_CREDIT_PROLONG',
+                                             ['sum', 'std'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'bureau_credit_active_binary',
+                                             ['sum', 'mean'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'bureau_credit_type_consumer',
+                                             ['sum', 'mean'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'bureau_credit_type_car',
+                                             ['sum', 'mean'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'bureau_credit_type_credit_card',
+                                             ['sum'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'bureau_credit_type_mortgage',
+                                             ['sum'],
+                                             period_name)
+            features = add_features_in_group(features, gr_period, 'bureau_credit_type_other',
+                                             ['sum', 'mean'],
+                                             period_name)
+        return features
 
 
 class BureauBalanceFeatures(BasicHandCraftedFeatures):
@@ -404,14 +476,6 @@ class BureauBalanceFeatures(BasicHandCraftedFeatures):
 
         features = pd.DataFrame({'SK_ID_CURR': bureau_balance['SK_ID_CURR'].unique()})
         groupby = bureau_balance.groupby(['SK_ID_CURR'])
-
-        g = groupby['bureau_balance_no_history'].all().astype(int).reset_index()
-        g.rename(index=str, columns={'bureau_balance_no_history': 'bureau_balance_no_history'}, inplace=True)
-        features = features.merge(g, on=['SK_ID_CURR'], how='left')
-
-        g = groupby['bureau_balance_no_history'].any().astype(int).reset_index()
-        g.rename(index=str, columns={'bureau_balance_no_history': 'bureau_balance_partial_history'}, inplace=True)
-        features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
         func = partial(BureauBalanceFeatures.generate_features,
                        agg_periods=self.last_k_agg_periods,

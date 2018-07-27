@@ -1,5 +1,6 @@
 from functools import partial
 import category_encoders as ce
+import numpy as np
 
 import numpy as np
 from sklearn.metrics import roc_auc_score
@@ -1180,5 +1181,4 @@ def _fillna(fill_value, **kwargs):
         X_filled = X.replace([np.inf, -np.inf], fill_value)
         X_filled = X_filled.fillna(fill_value)
         return {'transformed': X_filled}
-
     return make_transformer(_inner_fillna)
