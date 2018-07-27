@@ -402,6 +402,7 @@ SOLUTION_CONFIG = AttrDict({
                 'nthread': parameter_eval(params.num_workers),
                 'nrounds': parameter_eval(params.xgb__nrounds),
                 'early_stopping_rounds': parameter_eval(params.xgb__early_stopping_rounds),
+                'scale_pos_weight': parameter_eval(params.xgb__scale_pos_weight),
                 'verbose': parameter_eval(params.verbose)
                 },
 
