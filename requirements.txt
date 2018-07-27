@@ -10,3 +10,4 @@ pandas==0.23.1
 scikit_learn==0.19.1
 PyYAML==3.12
 xgboost==0.72.1
+catboost==0.9.1.1

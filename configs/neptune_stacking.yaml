@@ -89,13 +89,16 @@ parameters:
   catboost_random_search_runs: 0
   catboost__loss_function: Logloss
   catboost__eval_metric: AUC
-  catboost__iterations: 5000
+  catboost__iterations: 10000
   catboost__learning_rate: 0.05
   catboost__depth: 6
   catboost__l2_leaf_reg: 3
   catboost__border_count: 128
   catboost__model_size_reg: 0.5
   catboost__colsample_bylevel: 1.0
+  catboost__max_ctr_complexity: 1
+  catboost__od_type: 'Iter'
+  catboost__od_wait: 100
 
 # XGBoost
   xgb_random_search_runs: 0
