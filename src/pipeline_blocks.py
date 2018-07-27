@@ -11,7 +11,7 @@ from toolkit.sklearn_transformers.models import SklearnClassifier
 from . import feature_extraction as fe
 from . import data_cleaning as dc
 from .hyperparameter_tuning import RandomSearchOptimizer, NeptuneMonitor, PersistResults
-from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost, OneHotEncoder
+from .models import get_sklearn_classifier, XGBoost, LightGBM, CatBoost, CategoryEncoder
 
 
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
@@ -423,7 +423,7 @@ def xgb_preprocessing(features, config, train_mode, suffix, **kwargs):
         features, features_valid = features
 
     one_hot_encoder = Step(name='one_hot_encoder{}'.format(suffix),
-                           transformer=OneHotEncoder(ce.OneHotEncoder(
+                           transformer=CategoryEncoder(ce.OneHotEncoder(
                                **config.xgb_preprocessing.one_hot_encoder)
                            ),
                            input_steps=[features],
@@ -449,7 +449,7 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
         features, features_valid = features
 
     one_hot_encoder = Step(name='one_hot_encoder{}'.format(suffix),
-                           transformer=SklearnClassifier(ce.OneHotEncoder(
+                           transformer=CategoryEncoder(ce.OneHotEncoder(
                                **config.sklearn_preprocessing.one_hot_encoder)
                            ),
                            input_steps=[features],
@@ -460,7 +460,7 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
     fillnaer = Step(name='fillna{}'.format(suffix),
                     transformer=_fillna(**config.sklearn_preprocessing.fillna),
                     input_steps=[one_hot_encoder],
-                    adapter=Adapter({'X': E(one_hot_encoder.name, 'transformed')}),
+                    adapter=Adapter({'X': E(one_hot_encoder.name, 'features')}),
                     experiment_directory=config.pipeline.experiment_directory,
                     )
 
@@ -477,10 +477,10 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
 
     sklearn_preprocess = Step(name='sklearn_preprocess{}'.format(suffix),
                               transformer=IdentityOperation(),
-                              input_steps=[last_step, features],
+                              input_steps=[last_step, one_hot_encoder],
                               adapter=Adapter({'features': E(last_step.name, 'transformed'),
-                                               'feature_names': E(features.name, 'feature_names'),
-                                               'categorical_features': E(features.name, 'categorical_features')
+                                               'feature_names': E(one_hot_encoder.name, 'feature_names'),
+                                               'categorical_features': E(one_hot_encoder.name, 'categorical_features')
                                                }),
                               experiment_directory=config.pipeline.experiment_directory,
                               **kwargs
@@ -514,10 +514,10 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
 
         sklearn_preprocess_valid = Step(name='sklearn_preprocess_valid{}'.format(suffix),
                                         transformer=IdentityOperation(),
-                                        input_steps=[last_step, features_valid],
+                                        input_steps=[last_step, one_hot_encoder_valid],
                                         adapter=Adapter({'features': E(last_step.name, 'transformed'),
-                                                         'feature_names': E(features_valid.name, 'feature_names'),
-                                                         'categorical_features': E(features_valid.name,
+                                                         'feature_names': E(one_hot_encoder_valid.name, 'feature_names'),
+                                                         'categorical_features': E(one_hot_encoder_valid.name,
                                                                                    'categorical_features')
                                                          }),
                                         experiment_directory=config.pipeline.experiment_directory,

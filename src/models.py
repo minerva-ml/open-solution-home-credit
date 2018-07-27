@@ -221,26 +221,26 @@ class CatBoost(BaseTransformer):
             return None
 
 
-class OneHotEncoder(BaseTransformer):
+class CategoryEncoder(BaseTransformer):
     def __init__(self, estimator):
         super().__init__()
-        self.estimator = estimator
+        self.encoder = estimator
 
     def fit(self, X, y=None, **kwargs):
-        self.estimator.fit(X, y)
+        self.encoder.fit(X, y)
         return self
 
     def transform(self, X, y=None, **kwargs):
-        transformed = self.estimator.transform(X)
+        transformed = self.encoder.transform(X)
         return {'features': transformed,
                 'feature_names': transformed.columns,
                 'categorical_features': set(transformed.columns) - set(X.columns)}
 
     def persist(self, filepath):
-        joblib.dump(self.estimator, filepath)
+        joblib.dump(self.encoder, filepath)
 
     def load(self, filepath):
-        self.estimator = joblib.load(filepath)
+        self.encoder = joblib.load(filepath)
         return self
 
 
