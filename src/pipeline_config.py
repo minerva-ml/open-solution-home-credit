@@ -284,8 +284,10 @@ SOLUTION_CONFIG = AttrDict({
                                               },
                       },
 
-    'sklearn_preprocessing': {'one_hot_encoder': {'cols': CATEGORICAL_COLUMNS,
-                                                  'drop_invariant': True},
+    'xgb_preprocessing': {'one_hot_encoder': {'drop_invariant': True}
+                          },
+
+    'sklearn_preprocessing': {'one_hot_encoder': {'drop_invariant': True},
                               'fillna': {'fill_value': params.fill_value},
                               },
 
