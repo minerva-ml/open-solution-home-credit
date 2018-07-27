@@ -433,10 +433,10 @@ class BureauFeatures(BasicHandCraftedFeatures):
                 gr_period = gr_[gr_['DAYS_CREDIT'] >= (-1) * period]
 
             features = add_features_in_group(features, gr_period, 'days_credit_diff',
-                                             ['sum', 'min', 'max', 'median', 'std'],
+                                             ['sum', 'min', 'max', 'mean', 'median', 'std'],
                                              period_name)
             features = add_features_in_group(features, gr_period, 'CNT_CREDIT_PROLONG',
-                                             ['sum', 'std'],
+                                             ['sum', 'max', 'mean', 'std'],
                                              period_name)
             features = add_features_in_group(features, gr_period, 'bureau_credit_active_binary',
                                              ['sum', 'mean'],
@@ -448,7 +448,7 @@ class BureauFeatures(BasicHandCraftedFeatures):
                                              ['sum', 'mean'],
                                              period_name)
             features = add_features_in_group(features, gr_period, 'bureau_credit_type_credit_card',
-                                             ['sum'],
+                                             ['sum', 'mean'],
                                              period_name)
             features = add_features_in_group(features, gr_period, 'bureau_credit_type_mortgage',
                                              ['sum'],
