@@ -310,7 +310,8 @@ SOLUTION_CONFIG = AttrDict({
     'bureau_balance': {'table_name': 'bureau_balance',
                        'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                        'last_k_agg_periods': parameter_eval(params.bureau_balance__last_k_agg_periods),
-                       'last_k_agg_period_fractions': parameter_eval(params.bureau_balance__last_k_agg_period_fractions),
+                       'last_k_agg_period_fractions': parameter_eval(
+                           params.bureau_balance__last_k_agg_period_fractions),
                        'last_k_trend_periods': parameter_eval(params.bureau_balance__last_k_trend_periods),
                        'num_workers': params.num_workers
                        },
@@ -337,7 +338,7 @@ SOLUTION_CONFIG = AttrDict({
                          'last_k_agg_periods': parameter_eval(params.pos_cash__last_k_agg_periods),
                          'last_k_trend_periods': parameter_eval(params.pos_cash__last_k_trend_periods),
                          'last_k_agg_period_fractions': parameter_eval(
-                                  params.pos_cash__last_k_agg_period_fractions),
+                             params.pos_cash__last_k_agg_period_fractions),
                          'num_workers': params.num_workers
                          },
 
@@ -380,6 +381,9 @@ SOLUTION_CONFIG = AttrDict({
                  'model_size_reg': parameter_eval(params.catboost__model_size_reg),
                  'colsample_bylevel': parameter_eval(params.catboost__colsample_bylevel),
                  'border_count': parameter_eval(params.catboost__border_count),
+                 'max_ctr_complexity': parameter_eval(params.catboost__max_ctr_complexity),
+                 'od_type': parameter_eval(params.catboost__od_type),
+                 'od_wait': parameter_eval(params.catboost__od_wait),
                  'random_seed': RANDOM_SEED,
                  'thread_count': params.num_workers,
                  'verbose': params.verbose,
@@ -402,6 +406,7 @@ SOLUTION_CONFIG = AttrDict({
                 'nthread': parameter_eval(params.num_workers),
                 'nrounds': parameter_eval(params.xgb__nrounds),
                 'early_stopping_rounds': parameter_eval(params.xgb__early_stopping_rounds),
+                'scale_pos_weight': parameter_eval(params.xgb__scale_pos_weight),
                 'verbose': parameter_eval(params.verbose)
                 },
 
@@ -471,13 +476,13 @@ SOLUTION_CONFIG = AttrDict({
                                              },
                                         },
                       'log_reg': {'n_runs': params.lr_random_search_runs,
-                                              'callbacks':
-                                                  {'neptune_monitor': {'name': 'log_reg'},
-                                                   'persist_results':
-                                                       {'filepath': os.path.join(params.experiment_directory,
-                                                                                 'log_reg.pkl')}
-                                                   },
-                                              },
+                                  'callbacks':
+                                      {'neptune_monitor': {'name': 'log_reg'},
+                                       'persist_results':
+                                           {'filepath': os.path.join(params.experiment_directory,
+                                                                     'log_reg.pkl')}
+                                       },
+                                  },
                       'svc': {'n_runs': params.svc_random_search_runs,
                               'callbacks': {'neptune_monitor': {'name': 'svc'},
                                             'persist_results': {'filepath': os.path.join(params.experiment_directory,

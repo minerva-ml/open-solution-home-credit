@@ -1,6 +1,7 @@
 from functools import partial
 import category_encoders as ce
 
+import numpy as np
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import Normalizer
 from sklearn.linear_model import LogisticRegression
@@ -108,19 +109,7 @@ def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs
     if train_mode:
         features_train, features_valid = features
         if config.random_search.light_gbm.n_runs:
-            transformer = RandomSearchOptimizer(TransformerClass=LightGBM,
-                                                params=config.light_gbm,
-                                                train_input_keys=[],
-                                                valid_input_keys=['X_valid', 'y_valid'],
-                                                score_func=roc_auc_score,
-                                                maximize=True,
-                                                n_runs=config.random_search.light_gbm.n_runs,
-                                                callbacks=[
-                                                    NeptuneMonitor(
-                                                        **config.random_search.light_gbm.callbacks.neptune_monitor),
-                                                    PersistResults(
-                                                        **config.random_search.light_gbm.callbacks.persist_results)]
-                                                )
+            raise NotImplementedError
         else:
             transformer = LightGBM(name=model_name, **config.light_gbm)
 
@@ -146,6 +135,40 @@ def classifier_light_gbm_stacking(features, config, train_mode, suffix, **kwargs
                          experiment_directory=config.pipeline.experiment_directory,
                          **kwargs)
     return light_gbm
+
+
+def classifier_xgboost_stacking(features, config, train_mode, suffix, **kwargs):
+    model_name = 'xgb{}'.format(suffix)
+
+    if train_mode:
+        features_train, features_valid = features
+        if config.random_search.xgboost.n_runs:
+            raise NotImplementedError
+        else:
+            transformer = XGBoost(**config.xgboost)
+
+        xgb = Step(name=model_name,
+                   transformer=transformer,
+                   input_data=['input'],
+                   input_steps=[features_train, features_valid],
+                   adapter=Adapter({'X': E(features_train.name, 'features'),
+                                    'y': E('input', 'y'),
+                                    'feature_names': E(features_train.name, 'feature_names'),
+                                    'categorical_features': E(features_train.name, 'categorical_features'),
+                                    'X_valid': E(features_valid.name, 'features'),
+                                    'y_valid': E('input', 'y_valid'),
+                                    }),
+                   force_fitting=True,
+                   experiment_directory=config.pipeline.experiment_directory,
+                   **kwargs)
+    else:
+        xgb = Step(name=model_name,
+                   transformer=XGBoost(**config.xgboost),
+                   input_steps=[features],
+                   adapter=Adapter({'X': E(features.name, 'features')}),
+                   experiment_directory=config.pipeline.experiment_directory,
+                   **kwargs)
+    return xgb
 
 
 def classifier_log_reg_stacking(features, config, train_mode, suffix, **kwargs):
@@ -1150,6 +1173,8 @@ def _installment_payments(config, train_mode, suffix, **kwargs):
 
 def _fillna(fill_value, **kwargs):
     def _inner_fillna(X):
-        return {'transformed': X.fillna(fill_value)}
-    return make_transformer(_inner_fillna)
+        X_filled = X.replace([np.inf, -np.inf], fill_value)
+        X_filled = X_filled.fillna(fill_value)
+        return {'transformed': X_filled}
 
+    return make_transformer(_inner_fillna)
