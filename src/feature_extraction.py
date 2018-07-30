@@ -4,6 +4,7 @@ from functools import partial
 import category_encoders as ce
 import numpy as np
 import pandas as pd
+import cmath
 from scipy.stats import kurtosis, iqr, skew
 from sklearn.externals import joblib
 from sklearn.linear_model import LinearRegression
@@ -291,7 +292,9 @@ class ApplicationFeatures(BaseTransformer):
                                              'ext_source_2_plus_3',
                                              'ext_source_1_is_nan',
                                              'ext_source_2_is_nan',
-                                             'ext_source_3_is_nan'
+                                             'ext_source_3_is_nan',
+                                             'hour_appr_process_start_radial_x',
+                                             'hour_appr_process_start_radial_y'
                                              ]
 
     def transform(self, X, **kwargs):
@@ -322,6 +325,10 @@ class ApplicationFeatures(BaseTransformer):
         X['ext_source_1_is_nan'] = np.isnan(X['EXT_SOURCE_1'])
         X['ext_source_2_is_nan'] = np.isnan(X['EXT_SOURCE_2'])
         X['ext_source_3_is_nan'] = np.isnan(X['EXT_SOURCE_3'])
+        X['hour_appr_process_start_radial_x'] = X['HOUR_APPR_PROCESS_START'].apply(
+           lambda x: cmath.rect(1, 2 * cmath.pi * x / 24).real)
+        X['hour_appr_process_start_radial_y'] = X['HOUR_APPR_PROCESS_START'].apply(
+           lambda x: cmath.rect(1, 2 * cmath.pi * x / 24).imag)
         for function_name in ['min', 'max', 'sum', 'mean', 'nanmedian']:
             X['external_sources_{}'.format(function_name)] = eval('np.{}'.format(function_name))(
                 X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
