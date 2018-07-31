@@ -39,6 +39,11 @@ class BureauCleaning(BaseTransformer):
         if self.fill_missing:
             bureau.fillna(self.fill_value, inplace=True)
 
+        bureau['AMT_CREDIT_SUM'].fillna(self.fill_value, inplace=True)
+        bureau['AMT_CREDIT_SUM_DEBT'].fillna(self.fill_value, inplace=True)
+        bureau['AMT_CREDIT_SUM_OVERDUE'].fillna(self.fill_value, inplace=True)
+        bureau['CNT_CREDIT_PROLONG'].fillna(self.fill_value, inplace=True)
+
         return {'bureau': bureau}
 
 
