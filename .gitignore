@@ -114,3 +114,4 @@ ENV/
 
 # Working directories
 examples/cache/
+configs/
