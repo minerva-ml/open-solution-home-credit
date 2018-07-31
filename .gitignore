@@ -114,3 +114,7 @@ ENV/
 
 # Working directories
 examples/cache/
+
+#configs(these may contain local data which we don't want to commit)
+configs/
+
