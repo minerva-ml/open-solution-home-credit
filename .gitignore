@@ -116,5 +116,4 @@ ENV/
 examples/cache/
 
 #configs .yaml files(these may contain local data which we don't want to commit)
-/configs/*.yaml
-
+configs/*.yaml
