@@ -47,7 +47,7 @@ parameters:
   verbose: 1
 
 # Preprocessing
-  fill_missing: True
+  fill_missing: False
   fill_value: 0
 
 # Feature Extraction
