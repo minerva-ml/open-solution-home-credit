@@ -301,32 +301,51 @@ def classifier_sklearn(features,
 
 
 def feature_extraction(config, train_mode, suffix, **kwargs):
+    bureau_cleaned = _bureau_cleaning(config, **kwargs)
+    bureau_balance_cleaned = _bureau_balance_cleaning(config, **kwargs)
+    credit_card_balance_cleaned = _credit_card_balance_cleaning(config, **kwargs)
+    installment_payments_cleaned = _installment_payments_cleaning(config, **kwargs)
+    pos_cash_balance_cleaned = _pos_cash_balance_cleaning(config, **kwargs)
+    previous_application_cleaned = _previous_application_cleaning(config, **kwargs)
+
     if train_mode:
         application, application_valid = _application(config, train_mode, suffix, **kwargs)
-        bureau_cleaned = _bureau_cleaning(config, **kwargs)
         bureau, bureau_valid = _bureau(
             bureau_cleaned,
             config,
             train_mode,
             suffix,
             **kwargs)
-        bureau_balance, bureau_balance_valid = _bureau_balance(config, train_mode, suffix, **kwargs)
-        credit_card_balance_cleaned = _credit_card_balance_cleaning(config, **kwargs)
+        bureau_balance, bureau_balance_valid = _bureau_balance(
+            bureau_balance_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
         credit_card_balance, credit_card_balance_valid = _credit_card_balance(
             credit_card_balance_cleaned,
             config,
             train_mode,
             suffix,
             **kwargs)
-        pos_cash_balance, pos_cash_balance_valid = _pos_cash_balance(config, train_mode, suffix, **kwargs)
-        previous_application_cleaned = _previous_application_cleaning(config, **kwargs)
+        installment_payments, installment_payments_valid = _installment_payments(
+            installment_payments_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
+        pos_cash_balance, pos_cash_balance_valid = _pos_cash_balance(
+            pos_cash_balance_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
         previous_application, previous_application_valid = _previous_application(
             previous_application_cleaned,
             config,
             train_mode,
             suffix,
             **kwargs)
-        installment_payments, installment_payments_valid = _installment_payments(config, train_mode, suffix, **kwargs)
 
         application_agg, application_agg_valid = _application_groupby_agg(config, train_mode, suffix, **kwargs)
         bureau_agg, bureau_agg_valid = _bureau_groupby_agg(
@@ -341,10 +360,12 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
             train_mode, suffix,
             **kwargs)
         installments_payments_agg, installments_payments_agg_valid = _installments_payments_groupby_agg(
+            installment_payments_cleaned,
             config,
             train_mode, suffix,
             **kwargs)
         pos_cash_balance_agg, pos_cash_balance_agg_valid = _pos_cash_balance_groupby_agg(
+            pos_cash_balance_cleaned,
             config,
             train_mode, suffix,
             **kwargs)
@@ -397,24 +418,44 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         return feature_combiner, feature_combiner_valid
     else:
         application = _application(config, train_mode, suffix, **kwargs)
-        bureau_cleaned = _bureau_cleaning(config, **kwargs)
         bureau = _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs)
-        bureau_balance = _bureau_balance(config, train_mode, suffix, **kwargs)
-        credit_card_balance_cleaned = _credit_card_balance_cleaning(config, **kwargs)
+        bureau_balance = _bureau_balance(bureau_balance_cleaned, config, train_mode, suffix, **kwargs)
         credit_card_balance = _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix, **kwargs)
-        pos_cash_balance = _pos_cash_balance(config, train_mode, suffix, **kwargs)
-        previous_application_cleaned = _previous_application_cleaning(config, **kwargs)
+        pos_cash_balance = _pos_cash_balance(pos_cash_balance_cleaned, config, train_mode, suffix, **kwargs)
         previous_application = _previous_application(previous_application_cleaned, config, train_mode, suffix, **kwargs)
-        installment_payments = _installment_payments(config, train_mode, suffix, **kwargs)
+        installment_payments = _installment_payments(installment_payments_cleaned, config, train_mode, suffix, **kwargs)
 
         application_agg = _application_groupby_agg(config, train_mode, suffix, **kwargs)
-        bureau_agg = _bureau_groupby_agg(bureau_cleaned, config, train_mode, suffix, **kwargs)
-        credit_card_balance_agg = _credit_card_balance_groupby_agg(credit_card_balance_cleaned,
-                                                                   config, train_mode, suffix, **kwargs)
-        installments_payments_agg = _installments_payments_groupby_agg(config, train_mode, suffix, **kwargs)
-        pos_cash_balance_agg = _pos_cash_balance_groupby_agg(config, train_mode, suffix, **kwargs)
-        previous_applications_agg = _previous_applications_groupby_agg(previous_application_cleaned,
-                                                                       config, train_mode, suffix, **kwargs)
+        bureau_agg = _bureau_groupby_agg(
+            bureau_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
+        credit_card_balance_agg = _credit_card_balance_groupby_agg(
+            credit_card_balance_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
+        installments_payments_agg = _installments_payments_groupby_agg(
+            installment_payments_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
+        pos_cash_balance_agg = _pos_cash_balance_groupby_agg(
+            pos_cash_balance_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
+        previous_applications_agg = _previous_applications_groupby_agg(
+            previous_application_cleaned,
+            config,
+            train_mode,
+            suffix,
+            **kwargs)
         categorical_encoder = _categorical_encoders(config, train_mode, suffix, **kwargs)
         feature_combiner = _join_features(numerical_features=[application,
                                                               application_agg,
@@ -798,11 +839,12 @@ def _credit_card_balance_groupby_agg(credit_card_balance_cleaned, config, train_
         return credit_card_balance_agg_merge
 
 
-def _installments_payments_groupby_agg(config, train_mode, suffix, **kwargs):
+def _installments_payments_groupby_agg(installments_payments_cleaned, config, train_mode, suffix, **kwargs):
     installments_payments_groupby_agg = Step(name='installments_payments_groupby_agg',
                                              transformer=fe.GroupbyAggregate(**config.installments_payments),
-                                             input_data=['installments_payments'],
-                                             adapter=Adapter({'table': E('installments_payments', 'X')}),
+                                             input_steps=[installments_payments_cleaned],
+                                             adapter=Adapter({'table': E(installments_payments_cleaned.name,
+                                                                         'installments')}),
                                              experiment_directory=config.pipeline.experiment_directory,
                                              **kwargs)
 
@@ -831,11 +873,11 @@ def _installments_payments_groupby_agg(config, train_mode, suffix, **kwargs):
         return installments_payments_agg_merge
 
 
-def _pos_cash_balance_groupby_agg(config, train_mode, suffix, **kwargs):
+def _pos_cash_balance_groupby_agg(pos_cash_balance_cleaned, config, train_mode, suffix, **kwargs):
     pos_cash_balance_groupby_agg = Step(name='pos_cash_balance_groupby_agg',
                                         transformer=fe.GroupbyAggregate(**config.pos_cash_balance),
-                                        input_data=['pos_cash_balance'],
-                                        adapter=Adapter({'table': E('pos_cash_balance', 'X')}),
+                                        input_steps=[pos_cash_balance_cleaned],
+                                        adapter=Adapter({'table': E(pos_cash_balance_cleaned.name, 'pos_cash')}),
                                         experiment_directory=config.pipeline.experiment_directory,
                                         **kwargs)
 
@@ -981,11 +1023,23 @@ def _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs):
         return bureau_hand_crafted_merge
 
 
-def _bureau_balance(config, train_mode, suffix, **kwargs):
+def _bureau_balance_cleaning(config, **kwargs):
+    bureau_cleaning = Step(name='bureau_balance_cleaning',
+                           transformer=dc.BureauBalanceCleaning(**config.preprocessing.impute_missing),
+                           input_data=['bureau_balance'],
+                           adapter=Adapter({'bureau_balance': E('bureau_balance', 'X')}),
+                           experiment_directory=config.pipeline.experiment_directory,
+                           **kwargs)
+
+    return bureau_cleaning
+
+
+def _bureau_balance(bureau_balance_cleaned, config, train_mode, suffix, **kwargs):
     bureau_balance_hand_crafted = Step(name='bureau_balance_hand_crafted',
                                        transformer=fe.BureauBalanceFeatures(**config.bureau_balance),
-                                       input_data=['bureau_balance'],
-                                       adapter=Adapter({'bureau_balance': E('bureau_balance', 'X')}),
+                                       input_steps=[bureau_balance_cleaned],
+                                       adapter=Adapter({'bureau_balance': E(bureau_balance_cleaned.name,
+                                                                            'bureau_balance')}),
                                        experiment_directory=config.pipeline.experiment_directory, **kwargs)
 
     bureau_balance_hand_crafted_merge = Step(name='bureau_balance_hand_crafted_merge{}'.format(suffix),
@@ -1057,11 +1111,23 @@ def _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix
         return credit_card_balance_hand_crafted_merge
 
 
-def _pos_cash_balance(config, train_mode, suffix, **kwargs):
+def _pos_cash_balance_cleaning(config, **kwargs):
+    credit_card_balance_cleaning = Step(name='pos_cash_balance_cleaning',
+                                        transformer=dc.PosCashCleaning(
+                                            **config.preprocessing.impute_missing),
+                                        input_data=['pos_cash_balance'],
+                                        adapter=Adapter({'pos_cash': E('pos_cash_balance', 'X')}),
+                                        experiment_directory=config.pipeline.experiment_directory,
+                                        **kwargs)
+
+    return credit_card_balance_cleaning
+
+
+def _pos_cash_balance(pos_cash_balance_cleaned, config, train_mode, suffix, **kwargs):
     pos_cash_balance_hand_crafted = Step(name='pos_cash_balance_hand_crafted',
                                          transformer=fe.POSCASHBalanceFeatures(**config.pos_cash_balance),
-                                         input_data=['pos_cash_balance'],
-                                         adapter=Adapter({'pos_cash': E('pos_cash_balance', 'X')}),
+                                         input_steps=[pos_cash_balance_cleaned],
+                                         adapter=Adapter({'pos_cash': E(pos_cash_balance_cleaned.name, 'pos_cash')}),
                                          experiment_directory=config.pipeline.experiment_directory,
                                          **kwargs)
 
@@ -1141,11 +1207,24 @@ def _previous_application(previous_application_cleaned, config, train_mode, suff
         return previous_applications_hand_crafted_merge
 
 
-def _installment_payments(config, train_mode, suffix, **kwargs):
+def _installment_payments_cleaning(config, **kwargs):
+    installment_payments_cleaning = Step(name='installment_payments_cleaning',
+                                         transformer=dc.InstallmentPaymentsCleaning(
+                                             **config.preprocessing.impute_missing),
+                                         input_data=['installments_payments'],
+                                         adapter=Adapter({'installments': E('installments_payments', 'X')}),
+                                         experiment_directory=config.pipeline.experiment_directory,
+                                         **kwargs)
+
+    return installment_payments_cleaning
+
+
+def _installment_payments(installment_payments_cleaned, config, train_mode, suffix, **kwargs):
     installment_payments_hand_crafted = Step(name='installment_payments_hand_crafted',
                                              transformer=fe.InstallmentPaymentsFeatures(**config.installments_payments),
-                                             input_data=['installments_payments'],
-                                             adapter=Adapter({'installments': E('installments_payments', 'X')}),
+                                             input_steps=[installment_payments_cleaned],
+                                             adapter=Adapter({'installments': E(installment_payments_cleaned.name,
+                                                                                'installments')}),
                                              experiment_directory=config.pipeline.experiment_directory,
                                              **kwargs)
 

@@ -47,6 +47,18 @@ class BureauCleaning(BaseTransformer):
         return {'bureau': bureau}
 
 
+class BureauBalanceCleaning(BaseTransformer):
+    def __init__(self, fill_missing=False, fill_value=0, **kwargs):
+        self.fill_missing = fill_missing
+        self.fill_value = fill_value
+
+    def transform(self, bureau_balance):
+        if self.fill_missing:
+            bureau_balance.fillna(self.fill_value, inplace=True)
+
+        return {'bureau_balance': bureau_balance}
+
+
 class CreditCardCleaning(BaseTransformer):
     def __init__(self, fill_missing=False, fill_value=0, **kwargs):
         super().__init__()
@@ -61,6 +73,30 @@ class CreditCardCleaning(BaseTransformer):
             credit_card.fillna(self.fill_value, inplace=True)
 
         return {'credit_card': credit_card}
+
+
+class InstallmentPaymentsCleaning(BaseTransformer):
+    def __init__(self, fill_missing=False, fill_value=0, **kwargs):
+        self.fill_missing = fill_missing
+        self.fill_value = fill_value
+
+    def transform(self, installments):
+        if self.fill_missing:
+            installments.fillna(self.fill_value, inplace=True)
+
+        return {'installments': installments}
+
+
+class PosCashCleaning(BaseTransformer):
+    def __init__(self, fill_missing=False, fill_value=0, **kwargs):
+        self.fill_missing = fill_missing
+        self.fill_value = fill_value
+
+    def transform(self, pos_cash):
+        if self.fill_missing:
+            pos_cash.fillna(self.fill_value, inplace=True)
+
+        return {'pos_cash': pos_cash}
 
 
 class PreviousApplicationCleaning(BaseTransformer):
