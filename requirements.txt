@@ -1,5 +1,5 @@
 neptune-cli
-steppy-toolkit
+steppy-toolkit==0.1.5
 steppy==0.1.4
 attrdict==2.0.0
 category_encoders==1.2.6
