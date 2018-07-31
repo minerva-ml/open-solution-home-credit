@@ -1,0 +1,135 @@
+project: ORGANIZATION/home-credit
+
+name: home-credit-default-risk
+tags: [solution-4, dev]
+
+metric:
+  channel: 'ROC_AUC'
+  goal: maximize
+
+exclude:
+  - output
+  - notebooks
+  - neptune.log
+  - offline_job.log
+  - .git
+  - .github
+  - .idea
+  - .ipynb_checkpoints
+
+parameters:
+# Data
+  train_filepath:                 YOUR/PATH/TO/application_train.csv
+  test_filepath:                  YOUR/PATH/TO/application_test.csv
+  bureau_balance_filepath:        YOUR/PATH/TO/bureau_balance.csv
+  bureau_filepath:                YOUR/PATH/TO/bureau.csv
+  credit_card_balance_filepath:   YOUR/PATH/TO/credit_card_balance.csv
+  installments_payments_filepath: YOUR/PATH/TO/installments_payments.csv
+  POS_CASH_balance_filepath:      YOUR/PATH/TO/POS_CASH_balance.csv
+  previous_application_filepath:  YOUR/PATH/TO/previous_application.csv
+  sample_submission_filepath:     YOUR/PATH/TO/sample_submission.csv
+  first_level_oof_predictions_dir: YOUR/PATH/TO/oof_predictions
+  experiment_directory:           YOUR/PATH/WORKDIR
+
+# Kaggle
+  kaggle_api: 0
+  kaggle_message: 'solution-4'
+
+# Data preparation
+  n_cv_splits: 5
+  validation_size: 0.2
+  stratified_cv: True
+  shuffle: 1
+
+# Execution
+  clean_experiment_directory_before_training: 1
+  num_workers: 1
+  verbose: 1
+
+# Preprocessing
+  fill_missing: True
+  fill_value: 0
+
+# Feature Extraction
+  installments__last_k_trend_periods: None
+  installments__last_k_agg_periods: None
+  installments__last_k_agg_period_fractions: None
+  pos_cash__last_k_trend_periods: None
+  pos_cash__last_k_agg_periods: None
+  application_aggregation__use_diffs_only: True
+  use_nan_count: True
+
+# Light GBM
+  lgbm_random_search_runs: 0
+  lgbm__device: cpu # gpu cpu
+  lgbm__boosting_type: gbdt
+  lgbm__objective: binary
+  lgbm__metric: auc
+  lgbm__number_boosting_rounds: 5000
+  lgbm__early_stopping_rounds: 100
+  lgbm__learning_rate: 0.1
+  lgbm__max_bin: 300
+  lgbm__max_depth: -1
+  lgbm__num_leaves: 35
+  lgbm__min_child_samples: 50
+  lgbm__subsample: 1.0
+  lgbm__subsample_freq: 1
+  lgbm__colsample_bytree: 0.2
+  lgbm__min_gain_to_split: 0.5
+  lgbm__reg_lambda: 100.0
+  lgbm__reg_alpha: 0.0
+  lgbm__scale_pos_weight: 1
+  lgbm__is_unbalance: False
+
+# XGBoost
+  xgb_random_search_runs: 0
+  xgb__booster: gbtree
+  xgb__tree_method: hist # gpu_hist  # auto  hist
+  xgb__objective: binary:logistic
+  xgb__eval_metric: auc
+  xgb__nrounds: 10000
+  xgb__early_stopping_rounds: 100
+  xgb__eta: 0.001
+  xgb__max_leaves: 40
+  xgb__max_depth: 16
+  xgb__max_bin: 255
+  xgb__subsample: 0.5
+  xgb__colsample_bytree: 0.5
+  xgb__colsample_bylevel: 1
+  xgb__min_child_weight: 4
+  xgb__lambda: 0.001
+  xgb__alpha: 0.001
+  xgb__scale_pos_weight: 1
+
+# Random forest
+  rf_random_search_runs: 0
+  rf__n_estimators: 500
+  rf__criterion: gini
+  rf__max_features: 0.2
+  rf__min_samples_split: 10
+  rf__min_samples_leaf: 5
+  rf__class_weight: 1
+
+# Logistic regression
+  lr_random_search_runs: 0
+  lr__penalty: l1
+  lr__tol: 0.00001
+  lr__C: 1
+  lr__fit_intercept: 1
+  lr__class_weight: 1
+  lr__solver: liblinear
+  lr__max_iter: 10000
+
+# SVC
+  svc_random_search_runs: 0
+  svc__kernel: rbf
+  svc__C: 1
+  svc__degree: 5
+  svc__gamma: auto
+  svc__coef0: 0.0
+  svc__probability: True
+  svc__tol: 0.00001
+  svc__max_iter: -1
+
+# Postprocessing
+  aggregation_method: rank_mean
