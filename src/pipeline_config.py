@@ -284,8 +284,10 @@ SOLUTION_CONFIG = AttrDict({
                                               },
                       },
 
-    'sklearn_preprocessing': {'one_hot_encoder': {'cols': CATEGORICAL_COLUMNS,
-                                                  'drop_invariant': True},
+    'xgb_preprocessing': {'one_hot_encoder': {'drop_invariant': True}
+                          },
+
+    'sklearn_preprocessing': {'one_hot_encoder': {'drop_invariant': True},
                               'fillna': {'fill_value': params.fill_value},
                               },
 
@@ -300,6 +302,8 @@ SOLUTION_CONFIG = AttrDict({
     'bureau': {'table_name': 'bureau',
                'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
                'groupby_aggregations': BUREAU_AGGREGATION_RECIPIES,
+               'last_k_agg_periods': parameter_eval(params.bureau__last_k_agg_periods),
+               'last_k_agg_period_fractions': parameter_eval(params.bureau__last_k_agg_period_fractions),
                'num_workers': params.num_workers
                },
 
