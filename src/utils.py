@@ -151,8 +151,13 @@ def _clean_columns(df, keep_colnames):
         new_colnames.append('model_{}'.format(i))
     return new_colnames
 
+
 def safe_div(a, b):
     try:
         return float(a) / float(b)
     except:
         return 0.0
+
+
+def flatten_list(l):
+    return [item for sublist in l for item in sublist]

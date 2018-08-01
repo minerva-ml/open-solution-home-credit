@@ -442,6 +442,13 @@ def _fold_fit_evaluate_predict_loop(train_data_split, valid_data_split, tables, 
         test_data = {'input': {'X': tables.drop(cfg.ID_COLUMNS, axis=1),
                                'y': None,
                                },
+                     'application': {},
+                     'bureau_balance': {},
+                     'bureau': {},
+                     'credit_card_balance': {},
+                     'installments_payments': {},
+                     'pos_cash_balance': {},
+                     'previous_application': {},
                      }
     else:
         raise NotImplementedError
@@ -501,11 +508,25 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
                                 'X_valid': valid_data_split.drop(drop_columns, axis=1),
                                 'y_valid': valid_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
                                 },
+                      'application': {},
+                      'bureau_balance': {},
+                      'bureau': {},
+                      'credit_card_balance': {},
+                      'installments_payments': {},
+                      'pos_cash_balance': {},
+                      'previous_application': {},
                       }
 
         valid_data = {'input': {'X': valid_data_split.drop(drop_columns, axis=1),
                                 'y': None,
                                 },
+                      'application': {},
+                      'bureau_balance': {},
+                      'bureau': {},
+                      'credit_card_balance': {},
+                      'installments_payments': {},
+                      'pos_cash_balance': {},
+                      'previous_application': {},
                       }
     else:
         raise NotImplementedError

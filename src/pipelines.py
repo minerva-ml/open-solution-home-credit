@@ -132,10 +132,10 @@ def sklearn_pipeline(config, ClassifierClass, clf_name, train_mode, suffix='', n
 
 
 def xgboost_stacking(config, train_mode, suffix=''):
-    features = blocks.stacking_features(config, train_mode, suffix,
-                                        persist_output=False,
-                                        cache_output=False,
-                                        load_persisted_output=False)
+    features = blocks.first_level_predictions(config, train_mode, suffix,
+                                              persist_output=False,
+                                              cache_output=False,
+                                              load_persisted_output=False)
 
     xgboost = blocks.classifier_xgboost_stacking(features, config, train_mode, suffix,
                                                  cache_output=False)
@@ -143,10 +143,10 @@ def xgboost_stacking(config, train_mode, suffix=''):
 
 
 def log_reg_stacking(config, train_mode, suffix=''):
-    features = blocks.stacking_features(config, train_mode, suffix,
-                                        persist_output=False,
-                                        cache_output=False,
-                                        load_persisted_output=False)
+    features = blocks.first_level_predictions(config, train_mode, suffix,
+                                              persist_output=False,
+                                              cache_output=False,
+                                              load_persisted_output=False)
 
     normalized_features = blocks.stacking_normalization(features, config, train_mode, suffix,
                                                         persist_output=False,
@@ -159,13 +159,52 @@ def log_reg_stacking(config, train_mode, suffix=''):
 
 
 def light_gbm_stacking(config, train_mode, suffix=''):
-    features = blocks.stacking_features(config, train_mode, suffix,
-                                        persist_output=False,
-                                        cache_output=False,
-                                        load_persisted_output=False)
+    if train_mode:
+        engineered_features, engineered_features_valid = blocks.feature_extraction(config,
+                                                                                   train_mode,
+                                                                                   suffix,
+                                                                                   persist_output=False,
+                                                                                   cache_output=False,
+                                                                                   load_persisted_output=False)
 
-    light_gbm = blocks.classifier_light_gbm_stacking(features, config, train_mode, suffix,
-                                                     cache_output=False)
+        prediction_features, prediction_features_valid = blocks.first_level_predictions(config, train_mode, suffix,
+                                                                                        persist_output=False,
+                                                                                        cache_output=False,
+                                                                                        load_persisted_output=False)
+
+        features, features_valid = blocks.concat_features(features=[engineered_features, prediction_features],
+                                                          features_valid=[engineered_features_valid,
+                                                                          prediction_features_valid],
+                                                          config=config,
+                                                          train_mode=train_mode,
+                                                          suffix='_stacking{}'.format(suffix))
+
+        light_gbm = blocks.classifier_light_gbm_stacking((features, features_valid),
+                                                         config,
+                                                         train_mode, suffix)
+    else:
+        engineered_features = blocks.feature_extraction(config,
+                                                        train_mode,
+                                                        suffix,
+                                                        persist_output=False,
+                                                        cache_output=False,
+                                                        load_persisted_output=False)
+
+        prediction_features = blocks.first_level_predictions(config, train_mode, suffix,
+                                                             persist_output=False,
+                                                             cache_output=False,
+                                                             load_persisted_output=False)
+
+        features = blocks.concat_features(features=[engineered_features, prediction_features],
+                                          features_valid=[],
+                                          config=config,
+                                          train_mode=train_mode,
+                                          suffix='_stacking{}'.format(suffix))
+
+        light_gbm = blocks.classifier_light_gbm_stacking(features,
+                                                         config,
+                                                         train_mode, suffix)
+
     return light_gbm
 
 
