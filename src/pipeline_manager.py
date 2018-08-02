@@ -46,7 +46,7 @@ def train(pipeline_name, dev_mode):
     tables = _read_data(dev_mode, read_train=True, read_test=False)
 
     logger.info('Shuffling and splitting into train and test...')
-    train_data_split, valid_data_split = train_test_split(tables.application_train,
+    train_data_split, valid_data_split = train_test_split(tables.train_set,
                                                           test_size=params.validation_size,
                                                           random_state=cfg.RANDOM_SEED,
                                                           shuffle=params.shuffle)
@@ -56,11 +56,12 @@ def train(pipeline_name, dev_mode):
     logger.info('Train shape: {}'.format(train_data_split.shape))
     logger.info('Valid shape: {}'.format(valid_data_split.shape))
 
-    train_data = {'application': {'X': train_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
-                                  'y': train_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
-                                  'X_valid': valid_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
-                                  'y_valid': valid_data_split[cfg.TARGET_COLUMNS].values.reshape(-1)
+    train_data = {'main_table': {'X': train_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
+                                 'y': train_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
+                                 'X_valid': valid_data_split.drop[cfg.TARGET_COLUMNS].values.reshape(-1),
+                                 'y_valid': valid_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
                                   },
+                  'application': {'X': tables.application},
                   'bureau_balance': {'X': tables.bureau_balance},
                   'bureau': {'X': tables.bureau},
                   'credit_card_balance': {'X': tables.credit_card_balance},
@@ -83,7 +84,7 @@ def evaluate(pipeline_name, dev_mode):
     tables = _read_data(dev_mode, read_train=True, read_test=False)
 
     logger.info('Shuffling and splitting to get validation split...')
-    _, valid_data_split = train_test_split(tables.application_train,
+    _, valid_data_split = train_test_split(tables.train_set,
                                            test_size=params.validation_size,
                                            random_state=cfg.RANDOM_SEED,
                                            shuffle=params.shuffle)
@@ -93,9 +94,10 @@ def evaluate(pipeline_name, dev_mode):
 
     y_true = valid_data_split[cfg.TARGET_COLUMNS].values
 
-    eval_data = {'application': {'X': valid_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
-                                 'y': None,
-                                 },
+    eval_data = {'main_table': {'X': valid_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
+                                'y': None,
+                                },
+                 'application': {'X': tables.application},
                  'bureau_balance': {'X': tables.bureau_balance},
                  'bureau': {'X': tables.bureau},
                  'credit_card_balance': {'X': tables.credit_card_balance},
@@ -123,9 +125,10 @@ def predict(pipeline_name, dev_mode, submit_predictions):
 
     tables = _read_data(dev_mode, read_train=False, read_test=True)
 
-    test_data = {'application': {'X': tables.application_test,
-                                 'y': None,
-                                 },
+    test_data = {'main_table': {'X': tables.test_set,
+                                'y': None,
+                                },
+                 'application': {'X': tables.application},
                  'bureau_balance': {'X': tables.bureau_balance},
                  'bureau': {'X': tables.bureau},
                  'credit_card_balance': {'X': tables.credit_card_balance},
@@ -144,7 +147,7 @@ def predict(pipeline_name, dev_mode, submit_predictions):
 
     if not dev_mode:
         logger.info('creating submission file...')
-        submission = create_submission(tables.application_test, y_pred)
+        submission = create_submission(tables.test_set, y_pred)
 
         logger.info('verifying submission...')
         sample_submission = pd.read_csv(params.sample_submission_filepath)
@@ -190,13 +193,13 @@ def train_evaluate_cv_first_level(pipeline_name, dev_mode):
 
     tables = _read_data(dev_mode, read_train=True, read_test=False)
 
-    target_values = tables.application_train[cfg.TARGET_COLUMNS].values.reshape(-1)
+    target_values = tables.train_set[cfg.TARGET_COLUMNS].values.reshape(-1)
     fold_generator = _get_fold_generator(target_values)
 
     fold_scores = []
     for fold_id, (train_idx, valid_idx) in enumerate(fold_generator):
         (train_data_split,
-         valid_data_split) = tables.application_train.iloc[train_idx], tables.application_train.iloc[valid_idx]
+         valid_data_split) = tables.train_set.iloc[train_idx], tables.train_set.iloc[valid_idx]
 
         logger.info('Started fold {}'.format(fold_id))
         logger.info('Target mean in train: {}'.format(train_data_split[cfg.TARGET_COLUMNS].mean()))
@@ -264,13 +267,13 @@ def train_evaluate_predict_cv_first_level(pipeline_name, dev_mode, submit_predic
 
     tables = _read_data(dev_mode, read_train=True, read_test=True)
 
-    target_values = tables.application_train[cfg.TARGET_COLUMNS].values.reshape(-1)
+    target_values = tables.train_set[cfg.TARGET_COLUMNS].values.reshape(-1)
     fold_generator = _get_fold_generator(target_values)
 
     fold_scores, out_of_fold_train_predictions, out_of_fold_test_predictions = [], [], []
     for fold_id, (train_idx, valid_idx) in enumerate(fold_generator):
         (train_data_split,
-         valid_data_split) = tables.application_train.iloc[train_idx], tables.application_train.iloc[valid_idx]
+         valid_data_split) = tables.train_set.iloc[train_idx], tables.train_set.iloc[valid_idx]
 
         logger.info('Started fold {}'.format(fold_id))
         logger.info('Target mean in train: {}'.format(train_data_split[cfg.TARGET_COLUMNS].mean()))
@@ -396,11 +399,14 @@ def _read_data(dev_mode, read_train=True, read_test=False):
 
     raw_data = {}
 
+    application_train = pd.read_csv(params.train_filepath, nrows=nrows)
+    application_test = pd.read_csv(params.test_filepath, nrows=nrows)
+    raw_data['application'] = pd.concat([application_train, application_test],
+                                        sort=False).drop(cfg.TARGET_COLUMNS, axis='columns')
     if read_train:
-        raw_data['application_train'] = pd.read_csv(params.train_filepath, nrows=nrows)
-
+        raw_data['train_set'] = pd.DataFrame(application_train[cfg.ID_COLUMNS + cfg.TARGET_COLUMNS])
     if read_test:
-        raw_data['application_test'] = pd.read_csv(params.test_filepath, nrows=nrows)
+        raw_data['test_set'] = pd.DataFrame(application_test[cfg.ID_COLUMNS])
     raw_data['bureau'] = pd.read_csv(params.bureau_filepath, nrows=nrows)
     raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows)
     raw_data['pos_cash_balance'] = pd.read_csv(params.POS_CASH_balance_filepath, nrows=nrows)
@@ -428,9 +434,10 @@ def _fold_fit_evaluate_predict_loop(train_data_split, valid_data_split, tables, 
     score, y_valid_pred, pipeline = _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables,
                                                             fold_id, pipeline_name, model_level)
     if model_level == 'first':
-        test_data = {'application': {'X': tables.application_test,
-                                     'y': None,
-                                     },
+        test_data = {'main_table': {'X': tables.test_set,
+                                    'y': None,
+                                    },
+                     'application': {'X': tables.application},
                      'bureau_balance': {'X': tables.bureau_balance},
                      'bureau': {'X': tables.bureau},
                      'credit_card_balance': {'X': tables.credit_card_balance},
@@ -457,7 +464,7 @@ def _fold_fit_evaluate_predict_loop(train_data_split, valid_data_split, tables, 
     train_out_of_fold_prediction_chunk['{}_prediction'.format(pipeline_name)] = y_valid_pred
 
     if model_level == 'first':
-        test_out_of_fold_prediction_chunk = tables.application_test[cfg.ID_COLUMNS]
+        test_out_of_fold_prediction_chunk = tables.test_set[cfg.ID_COLUMNS]
     elif model_level == 'second':
         test_out_of_fold_prediction_chunk = tables[cfg.ID_COLUMNS]
     else:
@@ -471,11 +478,12 @@ def _fold_fit_evaluate_predict_loop(train_data_split, valid_data_split, tables, 
 
 def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id, pipeline_name, model_level):
     if model_level == 'first':
-        train_data = {'application': {'X': train_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
-                                      'y': train_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
-                                      'X_valid': valid_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
-                                      'y_valid': valid_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
-                                      },
+        train_data = {'main_table': {'X': train_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
+                                     'y': train_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
+                                     'X_valid': valid_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
+                                     'y_valid': valid_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
+                                     },
+                      'application': {'X': tables.application},
                       'bureau_balance': {'X': tables.bureau_balance},
                       'bureau': {'X': tables.bureau},
                       'credit_card_balance': {'X': tables.credit_card_balance},
@@ -484,9 +492,10 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
                       'previous_application': {'X': tables.previous_application},
                       }
 
-        valid_data = {'application': {'X': valid_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
-                                      'y': None,
-                                      },
+        valid_data = {'main_table': {'X': valid_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
+                                     'y': None,
+                                     },
+                      'application': {'X': tables.application},
                       'bureau_balance': {'X': tables.bureau_balance},
                       'bureau': {'X': tables.bureau},
                       'credit_card_balance': {'X': tables.credit_card_balance},
