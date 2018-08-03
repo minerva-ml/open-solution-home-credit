@@ -948,7 +948,7 @@ def _application_cleaning(config, train_mode, suffix, **kwargs):
                                 **kwargs)
     if train_mode:
         application_cleaning_valid = Step(name='application_cleaning_valid{}'.format(suffix),
-                                          transformer=dc.ApplicationCleaning(),
+                                          transformer=dc.ApplicationCleaning(**config.preprocessing.impute_missing),
                                           input_data=['application'],
                                           adapter=Adapter({'X': E('application', 'X_valid')}),
                                           experiment_directory=config.pipeline.experiment_directory,
