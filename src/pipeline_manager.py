@@ -43,7 +43,7 @@ def train(pipeline_name, dev_mode):
         logger.info('Cleaning experiment_directory...')
         shutil.rmtree(params.experiment_directory)
 
-    tables = _read_data(dev_mode, read_train=True, read_test=False)
+    tables = _read_data(dev_mode)
 
     logger.info('Shuffling and splitting into train and test...')
     train_data_split, valid_data_split = train_test_split(tables.application_train,
@@ -80,7 +80,7 @@ def evaluate(pipeline_name, dev_mode):
     logger.info('EVALUATION')
     logger.info('Reading data...')
 
-    tables = _read_data(dev_mode, read_train=True, read_test=False)
+    tables = _read_data(dev_mode)
 
     logger.info('Shuffling and splitting to get validation split...')
     _, valid_data_split = train_test_split(tables.application_train,
@@ -121,7 +121,7 @@ def evaluate(pipeline_name, dev_mode):
 def predict(pipeline_name, dev_mode, submit_predictions):
     logger.info('PREDICTION')
 
-    tables = _read_data(dev_mode, read_train=False, read_test=True)
+    tables = _read_data(dev_mode)
 
     test_data = {'application': {'X': tables.application_test,
                                  'y': None,
@@ -188,7 +188,7 @@ def train_evaluate_cv_first_level(pipeline_name, dev_mode):
         logger.info('Cleaning experiment_directory...')
         shutil.rmtree(params.experiment_directory)
 
-    tables = _read_data(dev_mode, read_train=True, read_test=False)
+    tables = _read_data(dev_mode)
 
     target_values = tables.application_train[cfg.TARGET_COLUMNS].values.reshape(-1)
     fold_generator = _get_fold_generator(target_values)
@@ -234,7 +234,7 @@ def train_evaluate_cv_second_level(pipeline_name):
                                                params.train_filepath,
                                                id_column=cfg.ID_COLUMNS[0],
                                                target_column=cfg.TARGET_COLUMNS[0])
-    tables = _read_data(dev_mode=False, read_train=True, read_test=True)
+    tables = _read_data(dev_mode=False)
 
     fold_scores = []
     for fold_id in range(params.n_cv_splits):
@@ -249,7 +249,6 @@ def train_evaluate_cv_second_level(pipeline_name):
 
         score, _, _ = _fold_fit_evaluate_loop(train_oof_split,
                                               valid_oof_split,
-                                              test_oof,
                                               tables,
                                               fold_id, pipeline_name,
                                               model_level='second')
@@ -271,7 +270,7 @@ def train_evaluate_predict_cv_first_level(pipeline_name, dev_mode, submit_predic
         logger.info('Cleaning experiment_directory...')
         shutil.rmtree(params.experiment_directory)
 
-    tables = _read_data(dev_mode, read_train=True, read_test=True)
+    tables = _read_data(dev_mode)
 
     target_values = tables.application_train[cfg.TARGET_COLUMNS].values.reshape(-1)
     fold_generator = _get_fold_generator(target_values)
@@ -341,7 +340,7 @@ def train_evaluate_predict_cv_second_level(pipeline_name, submit_predictions):
                                                params.train_filepath,
                                                id_column=cfg.ID_COLUMNS[0],
                                                target_column=cfg.TARGET_COLUMNS[0])
-    tables = _read_data(dev_mode=False, read_train=True, read_test=True)
+    tables = _read_data(dev_mode=False)
 
     out_of_fold_train_predictions, out_of_fold_test_predictions, fold_scores = [], [], []
     for fold_id in range(params.n_cv_splits):
@@ -398,7 +397,7 @@ def train_evaluate_predict_cv_second_level(pipeline_name, submit_predictions):
         make_submission(test_aggregated_file_path)
 
 
-def _read_data(dev_mode, read_train=True, read_test=False):
+def _read_data(dev_mode):
     logger.info('Reading data...')
     if dev_mode:
         nrows = cfg.DEV_SAMPLE_SIZE
@@ -407,12 +406,9 @@ def _read_data(dev_mode, read_train=True, read_test=False):
         nrows = None
 
     raw_data = {}
-
-    if read_train:
-        raw_data['application_train'] = pd.read_csv(params.train_filepath, nrows=nrows)
-
-    if read_test:
-        raw_data['application_test'] = pd.read_csv(params.test_filepath, nrows=nrows)
+    nrows = 1
+    raw_data['application_train'] = pd.read_csv(params.train_filepath, nrows=nrows)
+    raw_data['application_test'] = pd.read_csv(params.test_filepath, nrows=nrows)
     raw_data['bureau'] = pd.read_csv(params.bureau_filepath, nrows=nrows)
     raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows)
     raw_data['pos_cash_balance'] = pd.read_csv(params.POS_CASH_balance_filepath, nrows=nrows)
@@ -491,7 +487,7 @@ def _fold_fit_evaluate_predict_loop(train_data_split, valid_data_split, test, ta
     return score, train_out_of_fold_prediction_chunk, test_out_of_fold_prediction_chunk
 
 
-def _fold_fit_evaluate_loop(train_data_split, valid_data_split, test, tables, fold_id, pipeline_name, model_level):
+def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id, pipeline_name, model_level):
     if model_level == 'first':
         train_data = {'application': {'X': train_data_split.drop(cfg.TARGET_COLUMNS, axis=1),
                                       'y': train_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
@@ -558,18 +554,20 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, test, tables, fo
     pipeline.fit_transform(train_data)
     pipeline.clean_cache()
 
-    pipeline = PIPELINES[pipeline_name](config=cfg.SOLUTION_CONFIG, train_mode=False,
-                                        suffix='_fold_{}'.format(fold_id))
-    logger.info('Start pipeline transform on valid')
-    pipeline.clean_cache()
-    output_valid = pipeline.transform(valid_data)
-    pipeline.clean_cache()
+    return None, None, None
 
-    y_valid_pred = output_valid.get('prediction', output_valid.get('predicted', None))
-    y_valid_true = valid_data_split[cfg.TARGET_COLUMNS].values
-    score = roc_auc_score(y_valid_true, y_valid_pred)
-
-    return score, y_valid_pred, pipeline
+    # pipeline = PIPELINES[pipeline_name](config=cfg.SOLUTION_CONFIG, train_mode=False,
+    #                                     suffix='_fold_{}'.format(fold_id))
+    # logger.info('Start pipeline transform on valid')
+    # pipeline.clean_cache()
+    # output_valid = pipeline.transform(valid_data)
+    # pipeline.clean_cache()
+    #
+    # y_valid_pred = output_valid.get('prediction', output_valid.get('predicted', None))
+    # y_valid_true = valid_data_split[cfg.TARGET_COLUMNS].values
+    # score = roc_auc_score(y_valid_true, y_valid_pred)
+    #
+    # return score, y_valid_pred, pipeline
 
 
 def _aggregate_test_prediction(out_of_fold_test_predictions):
