@@ -16,22 +16,42 @@ from .utils import parallel_apply, safe_div
 logger = get_logger()
 
 
-class FeatureJoiner(BaseTransformer):
-    def __init__(self, use_nan_count=False, **kwargs):
+class IDXMerge(BaseTransformer):
+    def __init__(self, id_column, **kwargs):
         super().__init__()
+        self.id_column = id_column
+
+    def transform(self, table, features, categorical_features, **kwargs):
+        merged_table = table.merge(features,
+                                   left_on=self.id_column,
+                                   right_on=self.id_column,
+                                   how='left',
+                                   validate='one_to_one')
+        merged_table.drop(self.id_column, axis='columns', inplace=True)
+
+        outputs = dict()
+        outputs['features'] = merged_table
+        outputs['feature_names'] = list(merged_table.columns)
+        outputs['categorical_features'] = categorical_features
+        return outputs
+
+
+class FeatureJoiner(BaseTransformer):
+    def __init__(self, id_column, use_nan_count=False, **kwargs):
+        super().__init__()
+        self.id_column = id_column
         self.use_nan_count = use_nan_count
 
     def transform(self, numerical_feature_list, categorical_feature_list, **kwargs):
         features = numerical_feature_list + categorical_feature_list
         for feature in features:
-            feature.reset_index(drop=True, inplace=True)
-        features = pd.concat(features, axis=1).astype(np.float32)
+            feature.set_index(self.id_column, drop=True, inplace=True)
+        features = pd.concat(features, axis=1).astype(np.float32).reset_index()
         if self.use_nan_count:
             features['nan_count'] = features.isnull().sum(axis=1)
 
         outputs = dict()
         outputs['features'] = features
-        outputs['feature_names'] = list(features.columns)
         outputs['categorical_features'] = self._get_feature_names(categorical_feature_list)
         return outputs
 
@@ -50,22 +70,18 @@ class FeatureJoiner(BaseTransformer):
 class CategoricalEncoder(BaseTransformer):
     def __init__(self, **kwargs):
         super().__init__()
-        self.categorical_columns = kwargs['categorical_columns']
-        params = deepcopy(kwargs)
-        params.pop('categorical_columns', None)
-        self.params = params
+        self.categorical_columns = []
         self.encoder_class = ce.OrdinalEncoder
         self.categorical_encoder = None
 
-    def fit(self, X, y, **kwargs):
-        X_ = X[self.categorical_columns]
-        self.categorical_encoder = self.encoder_class(cols=self.categorical_columns, **self.params)
-        self.categorical_encoder.fit(X_, y)
+    def fit(self, X, categorical_columns, **kwargs):
+        self.categorical_columns = categorical_columns
+        self.categorical_encoder = self.encoder_class(cols=categorical_columns, **kwargs)
+        self.categorical_encoder.fit(X)
         return self
 
     def transform(self, X, **kwargs):
-        X_ = X[self.categorical_columns]
-        X_ = self.categorical_encoder.transform(X_)
+        X_ = self.categorical_encoder.transform(X)
         return {'categorical_features': X_}
 
     def load(self, filepath):
@@ -102,12 +118,13 @@ class CategoricalEncodingWrapper(BaseTransformer):
 
 
 class GroupbyAggregateDiffs(BaseTransformer):
-    def __init__(self, groupby_aggregations, use_diffs_only=False, **kwargs):
+    def __init__(self, id_column, groupby_aggregations, use_diffs_only=False, **kwargs):
         super().__init__()
         self.groupby_aggregations = groupby_aggregations
         self.use_diffs_only = use_diffs_only
         self.features = []
         self.groupby_feature_names = []
+        self.id_column = id_column
 
     @property
     def feature_names(self):
@@ -133,7 +150,7 @@ class GroupbyAggregateDiffs(BaseTransformer):
         main_table = self._merge_grouby_features(main_table)
         main_table = self._add_diff_features(main_table)
 
-        return {'numerical_features': main_table[self.feature_names].astype(np.float32)}
+        return {'numerical_features': main_table[[self.id_column] + self.feature_names].astype(np.float32)}
 
     def _merge_grouby_features(self, main_table):
         for groupby_cols, groupby_features in self.features:
@@ -175,14 +192,14 @@ class GroupbyAggregateDiffs(BaseTransformer):
 
 
 class GroupbyAggregate(BaseTransformer):
-    def __init__(self, table_name, id_columns, groupby_aggregations, **kwargs):
+    def __init__(self, table_name, id_column, groupby_aggregations, **kwargs):
         super().__init__()
         self.table_name = table_name
-        self.id_columns = id_columns
+        self.id_column = id_column
         self.groupby_aggregations = groupby_aggregations
 
     def fit(self, table, **kwargs):
-        features = pd.DataFrame({self.id_columns[0]: table[self.id_columns[0]].unique()})
+        features = pd.DataFrame({self.id_column: table[self.id_column].unique()})
 
         for groupby_cols, specs in self.groupby_aggregations:
             group_object = table.groupby(groupby_cols)
@@ -200,7 +217,7 @@ class GroupbyAggregate(BaseTransformer):
         return self
 
     def transform(self, table, **kwargs):
-        return {'features_table': self.features}
+        return {'numerical_features': self.features}
 
     def load(self, filepath):
         self.features = joblib.load(filepath)
@@ -213,30 +230,12 @@ class GroupbyAggregate(BaseTransformer):
         return '{}_{}_{}_{}'.format(self.table_name, '_'.join(groupby_cols), agg, select)
 
 
-class GroupbyMerge(BaseTransformer):
-    def __init__(self, id_columns, **kwargs):
-        super().__init__()
-        self.id_columns = id_columns
-
-    def _feature_names(self, features):
-        feature_names = list(features.columns)
-        feature_names.remove(self.id_columns[0])
-        return feature_names
-
-    def transform(self, table, features, **kwargs):
-        table = table.merge(features,
-                            left_on=[self.id_columns[0]],
-                            right_on=[self.id_columns[1]],
-                            how='left',
-                            validate='one_to_one')
-
-        return {'numerical_features': table[self._feature_names(features)].astype(np.float32)}
-
-
 class BasicHandCraftedFeatures(BaseTransformer):
     def __init__(self, num_workers=1, **kwargs):
         self.num_workers = num_workers
         self.features = None
+        self.categorical_features = None
+        self.categorical_columns = []
 
     @property
     def feature_names(self):
@@ -245,18 +244,21 @@ class BasicHandCraftedFeatures(BaseTransformer):
         return feature_names
 
     def transform(self, **kwargs):
-        return {'features_table': self.features}
+        return {'numerical_features': self.features,
+                'categorical_features': self.categorical_features,
+                'categorical_columns': self.categorical_columns}
 
     def load(self, filepath):
-        self.features = joblib.load(filepath)
+        self.features, self.categorical_features, self.categorical_columns = joblib.load(filepath)
         return self
 
     def persist(self, filepath):
-        joblib.dump(self.features, filepath)
+        joblib.dump((self.features, self.categorical_features, self.categorical_columns), filepath)
 
 
-class ApplicationFeatures(BaseTransformer):
-    def __init__(self, categorical_columns, numerical_columns):
+class ApplicationFeatures(BasicHandCraftedFeatures):
+    def __init__(self, categorical_columns, numerical_columns, num_workers=1, **kwargs):
+        super().__init__(num_workers=num_workers)
         self.categorical_columns = categorical_columns
         self.numerical_columns = numerical_columns
         self.engineered_numerical_columns = ['annuity_income_percentage',
@@ -297,48 +299,48 @@ class ApplicationFeatures(BaseTransformer):
                                              'hour_appr_process_start_radial_y'
                                              ]
 
-    def transform(self, X, **kwargs):
-        X['annuity_income_percentage'] = X['AMT_ANNUITY'] / X['AMT_INCOME_TOTAL']
-        X['car_to_birth_ratio'] = X['OWN_CAR_AGE'] / X['DAYS_BIRTH']
-        X['car_to_employ_ratio'] = X['OWN_CAR_AGE'] / X['DAYS_EMPLOYED']
-        X['children_ratio'] = X['CNT_CHILDREN'] / X['CNT_FAM_MEMBERS']
-        X['credit_to_annuity_ratio'] = X['AMT_CREDIT'] / X['AMT_ANNUITY']
-        X['credit_to_goods_ratio'] = X['AMT_CREDIT'] / X['AMT_GOODS_PRICE']
-        X['credit_to_income_ratio'] = X['AMT_CREDIT'] / X['AMT_INCOME_TOTAL']
-        X['days_employed_percentage'] = X['DAYS_EMPLOYED'] / X['DAYS_BIRTH']
-        X['income_credit_percentage'] = X['AMT_INCOME_TOTAL'] / X['AMT_CREDIT']
-        X['income_per_child'] = X['AMT_INCOME_TOTAL'] / (1 + X['CNT_CHILDREN'])
-        X['income_per_person'] = X['AMT_INCOME_TOTAL'] / X['CNT_FAM_MEMBERS']
-        X['payment_rate'] = X['AMT_ANNUITY'] / X['AMT_CREDIT']
-        X['phone_to_birth_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_BIRTH']
-        X['phone_to_employ_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_EMPLOYED']
-        X['external_sources_weighted'] = np.nansum(np.asarray([1.9, 2.1, 2.6])*X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
-        X['cnt_non_child'] = X['CNT_FAM_MEMBERS'] - X['CNT_CHILDREN']
-        X['child_to_non_child_ratio'] = X['CNT_CHILDREN'] / X['cnt_non_child']
-        X['income_per_non_child'] = X['AMT_INCOME_TOTAL'] / X['cnt_non_child']
-        X['credit_per_person'] = X['AMT_CREDIT'] / X['CNT_FAM_MEMBERS']
-        X['credit_per_child'] = X['AMT_CREDIT'] / (1 + X['CNT_CHILDREN'])
-        X['credit_per_non_child'] = X['AMT_CREDIT'] / X['cnt_non_child']
-        X['ext_source_1_plus_2'] = np.nansum(X[['EXT_SOURCE_1', 'EXT_SOURCE_2']], axis=1)
-        X['ext_source_1_plus_3'] = np.nansum(X[['EXT_SOURCE_1', 'EXT_SOURCE_3']], axis=1)
-        X['ext_source_2_plus_3'] = np.nansum(X[['EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
-        X['ext_source_1_is_nan'] = np.isnan(X['EXT_SOURCE_1'])
-        X['ext_source_2_is_nan'] = np.isnan(X['EXT_SOURCE_2'])
-        X['ext_source_3_is_nan'] = np.isnan(X['EXT_SOURCE_3'])
-        X['hour_appr_process_start_radial_x'] = X['HOUR_APPR_PROCESS_START'].apply(
+    def fit(self, application, **kwargs):
+        application['annuity_income_percentage'] = application['AMT_ANNUITY'] / application['AMT_INCOME_TOTAL']
+        application['car_to_birth_ratio'] = application['OWN_CAR_AGE'] / application['DAYS_BIRTH']
+        application['car_to_employ_ratio'] = application['OWN_CAR_AGE'] / application['DAYS_EMPLOYED']
+        application['children_ratio'] = application['CNT_CHILDREN'] / application['CNT_FAM_MEMBERS']
+        application['credit_to_annuity_ratio'] = application['AMT_CREDIT'] / application['AMT_ANNUITY']
+        application['credit_to_goods_ratio'] = application['AMT_CREDIT'] / application['AMT_GOODS_PRICE']
+        application['credit_to_income_ratio'] = application['AMT_CREDIT'] / application['AMT_INCOME_TOTAL']
+        application['days_employed_percentage'] = application['DAYS_EMPLOYED'] / application['DAYS_BIRTH']
+        application['income_credit_percentage'] = application['AMT_INCOME_TOTAL'] / application['AMT_CREDIT']
+        application['income_per_child'] = application['AMT_INCOME_TOTAL'] / (1 + application['CNT_CHILDREN'])
+        application['income_per_person'] = application['AMT_INCOME_TOTAL'] / application['CNT_FAM_MEMBERS']
+        application['payment_rate'] = application['AMT_ANNUITY'] / application['AMT_CREDIT']
+        application['phone_to_birth_ratio'] = application['DAYS_LAST_PHONE_CHANGE'] / application['DAYS_BIRTH']
+        application['phone_to_employ_ratio'] = application['DAYS_LAST_PHONE_CHANGE'] / application['DAYS_EMPLOYED']
+        application['external_sources_weighted'] = np.nansum(np.asarray([1.9, 2.1, 2.6])*application[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
+        application['cnt_non_child'] = application['CNT_FAM_MEMBERS'] - application['CNT_CHILDREN']
+        application['child_to_non_child_ratio'] = application['CNT_CHILDREN'] / application['cnt_non_child']
+        application['income_per_non_child'] = application['AMT_INCOME_TOTAL'] / application['cnt_non_child']
+        application['credit_per_person'] = application['AMT_CREDIT'] / application['CNT_FAM_MEMBERS']
+        application['credit_per_child'] = application['AMT_CREDIT'] / (1 + application['CNT_CHILDREN'])
+        application['credit_per_non_child'] = application['AMT_CREDIT'] / application['cnt_non_child']
+        application['ext_source_1_plus_2'] = np.nansum(application[['EXT_SOURCE_1', 'EXT_SOURCE_2']], axis=1)
+        application['ext_source_1_plus_3'] = np.nansum(application[['EXT_SOURCE_1', 'EXT_SOURCE_3']], axis=1)
+        application['ext_source_2_plus_3'] = np.nansum(application[['EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
+        application['ext_source_1_is_nan'] = np.isnan(application['EXT_SOURCE_1'])
+        application['ext_source_2_is_nan'] = np.isnan(application['EXT_SOURCE_2'])
+        application['ext_source_3_is_nan'] = np.isnan(application['EXT_SOURCE_3'])
+        application['hour_appr_process_start_radial_x'] = application['HOUR_APPR_PROCESS_START'].apply(
            lambda x: cmath.rect(1, 2 * cmath.pi * x / 24).real)
-        X['hour_appr_process_start_radial_y'] = X['HOUR_APPR_PROCESS_START'].apply(
+        application['hour_appr_process_start_radial_y'] = application['HOUR_APPR_PROCESS_START'].apply(
            lambda x: cmath.rect(1, 2 * cmath.pi * x / 24).imag)
         for function_name in ['min', 'max', 'sum', 'mean', 'nanmedian']:
-            X['external_sources_{}'.format(function_name)] = eval('np.{}'.format(function_name))(
-                X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
+            application['external_sources_{}'.format(function_name)] = eval('np.{}'.format(function_name))(
+                application[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
 
-        X['short_employment'] = (X['DAYS_EMPLOYED'] < -2000).astype(int)
-        X['young_age'] = (X['DAYS_BIRTH'] < -14000).astype(int)
+        application['short_employment'] = (application['DAYS_EMPLOYED'] < -2000).astype(int)
+        application['young_age'] = (application['DAYS_BIRTH'] < -14000).astype(int)
 
-        return {'numerical_features': X[self.engineered_numerical_columns + self.numerical_columns],
-                'categorical_features': X[self.categorical_columns]
-                }
+        self.features = application[['SK_ID_CURR'] + self.engineered_numerical_columns + self.numerical_columns]
+        self.categorical_features = application[['SK_ID_CURR']+ self.categorical_columns]
+        return self
 
 
 class BureauFeatures(BasicHandCraftedFeatures):

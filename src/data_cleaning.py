@@ -12,18 +12,18 @@ class ApplicationCleaning(BaseTransformer):
         self.fill_missing = fill_missing
         self.fill_value = fill_value
 
-    def transform(self, X):
-        X['CODE_GENDER'].replace('XNA', np.nan, inplace=True)
-        X['DAYS_EMPLOYED'].replace(365243, np.nan, inplace=True)
-        X['DAYS_LAST_PHONE_CHANGE'].replace(0, np.nan, inplace=True)
-        X['NAME_FAMILY_STATUS'].replace('Unknown', np.nan, inplace=True)
-        X['ORGANIZATION_TYPE'].replace('XNA', np.nan, inplace=True)
-        X[cfg.CATEGORICAL_COLUMNS].fillna(-1, inplace=True)
+    def transform(self, application):
+        application['CODE_GENDER'].replace('XNA', np.nan, inplace=True)
+        application['DAYS_EMPLOYED'].replace(365243, np.nan, inplace=True)
+        application['DAYS_LAST_PHONE_CHANGE'].replace(0, np.nan, inplace=True)
+        application['NAME_FAMILY_STATUS'].replace('Unknown', np.nan, inplace=True)
+        application['ORGANIZATION_TYPE'].replace('XNA', np.nan, inplace=True)
+        application[cfg.CATEGORICAL_COLUMNS].fillna(-1, inplace=True)
 
         if self.fill_missing:
-            X.fillna(self.fill_value, inplace=True)
+            application.fillna(self.fill_value, inplace=True)
 
-        return {'X': X}
+        return {'application': application}
 
 
 class BureauCleaning(BaseTransformer):

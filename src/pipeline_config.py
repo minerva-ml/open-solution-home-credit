@@ -275,13 +275,12 @@ SOLUTION_CONFIG = AttrDict({
     'pipeline': {'experiment_directory': params.experiment_directory
                  },
 
-    'feature_joiner': {'use_nan_count': params.use_nan_count
+    'feature_joiner': { 'id_column': 'SK_ID_CURR',
+                        'use_nan_count': params.use_nan_count
                        },
 
     'preprocessing': {'impute_missing': {'fill_missing': params.fill_missing,
                                          'fill_value': params.fill_value},
-                      'categorical_encoder': {'categorical_columns': CATEGORICAL_COLUMNS
-                                              },
                       },
 
     'xgb_preprocessing': {'one_hot_encoder': {'drop_invariant': True}
@@ -291,16 +290,19 @@ SOLUTION_CONFIG = AttrDict({
                               'fillna': {'fill_value': params.fill_value},
                               },
 
-    'applications': {'columns': {'categorical_columns': CATEGORICAL_COLUMNS,
-                                 'numerical_columns': NUMERICAL_COLUMNS
-                                 },
-                     'aggregations': {'groupby_aggregations': APPLICATION_AGGREGATION_RECIPIES,
-                                      'use_diffs_only': params.application_aggregation__use_diffs_only
-                                      }
+    'idx_merge': {'id_column': 'SK_ID_CURR'},
+
+
+    'applications': {'table_name': 'applications',
+                     'id_column': 'SK_ID_CURR',
+                     'categorical_columns': CATEGORICAL_COLUMNS,
+                     'numerical_columns': NUMERICAL_COLUMNS,
+                     'groupby_aggregations': APPLICATION_AGGREGATION_RECIPIES,
+                     'use_diffs_only': params.application_aggregation__use_diffs_only
                      },
 
     'bureau': {'table_name': 'bureau',
-               'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+               'id_column': 'SK_ID_CURR',
                'groupby_aggregations': BUREAU_AGGREGATION_RECIPIES,
                'last_k_agg_periods': parameter_eval(params.bureau__last_k_agg_periods),
                'last_k_agg_period_fractions': parameter_eval(params.bureau__last_k_agg_period_fractions),
@@ -308,7 +310,7 @@ SOLUTION_CONFIG = AttrDict({
                },
 
     'bureau_balance': {'table_name': 'bureau_balance',
-                       'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                       'id_column': 'SK_ID_CURR',
                        'last_k_agg_periods': parameter_eval(params.bureau_balance__last_k_agg_periods),
                        'last_k_agg_period_fractions': parameter_eval(
                            params.bureau_balance__last_k_agg_period_fractions),
@@ -317,13 +319,13 @@ SOLUTION_CONFIG = AttrDict({
                        },
 
     'credit_card_balance': {'table_name': 'credit_card_balance',
-                            'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                            'id_column': 'SK_ID_CURR',
                             'groupby_aggregations': CREDIT_CARD_BALANCE_AGGREGATION_RECIPIES,
                             'num_workers': params.num_workers
                             },
 
     'installments_payments': {'table_name': 'installments_payments',
-                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                              'id_column': 'SK_ID_CURR',
                               'groupby_aggregations': INSTALLMENTS_PAYMENTS_AGGREGATION_RECIPIES,
                               'last_k_agg_periods': parameter_eval(params.installments__last_k_agg_periods),
                               'last_k_agg_period_fractions': parameter_eval(
@@ -333,7 +335,7 @@ SOLUTION_CONFIG = AttrDict({
                               },
 
     'pos_cash_balance': {'table_name': 'POS_CASH_balance',
-                         'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                         'id_column': 'SK_ID_CURR',
                          'groupby_aggregations': POS_CASH_BALANCE_AGGREGATION_RECIPIES,
                          'last_k_agg_periods': parameter_eval(params.pos_cash__last_k_agg_periods),
                          'last_k_trend_periods': parameter_eval(params.pos_cash__last_k_trend_periods),
@@ -343,7 +345,7 @@ SOLUTION_CONFIG = AttrDict({
                          },
 
     'previous_applications': {'table_name': 'previous_application',
-                              'id_columns': ('SK_ID_CURR', 'SK_ID_CURR'),
+                              'id_column': 'SK_ID_CURR',
                               'groupby_aggregations': PREVIOUS_APPLICATION_AGGREGATION_RECIPIES,
                               'numbers_of_applications': [1, 2, 3, 4, 5],
                               'num_workers': params.num_workers
