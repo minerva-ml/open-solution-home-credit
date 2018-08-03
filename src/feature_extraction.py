@@ -52,6 +52,7 @@ class FeatureJoiner(BaseTransformer):
 
         outputs = dict()
         outputs['features'] = features
+        outputs['feature_names'] = list(features.columns)
         outputs['categorical_features'] = self._get_feature_names(categorical_feature_list)
         return outputs
 

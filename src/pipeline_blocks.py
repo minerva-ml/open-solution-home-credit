@@ -327,25 +327,25 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
     application_categorical_encoder = _application_categorical_encoder(application, config, **kwargs)
 
     feature_combiner = _join_features(
-            numerical_features=[application,
-                                application_agg,
-                                bureau,
-                                bureau_agg,
-                                bureau_balance,
-                                credit_card_balance,
-                                credit_card_balance_agg,
-                                installment_payments,
-                                installments_payments_agg,
-                                pos_cash_balance,
-                                pos_cash_balance_agg,
-                                previous_application,
-                                previous_applications_agg,
-                                ],
-            categorical_features=[application_categorical_encoder
-                                  ],
-            config=config,
-            train_mode=train_mode,
-            **kwargs)
+        numerical_features=[application,
+                            application_agg,
+                            bureau,
+                            bureau_agg,
+                            bureau_balance,
+                            credit_card_balance,
+                            credit_card_balance_agg,
+                            installment_payments,
+                            installments_payments_agg,
+                            pos_cash_balance,
+                            pos_cash_balance_agg,
+                            previous_application,
+                            previous_applications_agg,
+                            ],
+        categorical_features=[application_categorical_encoder
+                              ],
+        config=config,
+        train_mode=train_mode,
+        **kwargs)
 
     if train_mode:
         idx_merge, idx_merge_valid = _split_samples(feature_combiner, config, train_mode, suffix, **kwargs)
@@ -457,7 +457,8 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
                                         transformer=IdentityOperation(),
                                         input_steps=[last_step, one_hot_encoder_valid],
                                         adapter=Adapter({'features': E(last_step.name, 'transformed'),
-                                                         'feature_names': E(one_hot_encoder_valid.name, 'feature_names'),
+                                                         'feature_names': E(one_hot_encoder_valid.name,
+                                                                            'feature_names'),
                                                          'categorical_features': E(one_hot_encoder_valid.name,
                                                                                    'categorical_features')
                                                          }),
@@ -593,12 +594,10 @@ def _split_samples(features, config, train_mode, suffix, **kwargs):
                                input_data=['main_table'],
                                input_steps=[features],
                                adapter=Adapter({'table': E('main_table', 'X_valid'),
-                                           'features': E(features.name, 'features'),
-                                           'categorical_features': E(features.name, 'categorical_features')}),
+                                                'features': E(features.name, 'features'),
+                                                'categorical_features': E(features.name, 'categorical_features')}),
                                experiment_directory=config.pipeline.experiment_directory,
                                **kwargs)
-
-    if train_mode:
         return idx_merge, idx_merge_valid
     else:
         return idx_merge
@@ -852,4 +851,5 @@ def _fillna(fill_value, **kwargs):
         X_filled = X.replace([np.inf, -np.inf], fill_value)
         X_filled = X_filled.fillna(fill_value)
         return {'transformed': X_filled}
+
     return make_transformer(_inner_fillna)

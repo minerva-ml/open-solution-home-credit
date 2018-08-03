@@ -60,7 +60,7 @@ def train(pipeline_name, dev_mode):
                                  'y': train_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
                                  'X_valid': valid_data_split.drop[cfg.TARGET_COLUMNS].values.reshape(-1),
                                  'y_valid': valid_data_split[cfg.TARGET_COLUMNS].values.reshape(-1),
-                                  },
+                                 },
                   'application': {'X': tables.application},
                   'bureau_balance': {'X': tables.bureau_balance},
                   'bureau': {'X': tables.bureau},
