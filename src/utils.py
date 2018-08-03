@@ -133,22 +133,24 @@ def read_oof_predictions(prediction_dir, train_filepath, id_column, target_colum
     for filepath in filepaths_train:
         train_dfs.append(pd.read_csv(filepath))
     train_dfs = reduce(lambda df1, df2: pd.merge(df1, df2, on=[id_column, 'fold_id']), train_dfs)
-    train_dfs.columns = _clean_columns(train_dfs, keep_colnames=[id_column, 'fold_id'])
+    train_dfs.columns = _clean_columns(train_dfs, keep_colnames=[id_column, 'fold_id'], filepaths=filepaths_train)
     train_dfs = pd.merge(train_dfs, labels, on=[id_column])
 
     test_dfs = []
     for filepath in filepaths_test:
         test_dfs.append(pd.read_csv(filepath))
     test_dfs = reduce(lambda df1, df2: pd.merge(df1, df2, on=[id_column, 'fold_id']), test_dfs)
-    test_dfs.columns = _clean_columns(test_dfs, keep_colnames=[id_column, 'fold_id'])
+    test_dfs.columns = _clean_columns(test_dfs, keep_colnames=[id_column, 'fold_id'], filepaths=filepaths_test)
+
     return train_dfs, test_dfs
 
 
-def _clean_columns(df, keep_colnames):
+def _clean_columns(df, keep_colnames, filepaths):
     new_colnames = keep_colnames
     feature_colnames = df.drop(keep_colnames, axis=1).columns
     for i, colname in enumerate(feature_colnames):
-        new_colnames.append('model_{}'.format(i))
+        model_name = filepaths[i].split('/')[-1].split('.')[0].replace('_oof_train', '')
+        new_colnames.append(model_name)
     return new_colnames
 
 
