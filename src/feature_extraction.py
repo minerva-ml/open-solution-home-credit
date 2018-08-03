@@ -11,7 +11,7 @@ from sklearn.linear_model import LinearRegression
 from steppy.base import BaseTransformer
 from steppy.utils import get_logger
 
-from .utils import parallel_apply, safe_div
+from .utils import parallel_apply, safe_div, flatten_list
 
 logger = get_logger()
 
@@ -45,6 +45,18 @@ class FeatureJoiner(BaseTransformer):
                 feature_names.append(dataframe.name)
 
         return feature_names
+
+
+class FeatureConcat(BaseTransformer):
+    def transform(self, features_list, feature_names_list, categorical_features_list, **kwargs):
+        for feature in features_list:
+            feature.reset_index(drop=True, inplace=True)
+
+        outputs = dict()
+        outputs['features'] = pd.concat(features_list, axis=1).astype(np.float32)
+        outputs['feature_names'] = flatten_list(feature_names_list)
+        outputs['categorical_features'] = flatten_list(categorical_features_list)
+        return outputs
 
 
 class CategoricalEncoder(BaseTransformer):
@@ -312,7 +324,8 @@ class ApplicationFeatures(BaseTransformer):
         X['payment_rate'] = X['AMT_ANNUITY'] / X['AMT_CREDIT']
         X['phone_to_birth_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_BIRTH']
         X['phone_to_employ_ratio'] = X['DAYS_LAST_PHONE_CHANGE'] / X['DAYS_EMPLOYED']
-        X['external_sources_weighted'] = np.nansum(np.asarray([1.9, 2.1, 2.6])*X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
+        X['external_sources_weighted'] = np.nansum(
+            np.asarray([1.9, 2.1, 2.6]) * X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
         X['cnt_non_child'] = X['CNT_FAM_MEMBERS'] - X['CNT_CHILDREN']
         X['child_to_non_child_ratio'] = X['CNT_CHILDREN'] / X['cnt_non_child']
         X['income_per_non_child'] = X['AMT_INCOME_TOTAL'] / X['cnt_non_child']
@@ -326,9 +339,9 @@ class ApplicationFeatures(BaseTransformer):
         X['ext_source_2_is_nan'] = np.isnan(X['EXT_SOURCE_2'])
         X['ext_source_3_is_nan'] = np.isnan(X['EXT_SOURCE_3'])
         X['hour_appr_process_start_radial_x'] = X['HOUR_APPR_PROCESS_START'].apply(
-           lambda x: cmath.rect(1, 2 * cmath.pi * x / 24).real)
+            lambda x: cmath.rect(1, 2 * cmath.pi * x / 24).real)
         X['hour_appr_process_start_radial_y'] = X['HOUR_APPR_PROCESS_START'].apply(
-           lambda x: cmath.rect(1, 2 * cmath.pi * x / 24).imag)
+            lambda x: cmath.rect(1, 2 * cmath.pi * x / 24).imag)
         for function_name in ['min', 'max', 'sum', 'mean', 'nanmedian']:
             X['external_sources_{}'.format(function_name)] = eval('np.{}'.format(function_name))(
                 X[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']], axis=1)
@@ -526,7 +539,7 @@ class BureauBalanceFeatures(BasicHandCraftedFeatures):
                 gr_period = gr_.copy()
             else:
                 period_name = 'last_{}_'.format(period)
-                gr_period = gr_[gr_['MONTHS_BALANCE'] >= (-1)*period]
+                gr_period = gr_[gr_['MONTHS_BALANCE'] >= (-1) * period]
 
             features = add_features_in_group(features, gr_period, 'bureau_balance_dpd_level',
                                              ['sum', 'mean', 'max', 'std', 'skew', 'kurt'],
@@ -731,7 +744,7 @@ class POSCASHBalanceFeatures(BasicHandCraftedFeatures):
         last_installments_ids = gr_[gr_['MONTHS_BALANCE'] == gr_['MONTHS_BALANCE'].max()]['SK_ID_PREV']
         gr_ = gr_[gr_['SK_ID_PREV'].isin(last_installments_ids)]
 
-        features={}
+        features = {}
         features = add_features_in_group(features, gr_, 'pos_cash_paid_late',
                                          ['sum', 'mean'],
                                          'last_loan_')
@@ -911,7 +924,7 @@ class InstallmentPaymentsFeatures(BasicHandCraftedFeatures):
     @staticmethod
     def last_loan_features(gr):
         gr_ = gr.copy()
-        last_installments_ids = gr_[gr_['DAYS_INSTALMENT']==gr_['DAYS_INSTALMENT'].max()]['SK_ID_PREV']
+        last_installments_ids = gr_[gr_['DAYS_INSTALMENT'] == gr_['DAYS_INSTALMENT'].max()]['SK_ID_PREV']
         gr_ = gr_[gr_['SK_ID_PREV'].isin(last_installments_ids)]
 
         features = {}

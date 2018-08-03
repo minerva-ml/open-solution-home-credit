@@ -377,7 +377,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
 
         categorical_encoder, categorical_encoder_valid = _categorical_encoders(config, train_mode, suffix, **kwargs)
 
-        feature_combiner, feature_combiner_valid = _join_features(
+        feature_combiner, feature_combiner_valid = join_features(
             numerical_features=[application,
                                 application_agg,
                                 bureau,
@@ -457,28 +457,28 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
             suffix,
             **kwargs)
         categorical_encoder = _categorical_encoders(config, train_mode, suffix, **kwargs)
-        feature_combiner = _join_features(numerical_features=[application,
-                                                              application_agg,
-                                                              bureau,
-                                                              bureau_agg,
-                                                              bureau_balance,
-                                                              credit_card_balance,
-                                                              credit_card_balance_agg,
-                                                              installment_payments,
-                                                              installments_payments_agg,
-                                                              pos_cash_balance,
-                                                              pos_cash_balance_agg,
-                                                              previous_application,
-                                                              previous_applications_agg,
-                                                              ],
-                                          numerical_features_valid=[],
-                                          categorical_features=[categorical_encoder
-                                                                ],
-                                          categorical_features_valid=[],
-                                          config=config,
-                                          train_mode=train_mode,
-                                          suffix=suffix,
-                                          **kwargs)
+        feature_combiner = join_features(numerical_features=[application,
+                                                             application_agg,
+                                                             bureau,
+                                                             bureau_agg,
+                                                             bureau_balance,
+                                                             credit_card_balance,
+                                                             credit_card_balance_agg,
+                                                             installment_payments,
+                                                             installments_payments_agg,
+                                                             pos_cash_balance,
+                                                             pos_cash_balance_agg,
+                                                             previous_application,
+                                                             previous_applications_agg,
+                                                             ],
+                                         numerical_features_valid=[],
+                                         categorical_features=[categorical_encoder
+                                                               ],
+                                         categorical_features_valid=[],
+                                         config=config,
+                                         train_mode=train_mode,
+                                         suffix=suffix,
+                                         **kwargs)
 
         return feature_combiner
 
@@ -585,7 +585,8 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
                                         transformer=IdentityOperation(),
                                         input_steps=[last_step, one_hot_encoder_valid],
                                         adapter=Adapter({'features': E(last_step.name, 'transformed'),
-                                                         'feature_names': E(one_hot_encoder_valid.name, 'feature_names'),
+                                                         'feature_names': E(one_hot_encoder_valid.name,
+                                                                            'feature_names'),
                                                          'categorical_features': E(one_hot_encoder_valid.name,
                                                                                    'categorical_features')
                                                          }),
@@ -597,35 +598,37 @@ def sklearn_preprocessing(features, config, train_mode, suffix, normalize, **kwa
         return sklearn_preprocess
 
 
-def stacking_features(config, train_mode, suffix, **kwargs):
-    features = Step(name='stacking_features{}'.format(suffix),
+def first_level_predictions(config, train_mode, suffix, **kwargs):
+    features = Step(name='first_level_predictions_features{}'.format(suffix),
                     transformer=IdentityOperation(),
                     input_data=['input'],
                     adapter=Adapter({'numerical_features': E('input', 'X')}),
                     experiment_directory=config.pipeline.experiment_directory, **kwargs)
 
     if train_mode:
-        features_valid = Step(name='stacking_features_valid{}'.format(suffix),
+        features_valid = Step(name='first_level_predictions_features_valid{}'.format(suffix),
                               transformer=IdentityOperation(),
                               input_data=['input'],
                               adapter=Adapter({'numerical_features': E('input', 'X_valid')}),
                               experiment_directory=config.pipeline.experiment_directory, **kwargs)
-        feature_combiner, feature_combiner_valid = _join_features(numerical_features=[features],
-                                                                  numerical_features_valid=[features_valid],
-                                                                  categorical_features=[],
-                                                                  categorical_features_valid=[],
-                                                                  config=config,
-                                                                  train_mode=train_mode,
-                                                                  suffix=suffix, **kwargs)
+        feature_combiner, feature_combiner_valid = join_features(numerical_features=[features],
+                                                                 numerical_features_valid=[features_valid],
+                                                                 categorical_features=[],
+                                                                 categorical_features_valid=[],
+                                                                 config=config,
+                                                                 train_mode=train_mode,
+                                                                 suffix='_first_level_predictions{}'.format(suffix),
+                                                                 **kwargs)
         return feature_combiner, feature_combiner_valid
     else:
-        feature_combiner = _join_features(numerical_features=[features],
-                                          numerical_features_valid=[],
-                                          categorical_features=[],
-                                          categorical_features_valid=[],
-                                          config=config,
-                                          train_mode=train_mode,
-                                          suffix=suffix, **kwargs)
+        feature_combiner = join_features(numerical_features=[features],
+                                         numerical_features_valid=[],
+                                         categorical_features=[],
+                                         categorical_features_valid=[],
+                                         config=config,
+                                         train_mode=train_mode,
+                                         suffix='_first_level_predictions{}'.format(suffix),
+                                         **kwargs)
         return feature_combiner
 
 
@@ -675,12 +678,12 @@ def stacking_normalization(features, config, train_mode, suffix, **kwargs):
         return stacking_normalized
 
 
-def _join_features(numerical_features,
-                   numerical_features_valid,
-                   categorical_features,
-                   categorical_features_valid,
-                   config, train_mode, suffix,
-                   **kwargs):
+def join_features(numerical_features,
+                  numerical_features_valid,
+                  categorical_features,
+                  categorical_features_valid,
+                  config, train_mode, suffix,
+                  **kwargs):
     if train_mode:
         persist_output = True
         cache_output = True
@@ -724,6 +727,54 @@ def _join_features(numerical_features,
 
     else:
         return feature_joiner
+
+
+def concat_features(features, features_valid,
+                    config, train_mode, suffix, **kwargs):
+    if train_mode:
+        persist_output = True
+        cache_output = True
+        load_persisted_output = True
+    else:
+        persist_output = False
+        cache_output = True
+        load_persisted_output = False
+
+    feature_concat = Step(name='feature_concat{}'.format(suffix),
+                          transformer=fe.FeatureConcat(),
+                          input_steps=features,
+                          adapter=Adapter({
+                              'features_list': [
+                                  E(feature.name, 'features') for feature in features],
+                              'feature_names_list': [
+                                  E(feature.name, 'feature_names') for feature in features],
+                              'categorical_features_list': [
+                                  E(feature.name, 'categorical_features') for feature in features],
+                          }),
+                          experiment_directory=config.pipeline.experiment_directory,
+                          persist_output=persist_output,
+                          cache_output=cache_output,
+                          load_persisted_output=load_persisted_output)
+    if train_mode:
+        feature_concat_valid = Step(name='feature_concat_valid{}'.format(suffix),
+                                    transformer=feature_concat,
+                                    input_steps=features_valid,
+                                    adapter=Adapter({
+                                        'features_list': [
+                                            E(feature.name, 'features') for feature in features_valid],
+                                        'feature_names_list': [
+                                            E(feature.name, 'feature_names') for feature in features_valid],
+                                        'categorical_features_list': [
+                                            E(feature.name, 'categorical_features') for feature in features_valid],
+                                    }),
+                                    experiment_directory=config.pipeline.experiment_directory,
+                                    persist_output=persist_output,
+                                    cache_output=cache_output,
+                                    load_persisted_output=load_persisted_output)
+
+        return feature_concat, feature_concat_valid
+    else:
+        return feature_concat
 
 
 def _categorical_encoders(config, train_mode, suffix, **kwargs):
@@ -1260,4 +1311,5 @@ def _fillna(fill_value, **kwargs):
         X_filled = X.replace([np.inf, -np.inf], fill_value)
         X_filled = X_filled.fillna(fill_value)
         return {'transformed': X_filled}
+
     return make_transformer(_inner_fillna)
