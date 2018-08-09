@@ -42,8 +42,8 @@ You can jump start your participation in the competition by using our starter pa
 pip3 install -r requirements.txt
 ```
 
-1. Register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
-1. Run experiment based on [LightGBM](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-with-smarter-features):
+2. Register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
+3. Run experiment based on [LightGBM](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-with-smarter-features):
 
 :trident:
 ```bash
