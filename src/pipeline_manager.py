@@ -17,7 +17,7 @@ from .utils import init_logger, read_params, set_seed, create_submission, verify
 set_seed(cfg.RANDOM_SEED)
 logger = init_logger()
 ctx = neptune.Context()
-params = read_params(ctx, fallback_file='../configs/neptune.yaml')
+params = read_params(ctx, fallback_file='./configs/neptune.yaml')
 
 
 class PipelineManager:
@@ -397,16 +397,24 @@ def _read_data(dev_mode, read_train=True, read_test=False):
     raw_data = {}
 
     if read_train:
+        logger.info('Reading application_train...')
         raw_data['application_train'] = pd.read_csv(params.train_filepath, nrows=nrows)
 
     if read_test:
+        logger.info('Reading application_test ...')
         raw_data['application_test'] = pd.read_csv(params.test_filepath, nrows=nrows)
     
+    logger.info('Reading bureau ...')
     raw_data['bureau'] = pd.read_csv(params.bureau_filepath, nrows=nrows)
+    logger.info('Reading credit_card_balance ...')
     raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows)
+    logger.info('Reading pos_cash_balance ...')
     raw_data['pos_cash_balance'] = pd.read_csv(params.POS_CASH_balance_filepath, nrows=nrows)
+    logger.info('Reading previous_application ...')
     raw_data['previous_application'] = pd.read_csv(params.previous_application_filepath, nrows=nrows)
+    logger.info('Reading bureau_balance ...')
     raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath, nrows=nrows)
+    logger.info('Reading installments_payments ...')
     raw_data['installments_payments'] = pd.read_csv(params.installments_payments_filepath, nrows=nrows)
 
     return AttrDict(raw_data)

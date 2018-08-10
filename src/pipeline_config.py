@@ -6,7 +6,7 @@ from deepsense import neptune
 from .utils import read_params, parameter_eval
 
 ctx = neptune.Context()
-params = read_params(ctx, fallback_file='../configs/neptune.yaml')
+params = read_params(ctx, fallback_file='./configs/neptune.yaml')
 
 RANDOM_SEED = 90210
 DEV_SAMPLE_SIZE = 1000
