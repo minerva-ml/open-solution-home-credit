@@ -9,6 +9,11 @@ from sklearn.preprocessing import StandardScaler
 from steppy.base import BaseTransformer
 from toolkit.sklearn_transformers.models import SklearnClassifier
 import xgboost as xgb
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.optimizers import Adam
+from keras.models import Model
+from keras.utils import plot_model
 
 from .utils import get_logger
 
@@ -206,3 +211,33 @@ def neptune_monitor_lgbm(channel_prefix=''):
             ctx.channel_send(channel_name, x=env.iteration, y=loss_value)
 
     return callback
+
+
+class neural_network():
+    """
+    A Keras-based Artificial Neural Network.
+    Currently, this is just a framework built for easy model-building.
+    """
+    def __init__(self, input_size, output_size):
+        """
+        A neural network constructor. Recieves the input size and output size, outputs a neural_network object.
+        """
+        self.input_size = input_size
+        self.output_size = output_size
+        self.learning_rate = 1
+        self.model = self._build_model()
+        
+    def _build_model(self):
+        """
+        Builds the model, runs on constructor call.
+        TODO: Add Model architecture.
+        """
+        pass
+        
+    def load(self, name):
+        """ Saves the model's weights to an h5 file."""
+        self.model.load_weights(name)
+
+    def save(self, name):
+        """ Loads the model's weights to an h5 file. """
+        self.model.save_weights(name)
