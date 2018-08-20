@@ -19,17 +19,17 @@ exclude:
 
 parameters:
 # Data
-  train_filepath:                  YOUR/PATH/TO/application_train.csv
-  test_filepath:                   YOUR/PATH/TO/application_test.csv
-  bureau_balance_filepath:         YOUR/PATH/TO/bureau_balance.csv
-  bureau_filepath:                 YOUR/PATH/TO/bureau.csv
-  credit_card_balance_filepath:    YOUR/PATH/TO/credit_card_balance.csv
-  installments_payments_filepath:  YOUR/PATH/TO/installments_payments.csv
-  POS_CASH_balance_filepath:       YOUR/PATH/TO/POS_CASH_balance.csv
-  previous_application_filepath:   YOUR/PATH/TO/previous_application.csv
-  sample_submission_filepath:      YOUR/PATH/TO/sample_submission.csv
-  first_level_oof_predictions_dir: YOUR/PATH/TO/oof_predictions
-  experiment_directory:            YOUR/PATH/WORKDIR
+  train_filepath:                  ../all/application_train.csv
+  test_filepath:                   ../all/application_test.csv
+  bureau_balance_filepath:         ../all/bureau_balance.csv
+  bureau_filepath:                 ../all/bureau.csv
+  credit_card_balance_filepath:    ../all/credit_card_balance.csv
+  installments_payments_filepath:  ../all/installments_payments.csv
+  POS_CASH_balance_filepath:       ../all/POS_CASH_balance.csv
+  previous_application_filepath:   ../all/previous_application.csv
+  sample_submission_filepath:      ../all/sample_submission.csv
+  first_level_oof_predictions_dir: ../all/oof_predictions
+  experiment_directory:            ./working/
 
 # Kaggle
   kaggle_api: 0
