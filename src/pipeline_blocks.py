@@ -196,6 +196,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
     if train_mode:
         application, application_valid = _application(config, train_mode, suffix, **kwargs)
         bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+
         bureau, bureau_valid = _bureau(
             bureau_cleaned,
             config,

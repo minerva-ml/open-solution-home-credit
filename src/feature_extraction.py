@@ -157,6 +157,7 @@ class GroupbyAggregate(BaseTransformer):
 
     def fit(self, table, **kwargs):
         features = pd.DataFrame({self.id_columns[0]: table[self.id_columns[0]].unique()})
+        print ('self.groupby_aggregations = ', self.groupby_aggregations)
 
         for groupby_cols, specs in self.groupby_aggregations:
             group_object = table.groupby(groupby_cols)
@@ -198,6 +199,8 @@ class GroupbyMerge(BaseTransformer):
         return feature_names
 
     def transform(self, table, features, **kwargs):
+        print ("id_columns[0] = ", self.id_columns[0])
+        print ("id_columns[1] = ", self.id_columns[1])
         table = table.merge(features,
                             left_on=[self.id_columns[0]],
                             right_on=[self.id_columns[1]],
