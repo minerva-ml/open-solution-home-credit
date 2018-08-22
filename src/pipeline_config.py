@@ -139,10 +139,10 @@ HIGHLY_CORRELATED_NUMERICAL_COLUMNS = ['AMT_GOODS_PRICE',
                                        'YEARS_BUILD_MEDI',
                                        'YEARS_BUILD_MODE']
 
-cols_to_agg = ['AMT_CREDIT', 
+cols_to_agg = ['AMT_CREDIT',
                'AMT_ANNUITY',
                'AMT_INCOME_TOTAL',
-               'AMT_GOODS_PRICE', 
+               'AMT_GOODS_PRICE',
                'EXT_SOURCE_1',
                'EXT_SOURCE_2',
                'EXT_SOURCE_3',
@@ -209,7 +209,8 @@ for agg in ['mean', 'min', 'max', 'sum', 'var']:
                    'CREDIT_DAY_OVERDUE',
                    'DAYS_CREDIT',
                    'DAYS_CREDIT_ENDDATE',
-                   'DAYS_CREDIT_UPDATE'
+                   'DAYS_CREDIT_UPDATE',
+                   'DAYS_ENDDATE_FACT' # Add by Bowen Guo @2018-08-22
                    ]:
         BUREAU_AGGREGATION_RECIPIES.append((select, agg))
 BUREAU_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], BUREAU_AGGREGATION_RECIPIES)]
