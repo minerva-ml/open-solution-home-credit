@@ -195,7 +195,13 @@ def classifier_sklearn(sklearn_features,
 def feature_extraction(config, train_mode, suffix, **kwargs):
     if train_mode:
         application, application_valid = _application(config, train_mode, suffix, **kwargs)
-        bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+        # Add by Bowen Guo @2018-08-21
+        print ("HOHO: I am about to go into _bureau_balance!!")
+        bureau_balance = _bureau_balance(config, suffix, **kwargs)
+
+
+        #bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+        bureau_cleaned = _bureau_cleaning_2(bureau_balance, config, suffix, **kwargs)
 
         bureau, bureau_valid = _bureau(
             bureau_cleaned,
@@ -287,7 +293,10 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
         return feature_combiner, feature_combiner_valid
     else:
         application = _application(config, train_mode, suffix, **kwargs)
-        bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
+        # Change by Bowen Guo @2018-08-22
+        bureau_balance = _bureau_balance(config, suffix, **kwargs)
+        bureau_cleaned = _bureau_cleaning_2(bureau_balance, config, suffix, **kwargs)
+        #bureau_cleaned = _bureau_cleaning(config, suffix, **kwargs)
         bureau = _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs)
         credit_card_balance_cleaned = _credit_card_balance_cleaning(config, suffix, **kwargs)
         credit_card_balance = _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix, **kwargs)
@@ -690,12 +699,38 @@ def _application(config, train_mode, suffix, **kwargs):
     else:
         return application
 
+def _bureau_balance(config, suffix, **kwargs):
+    bureau_balance_hand_crafted = Step(name='bureau_balance_hand_crafted',
+                           transformer=fe.BureauBalanceFeatures(),
+                           input_data=['bureau_balance'],
+                           adapter=Adapter({'bureau_balance': E('bureau_balance', 'X')}),
+                           experiment_directory=config.pipeline.experiment_directory,
+                           **kwargs)
+    bureau_balance_hand_crafted_merge = Step(name='bureau_balance_hand_crafted_merge',
+                                     transformer=fe.BureauMerge(),
+                                     input_data=['bureau'],
+                                     input_steps=[bureau_balance_hand_crafted],
+                                     adapter=Adapter({'table': E('bureau', 'X'),
+                                                      'features': E(bureau_balance_hand_crafted.name, 'features_table')}),
+                                     experiment_directory=config.pipeline.experiment_directory, **kwargs)
+    return bureau_balance_hand_crafted_merge
+
 
 def _bureau_cleaning(config, suffix, **kwargs):
     bureau_cleaning = Step(name='bureau_cleaning',
                            transformer=dc.BureauCleaning(**config.preprocessing.impute_missing),
                            input_data=['bureau'],
                            adapter=Adapter({'bureau': E('bureau', 'X')}),
+                           experiment_directory=config.pipeline.experiment_directory,
+                           **kwargs)
+
+    return bureau_cleaning
+
+def _bureau_cleaning_2(bureau_merge, config, suffix, **kwargs):
+    bureau_cleaning = Step(name='bureau_cleaning',
+                           transformer=dc.BureauCleaning(**config.preprocessing.impute_missing),
+                           input_steps=[bureau_merge],
+                           adapter=Adapter({'bureau': E(bureau_merge.name, 'bureau')}),
                            experiment_directory=config.pipeline.experiment_directory,
                            **kwargs)
 

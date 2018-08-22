@@ -10,13 +10,13 @@ from . import pipeline_blocks as blocks
 def lightGBM(config, train_mode, suffix=''):
     if train_mode:
         #print ("HOHO, I am in the lightGBM in the pipelines.py!!!")
-        #exit() 
+        #exit()
         features, features_valid = blocks.feature_extraction(config,
                                                              train_mode,
                                                              suffix,
                                                              persist_output=True, #DEBUG
-                                                             cache_output=True,
-                                                             load_persisted_output=False)
+                                                             cache_output=False,
+                                                             load_persisted_output=False) # DEBUG
         light_gbm = blocks.classifier_light_gbm((features, features_valid),
                                                 config,
                                                 train_mode, suffix)
