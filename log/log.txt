@@ -1,2 +1,3 @@
-working_back1: rank >200  
-working_back2: rank = 133 @2018-08-22
+working_back1: rank >200  score=0.804  
+working_back2: rank = 133 score=0.804 @2018-08-22 Best!!!
+working_back3:            score=0.803

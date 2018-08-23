@@ -414,10 +414,10 @@ class BureauFeatures(BasicHandCraftedFeatures):
             features['bureau_total_customer_debt'] / features['bureau_total_customer_credit']
 
         # ratio between overdue and total credits
-        #features['bureau_overdue_debt_ratio'] = \
-        #    features['bureau_total_customer_overdue'] / features['bureau_total_customer_debt']
-        # change by Bowen Guo @2018-08-22
         features['bureau_overdue_debt_ratio'] = \
+            features['bureau_total_customer_overdue'] / features['bureau_total_customer_debt']
+        # change by Bowen Guo @2018-08-22
+        features['bureau_overdue_credit_ratio'] = \
              features['bureau_total_customer_overdue'] / features['bureau_total_customer_credit']
 
         features = features.drop(columns=['bureau_total_customer_overdue', 'bureau_total_customer_credit', 'bureau_total_customer_debt'])
