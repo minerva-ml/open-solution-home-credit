@@ -273,6 +273,10 @@ PREVIOUS_APPLICATION_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], PREVIOUS_APPLICATI
 SOLUTION_CONFIG = AttrDict({
     'pipeline': {'experiment_directory': params.experiment_directory
                  },
+                 
+    ## Ming add 20180821             
+    'feature_correlation': {'max_corr_num': params.max_corr_num
+                           },
 
     'feature_joiner': {'use_nan_count': params.use_nan_count
                        },

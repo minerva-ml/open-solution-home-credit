@@ -12,7 +12,61 @@ from steppy.utils import get_logger
 
 from .utils import parallel_apply, safe_div
 
+# Ming add 20180821
+from sklearn.preprocessing import PolynomialFeatures
+
 logger = get_logger()
+
+# Ming add 20180821
+class FeatureCorr(BaseTransformer):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.max_corr_num = kwargs['max_corr_num']
+        
+    def transform(self, Target, feature_combiner, suffix):
+        if Target is not None:
+            nullexmine = feature_combiner.isnull().sum()/feature_combiner.shape[0]
+            nn_columns = [nullexmine.index[i] for i in range(len(nullexmine)) if nullexmine[i]<0.5]
+            feature_combiner = feature_combiner[nn_columns]
+            
+            feature_combiner['TARGET'] = Target            
+            correlations = feature_combiner.corr()['TARGET'].abs().sort_values(ascending = False)
+            feature_combiner = feature_combiner.drop(['TARGET'], axis=1)
+            column_corr = correlations.index[1:self.max_corr_num+1]
+            
+            outputs = dict()
+            outputs = {'column_corr': column_corr}
+            
+        else:
+            outputs = joblib.load('./working/outputs/feature_corr{}'.format(suffix))
+            
+
+        return outputs        
+        
+class FeaturePolynomial(BaseTransformer):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.max_corr_num = kwargs['max_corr_num']
+
+    def transform(self, feature_combiner, column_corr, categorical_feature_list): 
+        feature_corr = feature_combiner[column_corr]
+        feature_corr.fillna(feature_corr.median(), inplace=True)
+        poly_transformer = PolynomialFeatures(degree = 2, interaction_only = True, include_bias = False)
+        poly_features = poly_transformer.fit_transform(feature_corr)
+        poly_features = poly_features[:, self.max_corr_num:]
+        poly_features_name = poly_transformer.get_feature_names(input_features=column_corr)
+        poly_features_name = poly_features_name[self.max_corr_num:]
+        
+        polynomial_features = pd.DataFrame(poly_features, columns=poly_features_name)
+        features = pd.concat([feature_combiner, polynomial_features], axis=1)
+        
+        outputs = dict()
+        outputs['features'] = features
+        outputs['feature_names'] = list(features.columns)
+        outputs['categorical_features'] = categorical_feature_list   
+        
+        return outputs
+
 
 
 class FeatureJoiner(BaseTransformer):

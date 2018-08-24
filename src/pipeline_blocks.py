@@ -11,9 +11,10 @@ from .models import get_sklearn_classifier, XGBoost, LightGBM
 
 
 def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
-    model_name = 'light_gbm{}'.format(suffix)
+    model_name = 'light_gbm{}'.format(suffix)    
 
     if train_mode:
+        print('I am here true')
         features_train, features_valid = features
         if config.random_search.light_gbm.n_runs:
             transformer = RandomSearchOptimizer(TransformerClass=LightGBM,
@@ -30,7 +31,7 @@ def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
                                                         **config.random_search.light_gbm.callbacks.persist_results)]
                                                 )
         else:
-            transformer = LightGBM(name=model_name, **config.light_gbm)
+            transformer = LightGBM(name=model_name, **config.light_gbm)            
 
         light_gbm = Step(name=model_name,
                          transformer=transformer,
@@ -47,12 +48,14 @@ def classifier_light_gbm(features, config, train_mode, suffix, **kwargs):
                          experiment_directory=config.pipeline.experiment_directory,
                          **kwargs)
     else:
+        print('I am here false')
         light_gbm = Step(name=model_name,
                          transformer=LightGBM(name=model_name, **config.light_gbm),
                          input_steps=[features],
                          adapter=Adapter({'X': E(features.name, 'features')}),
                          experiment_directory=config.pipeline.experiment_directory,
                          **kwargs)
+        print('I am here run well')
     return light_gbm
 
 
@@ -282,6 +285,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
             train_mode=train_mode,
             suffix=suffix,
             **kwargs)
+        
 
         return feature_combiner, feature_combiner_valid
     else:
@@ -325,6 +329,7 @@ def feature_extraction(config, train_mode, suffix, **kwargs):
                                           train_mode=train_mode,
                                           suffix=suffix,
                                           **kwargs)
+        
 
         return feature_combiner
 
@@ -411,8 +416,36 @@ def _join_features(numerical_features,
                           experiment_directory=config.pipeline.experiment_directory,
                           persist_output=persist_output,
                           cache_output=cache_output,
-                          load_persisted_output=load_persisted_output)
+                          load_persisted_output=load_persisted_output) 
+    
+    ## Ming add 20180821 
+    feature_corr = Step(name='feature_corr{}'.format(suffix),
+                                           transformer=fe.FeatureCorr(**config.feature_correlation),
+                                           input_data=['application'],
+                                           input_steps=[feature_joiner],                              
+                                           adapter=Adapter({'Target': E('application', 'y'),
+                                                            'feature_combiner': E(feature_joiner.name, 'features'),
+                                                            'suffix': suffix}), 
+                              experiment_directory=config.pipeline.experiment_directory,
+                              persist_output=persist_output,
+                              cache_output=cache_output,
+                              load_persisted_output=load_persisted_output)
+    
+    feature_polynomial = Step(name='feature_polynomial{}'.format(suffix),
+                              transformer=fe.FeaturePolynomial(**config.feature_correlation),
+                              input_data=['application'],
+                              input_steps=[feature_joiner, feature_corr],                              
+                              adapter=Adapter({'feature_combiner': E(feature_joiner.name, 'features'),
+                                               'column_corr': E(feature_corr.name, 'column_corr'),
+                                               'categorical_feature_list': E(feature_joiner.name, 'categorical_features')}), 
+                              experiment_directory=config.pipeline.experiment_directory,
+                              persist_output=persist_output,
+                              cache_output=cache_output,
+                              load_persisted_output=load_persisted_output)     
+    
+    
     if train_mode:
+        
         feature_joiner_valid = Step(name='feature_joiner_valid{}'.format(suffix),
                                     transformer=feature_joiner,
                                     input_steps=numerical_features_valid + categorical_features_valid,
@@ -428,12 +461,43 @@ def _join_features(numerical_features,
                                     persist_output=persist_output,
                                     cache_output=cache_output,
                                     load_persisted_output=load_persisted_output)
+                                            
+#        feature_corr_valid = Step(name='feature_corr_valid{}'.format(suffix),
+#                                  transformer=fe.FeatureCorr(**config.feature_correlation),
+#                                  input_data=['application'],
+#                                  input_steps=[feature_joiner_valid],                              
+#                                  adapter=Adapter({'Target': E('application', 'y_valid'),
+#                                                   'feature_combiner': E(feature_joiner_valid.name, 'features'),
+#                                                   'suffix': suffix}), 
+#                                  experiment_directory=config.pipeline.experiment_directory,
+#                                  persist_output=persist_output,
+#                                  cache_output=cache_output,
+#                                  load_persisted_output=load_persisted_output)     
+    
+                                            
+        feature_polynomial_valid = Step(name='feature_polynomial_valid{}'.format(suffix),
+                                        transformer=fe.FeaturePolynomial(**config.feature_correlation),
+                                        input_data=['application'],
+                                        input_steps=[feature_joiner_valid, feature_corr],                              
+                                        adapter=Adapter({'feature_combiner': E(feature_joiner_valid.name, 'features'),
+                                                         'column_corr': E(feature_corr.name, 'column_corr'),
+                                                         'categorical_feature_list': E(feature_joiner_valid.name, 'categorical_features')}), 
+                                        experiment_directory=config.pipeline.experiment_directory,
+                                        persist_output=persist_output,
+                                        cache_output=cache_output,
+                                        load_persisted_output=load_persisted_output)          
+                                        
 
-        return feature_joiner, feature_joiner_valid
+
+#        return feature_joiner, feature_joiner_valid
+        # Ming  add 20180821
+        return feature_polynomial, feature_polynomial_valid
 
     else:
-        return feature_joiner
-
+        
+        return feature_polynomial
+     
+        
 
 def _categorical_encoders(config, train_mode, suffix, **kwargs):
     categorical_encoder = Step(name='categorical_encoder{}'.format(suffix),
@@ -733,6 +797,7 @@ def _bureau(bureau_cleaned, config, train_mode, suffix, **kwargs):
 
 def _credit_card_balance_cleaning(config, suffix, **kwargs):
     credit_card_balance_cleaning = Step(name='credit_card_balance_cleaning{}'.format(suffix),
+                                        #name='credit_card_balance_cleaning',
                                         transformer=dc.CreditCardCleaning(
                                             **config.preprocessing.impute_missing),
                                         input_data=['credit_card_balance'],
@@ -760,6 +825,8 @@ def _credit_card_balance(credit_card_balance_cleaned, config, train_mode, suffix
                                                                    'features': E(credit_card_balance_hand_crafted.name,
                                                                                  'features_table')}),
                                                   experiment_directory=config.pipeline.experiment_directory, **kwargs)
+                                            
+                                             
 
     if train_mode:
         credit_card_balance_hand_crafted_merge_valid = Step(
@@ -812,6 +879,7 @@ def _pos_cash_balance(config, train_mode, suffix, **kwargs):
 
 def _previous_application_cleaning(config, suffix, **kwargs):
     previous_application_cleaning = Step(name='previous_application_cleaning{}'.format(suffix),
+                                         #name='previous_application_cleaning',
                                          transformer=dc.PreviousApplicationCleaning(
                                              **config.preprocessing.impute_missing),
                                          input_data=['previous_application'],

@@ -37,14 +37,14 @@ parameters:
   kaggle_message: 'solution-5'
 
 # Data preparation
-  n_cv_splits: 5
+  n_cv_splits: 10
   validation_size: 0.2
   stratified_cv: True
   shuffle: 1
 
 # Execution
   clean_experiment_directory_before_training: 1
-  num_workers: 1
+  num_workers: 15
   verbose: 1
 
 # Preprocessing
@@ -59,6 +59,7 @@ parameters:
   pos_cash__last_k_agg_periods: '[6, 12, 30]'
   application_aggregation__use_diffs_only: True
   use_nan_count: True
+  max_corr_num: 30
 
 # Light GBM
   lgbm_random_search_runs: 0
