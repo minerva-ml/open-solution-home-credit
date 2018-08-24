@@ -1,3 +1,7 @@
-working_back1: rank >200  score=0.804  
-working_back2: rank = 133 score=0.804 @2018-08-22 Best!!!
+working_back1: rank >200  score=0.804  Original
+working_back2: rank = 133 score=0.804 @2018-08-22 bureau_balance
 working_back3:            score=0.803
+working_back4: rank = 111 score=0.805 @2018-08-24 Best!!!  bureau_balance and feature_polynomial
+
+
+

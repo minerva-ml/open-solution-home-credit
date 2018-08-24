@@ -37,7 +37,7 @@ parameters:
   kaggle_message: 'solution-5'
 
 # Data preparation
-  n_cv_splits: 10
+  n_cv_splits: 5
   validation_size: 0.2
   stratified_cv: True
   shuffle: 1

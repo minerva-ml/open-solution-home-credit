@@ -533,7 +533,7 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
 
     pipeline = PIPELINES[pipeline_name](config=cfg.SOLUTION_CONFIG, train_mode=True,
                                         suffix='_fold_{}'.format(fold_id))
-    
+
     logger.info('Start pipeline fit and transform on train')
     pipeline.clean_cache()
     pipeline.fit_transform(train_data)
@@ -547,14 +547,14 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
     #exit()
 
     pipeline.clean_cache()
-    
+
     pipeline = PIPELINES[pipeline_name](config=cfg.SOLUTION_CONFIG, train_mode=False,
                                         suffix='_fold_{}'.format(fold_id))
     logger.info('Start pipeline transform on valid')
     pipeline.clean_cache()
     output_valid = pipeline.transform(valid_data)
     pipeline.clean_cache()
-  
+
     y_valid_pred = output_valid['prediction']
     y_valid_true = valid_data_split[cfg.TARGET_COLUMNS].values
     score = roc_auc_score(y_valid_true, y_valid_pred)
