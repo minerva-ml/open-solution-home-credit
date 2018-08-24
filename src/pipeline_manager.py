@@ -404,9 +404,11 @@ def _read_data(dev_mode, read_train=True, read_test=False):
     if read_test:
         logger.info("Reading application_test ...")
         raw_data['application_test'] = pd.read_csv(params.test_filepath, nrows=nrows)
-    
+
     logger.info("Reading bureau ...")
     raw_data['bureau'] = pd.read_csv(params.bureau_filepath, nrows=nrows)
+    logger.info("Reading bureau_balance ...")
+    raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath, nrows=nrows)
     logger.info("Reading credit_card_balance ...")
     raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows)
     logger.info("Reading pos_cash_balance ...")
@@ -518,6 +520,16 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
                       }
     else:
         raise NotImplementedError
+    # DEBUG
+    #print ("HOHO, I am in the _fold_fit_evaluate_loop!!")
+    #train_data['bureau']['X'].to_csv("bureau_before.csv", index=False)
+
+    #print ("HOHO, I am in the _fold_fit_evaluate_loop!!")
+    #train_data['installments_payments']['X'].to_csv("installments_payments.csv", index=False)
+    #exit()
+
+    #train_data['application']['X'].to_csv("application_before.csv", index=False)
+    #print ("application_before.csv has been outputted !!")
 
     pipeline = PIPELINES[pipeline_name](config=cfg.SOLUTION_CONFIG, train_mode=True,
                                         suffix='_fold_{}'.format(fold_id))
@@ -525,6 +537,15 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
     logger.info('Start pipeline fit and transform on train')
     pipeline.clean_cache()
     pipeline.fit_transform(train_data)
+
+    # DEBUG
+    #train_data['bureau']['X'].to_csv("bureau_after.csv", index=False)
+    #print ("bureau_after.csv has been outputted !!")
+
+    #train_data['application']['X'].to_csv("application_after.csv", index=False)
+    #print ("application_after.csv has been outputted !!")
+    #exit()
+
     pipeline.clean_cache()
     
     pipeline = PIPELINES[pipeline_name](config=cfg.SOLUTION_CONFIG, train_mode=False,

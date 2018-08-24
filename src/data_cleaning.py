@@ -35,6 +35,10 @@ class BureauCleaning(BaseTransformer):
             bureau['AMT_CREDIT_SUM_DEBT'].fillna(self.fill_value, inplace=True)
             bureau['AMT_CREDIT_SUM_OVERDUE'].fillna(self.fill_value, inplace=True)
             bureau['CNT_CREDIT_PROLONG'].fillna(self.fill_value, inplace=True)
+            # Add by Bowen Guo @2018-08-21
+            bureau['number_of_loans_bureau'].fillna(self.fill_value, inplace=True)
+            bureau['dpd_bureau'].fillna(self.fill_value, inplace=True)
+            bureau['closed_ratio_bureau'].fillna(self.fill_value, inplace=True)
 
         return {'bureau': bureau}
 

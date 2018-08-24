@@ -20,16 +20,16 @@ exclude:
 
 parameters:
 # Data
-  train_filepath:                  ../all/application_train.csv
-  test_filepath:                   ../all/application_test.csv
-  bureau_balance_filepath:         ../all/bureau_balance.csv
-  bureau_filepath:                 ../all/bureau.csv
-  credit_card_balance_filepath:    ../all/credit_card_balance.csv
-  installments_payments_filepath:  ../all/installments_payments.csv
-  POS_CASH_balance_filepath:       ../all/POS_CASH_balance.csv
-  previous_application_filepath:   ../all/previous_application.csv
-  sample_submission_filepath:      ../all/sample_submission.csv
-  first_level_oof_predictions_dir: ../all/oof_predictions
+  train_filepath:                  ./data/application_train.csv
+  test_filepath:                   ./data/application_test.csv
+  bureau_balance_filepath:         ./data/bureau_balance.csv
+  bureau_filepath:                 ./data/bureau.csv
+  credit_card_balance_filepath:    ./data/credit_card_balance.csv
+  installments_payments_filepath:  ./data/installments_payments.csv
+  POS_CASH_balance_filepath:       ./data/POS_CASH_balance.csv
+  previous_application_filepath:   ./data/previous_application.csv
+  sample_submission_filepath:      ./data/sample_submission.csv
+  first_level_oof_predictions_dir: ./data/oof_predictions
   experiment_directory:            ./working/
 
 # Kaggle
@@ -44,7 +44,7 @@ parameters:
 
 # Execution
   clean_experiment_directory_before_training: 1
-  num_workers: 15
+  num_workers: 25
   verbose: 1
 
 # Preprocessing
@@ -68,6 +68,7 @@ parameters:
   lgbm__objective: binary
   lgbm__metric: auc
   lgbm__number_boosting_rounds: 5000
+  #lgbm__number_boosting_rounds: 2  # DEBUG
   lgbm__early_stopping_rounds: 100
   lgbm__learning_rate: 0.02
   lgbm__max_bin: 300
