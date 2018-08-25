@@ -6,10 +6,12 @@ from deepsense import neptune
 from .utils import read_params, parameter_eval
 
 ctx = neptune.Context()
-params = read_params(ctx, fallback_file='./configs/neptune.yaml')
+#params = read_params(ctx, fallback_file='./configs/neptune.yaml')
+#params = read_params(ctx, fallback_file='./configs/neptune_random_search.yaml')
+params = read_params(ctx, fallback_file='./configs/neptune_2.yaml')
 
 RANDOM_SEED = 90210
-DEV_SAMPLE_SIZE = 1000
+DEV_SAMPLE_SIZE = 5000
 
 ID_COLUMNS = ['SK_ID_CURR']
 TARGET_COLUMNS = ['TARGET']
@@ -274,8 +276,8 @@ PREVIOUS_APPLICATION_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], PREVIOUS_APPLICATI
 SOLUTION_CONFIG = AttrDict({
     'pipeline': {'experiment_directory': params.experiment_directory
                  },
-                 
-    ## Ming add 20180821             
+
+    ## Ming add 20180821
     'feature_correlation': {'max_corr_num': params.max_corr_num
                            },
 

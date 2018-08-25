@@ -24,7 +24,8 @@ class FeatureCorr(BaseTransformer):
         self.max_corr_num = kwargs['max_corr_num']
 
     def transform(self, Target, feature_combiner, suffix):
-        if Target is not None:
+        #if Target is not None:
+        if False:
             nullexmine = feature_combiner.isnull().sum()/feature_combiner.shape[0]
             nn_columns = [nullexmine.index[i] for i in range(len(nullexmine)) if nullexmine[i]<0.5]
             feature_combiner = feature_combiner[nn_columns]
@@ -38,7 +39,8 @@ class FeatureCorr(BaseTransformer):
             outputs = {'column_corr': column_corr}
 
         else:
-            outputs = joblib.load('./working/outputs/feature_corr{}'.format(suffix))
+            #outputs = joblib.load('./working/outputs/feature_corr{}'.format(suffix))
+            outputs = joblib.load('./feature_importance')
 
 
         return outputs
@@ -48,17 +50,31 @@ class FeaturePolynomial(BaseTransformer):
         super().__init__()
         self.max_corr_num = kwargs['max_corr_num']
 
+    def div(self, feature, feature_name):
+        feature_new = pd.DataFrame()
+        for i in feature_name:
+            for j in feature_name:
+                if (i!=j):
+                    name = i + "_div_" + j
+                    feature_new[name] = feature[i]/feature[j]
+        return feature_new
+
     def transform(self, feature_combiner, column_corr, categorical_feature_list):
         feature_corr = feature_combiner[column_corr]
-        feature_corr.fillna(feature_corr.median(), inplace=True)
+        #feature_corr.fillna(feature_corr.median(), inplace=True)
+        feature_corr.fillna(0.0, inplace=True)
         poly_transformer = PolynomialFeatures(degree = 2, interaction_only = True, include_bias = False)
+        # Add by Bowen Guo @ 2018-08-25
+        poly_div = self.div(feature_combiner, column_corr)
+
         poly_features = poly_transformer.fit_transform(feature_corr)
         poly_features = poly_features[:, self.max_corr_num:]
         poly_features_name = poly_transformer.get_feature_names(input_features=column_corr)
         poly_features_name = poly_features_name[self.max_corr_num:]
 
         polynomial_features = pd.DataFrame(poly_features, columns=poly_features_name)
-        features = pd.concat([feature_combiner, polynomial_features], axis=1)
+        features = pd.concat([feature_combiner, polynomial_features, poly_div], axis=1)
+        #features = pd.concat([feature_combiner, polynomial_features], axis=1)
 
         outputs = dict()
         outputs['features'] = features

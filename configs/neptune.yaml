@@ -1,5 +1,6 @@
 # Change 1
-project: ORGANIZATION/home-credit
+#project: ORGANIZATION/home-credit
+project: home-credit
 
 name: home-credit-default-risk
 tags: [solution-5]
@@ -59,7 +60,7 @@ parameters:
   pos_cash__last_k_agg_periods: '[6, 12, 30]'
   application_aggregation__use_diffs_only: True
   use_nan_count: True
-  max_corr_num: 30
+  max_corr_num: 32
 
 # Light GBM
   lgbm_random_search_runs: 0
@@ -68,7 +69,6 @@ parameters:
   lgbm__objective: binary
   lgbm__metric: auc
   lgbm__number_boosting_rounds: 5000
-  #lgbm__number_boosting_rounds: 2  # DEBUG
   lgbm__early_stopping_rounds: 100
   lgbm__learning_rate: 0.02
   lgbm__max_bin: 300
