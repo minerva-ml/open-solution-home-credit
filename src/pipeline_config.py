@@ -6,10 +6,13 @@ from deepsense import neptune
 from .utils import read_params, parameter_eval
 
 ctx = neptune.Context()
+#params = read_params(ctx, fallback_file='./configs/neptune.yaml')
+#params = read_params(ctx, fallback_file='./configs/neptune_random_search.yaml')
+#params = read_params(ctx, fallback_file='./configs/neptune_2.yaml')
 params = read_params(ctx, fallback_file='./configs/neptune.yaml')
 
 RANDOM_SEED = 90210
-DEV_SAMPLE_SIZE = 1000
+DEV_SAMPLE_SIZE = 5000
 
 ID_COLUMNS = ['SK_ID_CURR']
 TARGET_COLUMNS = ['TARGET']
@@ -139,10 +142,10 @@ HIGHLY_CORRELATED_NUMERICAL_COLUMNS = ['AMT_GOODS_PRICE',
                                        'YEARS_BUILD_MEDI',
                                        'YEARS_BUILD_MODE']
 
-cols_to_agg = ['AMT_CREDIT', 
+cols_to_agg = ['AMT_CREDIT',
                'AMT_ANNUITY',
                'AMT_INCOME_TOTAL',
-               'AMT_GOODS_PRICE', 
+               'AMT_GOODS_PRICE',
                'EXT_SOURCE_1',
                'EXT_SOURCE_2',
                'EXT_SOURCE_3',
@@ -209,7 +212,8 @@ for agg in ['mean', 'min', 'max', 'sum', 'var']:
                    'CREDIT_DAY_OVERDUE',
                    'DAYS_CREDIT',
                    'DAYS_CREDIT_ENDDATE',
-                   'DAYS_CREDIT_UPDATE'
+                   'DAYS_CREDIT_UPDATE',
+                   'DAYS_ENDDATE_FACT' # Add by Bowen Guo @2018-08-22
                    ]:
         BUREAU_AGGREGATION_RECIPIES.append((select, agg))
 BUREAU_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], BUREAU_AGGREGATION_RECIPIES)]
@@ -273,6 +277,10 @@ PREVIOUS_APPLICATION_AGGREGATION_RECIPIES = [(['SK_ID_CURR'], PREVIOUS_APPLICATI
 SOLUTION_CONFIG = AttrDict({
     'pipeline': {'experiment_directory': params.experiment_directory
                  },
+
+    ## Ming add 20180821
+    'feature_correlation': {'max_corr_num': params.max_corr_num
+                           },
 
     'feature_joiner': {'use_nan_count': params.use_nan_count
                        },

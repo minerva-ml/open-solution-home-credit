@@ -12,7 +12,79 @@ from steppy.utils import get_logger
 
 from .utils import parallel_apply, safe_div
 
+# Ming add 20180821
+from sklearn.preprocessing import PolynomialFeatures
+
 logger = get_logger()
+
+# Ming add 20180821
+class FeatureCorr(BaseTransformer):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.max_corr_num = kwargs['max_corr_num']
+
+    def transform(self, Target, feature_combiner, suffix):
+        if Target is not None:
+#        if False:
+            nullexmine = feature_combiner.isnull().sum()/feature_combiner.shape[0]
+            nn_columns = [nullexmine.index[i] for i in range(len(nullexmine)) if nullexmine[i]<0.5]
+            feature_combiner = feature_combiner[nn_columns]
+
+            feature_combiner['TARGET'] = Target
+            correlations = feature_combiner.corr()['TARGET'].abs().sort_values(ascending = False)
+            feature_combiner = feature_combiner.drop(['TARGET'], axis=1)
+            column_corr = correlations.index[1:self.max_corr_num+1]
+
+            outputs = dict()
+            outputs = {'column_corr': column_corr}
+
+        else:
+            outputs = joblib.load('./working/outputs/feature_corr{}'.format(suffix))
+#            outputs = joblib.load('./feature_importance')
+
+
+        return outputs
+
+class FeaturePolynomial(BaseTransformer):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.max_corr_num = kwargs['max_corr_num']
+
+    def div(self, feature, feature_name):
+        feature_new = pd.DataFrame()
+        for i in feature_name:
+            for j in feature_name:
+                if (i!=j):
+                    name = i + "_div_" + j
+                    feature_new[name] = feature[i]/(feature[j]+1e-5)
+        return feature_new
+
+    def transform(self, feature_combiner, column_corr, categorical_feature_list):
+        feature_combiner.replace(np.inf, 0.0 , inplace=True)
+        feature_combiner.replace(-np.inf, 0.0 , inplace=True)
+        feature_corr = feature_combiner[column_corr]
+        #feature_corr.fillna(feature_corr.median(), inplace=True)
+        feature_corr.fillna(0.0, inplace=True)
+        poly_transformer = PolynomialFeatures(degree = 2, interaction_only = True, include_bias = False)
+        # Add by Bowen Guo @ 2018-08-25
+        poly_div = self.div(feature_combiner, column_corr)
+
+        poly_features = poly_transformer.fit_transform(feature_corr)
+        poly_features = poly_features[:, self.max_corr_num:]
+        poly_features_name = poly_transformer.get_feature_names(input_features=column_corr)
+        poly_features_name = poly_features_name[self.max_corr_num:]
+
+        polynomial_features = pd.DataFrame(poly_features, columns=poly_features_name)
+        features = pd.concat([feature_combiner, polynomial_features, poly_div], axis=1)
+        #features = pd.concat([feature_combiner, polynomial_features], axis=1)
+
+        outputs = dict()
+        outputs['features'] = features
+        outputs['feature_names'] = list(features.columns)
+        outputs['categorical_features'] = categorical_feature_list
+
+        return outputs
+
 
 
 class FeatureJoiner(BaseTransformer):
@@ -157,6 +229,7 @@ class GroupbyAggregate(BaseTransformer):
 
     def fit(self, table, **kwargs):
         features = pd.DataFrame({self.id_columns[0]: table[self.id_columns[0]].unique()})
+        #print ('self.groupby_aggregations = ', self.groupby_aggregations)
 
         for groupby_cols, specs in self.groupby_aggregations:
             group_object = table.groupby(groupby_cols)
@@ -198,6 +271,8 @@ class GroupbyMerge(BaseTransformer):
         return feature_names
 
     def transform(self, table, features, **kwargs):
+        #print ("id_columns[0] = ", self.id_columns[0])
+        #print ("id_columns[1] = ", self.id_columns[1])
         table = table.merge(features,
                             left_on=[self.id_columns[0]],
                             right_on=[self.id_columns[1]],
@@ -205,6 +280,17 @@ class GroupbyMerge(BaseTransformer):
                             validate='one_to_one')
 
         return {'numerical_features': table[self._feature_names(features)].astype(np.float32)}
+
+class BureauMerge(BaseTransformer):
+    def __init__(self, id_column='SK_ID_BUREAU', **kwargs):
+        super().__init__()
+        self.id_column = id_column
+    def transform(self, table, features, **kwargs):
+        #print ("id_column = ", self.id_column)
+        table = table.merge(features,
+                            on=[self.id_column],
+                            how='left')
+        return {'bureau': table}
 
 
 class BasicHandCraftedFeatures(BaseTransformer):
@@ -296,6 +382,30 @@ class ApplicationFeatures(BaseTransformer):
                 'categorical_features': X[self.categorical_columns]
                 }
 
+class BureauBalanceFeatures(BasicHandCraftedFeatures):
+    def fit(self, bureau_balance, **kwargs):
+        bureau_balance = bureau_balance.drop(columns=['MONTHS_BALANCE'])
+        bureau_balance['bureau_balance_closed_binary'] =  (bureau_balance['STATUS']=='C').astype(int)
+        bureau_balance['STATUS']  = bureau_balance['STATUS'].replace('X',0)
+        bureau_balance['STATUS']  = bureau_balance['STATUS'].replace('C',0)
+        bureau_balance['STATUS']  = bureau_balance['STATUS'].astype(int)
+
+        features = pd.DataFrame({'SK_ID_BUREAU': bureau_balance['SK_ID_BUREAU'].unique()})
+        groupby = bureau_balance.groupby(by=['SK_ID_BUREAU'])
+        g = groupby['STATUS'].agg('count').reset_index()
+        g.rename(index=str, columns={'STATUS': 'number_of_loans_bureau'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_BUREAU'], how='left')
+
+        g = groupby['STATUS'].agg('mean').reset_index()
+        g.rename(index=str, columns={'STATUS': 'dpd_bureau'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_BUREAU'], how='left')
+
+        g = groupby['bureau_balance_closed_binary'].agg('mean').reset_index()
+        g.rename(index=str, columns={'bureau_balance_closed_binary': 'closed_ratio_bureau'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_BUREAU'], how='left')
+        self.features = features
+        return self
+
 
 class BureauFeatures(BasicHandCraftedFeatures):
     def fit(self, bureau, **kwargs):
@@ -305,46 +415,84 @@ class BureauFeatures(BasicHandCraftedFeatures):
 
         groupby = bureau.groupby(by=['SK_ID_CURR'])
 
+        # number of bureaus
         g = groupby['DAYS_CREDIT'].agg('count').reset_index()
         g.rename(index=str, columns={'DAYS_CREDIT': 'bureau_number_of_past_loans'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
+        # number of credit types
         g = groupby['CREDIT_TYPE'].agg('nunique').reset_index()
         g.rename(index=str, columns={'CREDIT_TYPE': 'bureau_number_of_loan_types'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
+        # average of closed bureau credits
         g = groupby['bureau_credit_active_binary'].agg('mean').reset_index()
         g.rename(index=str, columns={'bureau_credit_active_binary': 'bureau_credit_active_binary'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
+        #  total debts
         g = groupby['AMT_CREDIT_SUM_DEBT'].agg('sum').reset_index()
         g.rename(index=str, columns={'AMT_CREDIT_SUM_DEBT': 'bureau_total_customer_debt'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
+        # total credits
         g = groupby['AMT_CREDIT_SUM'].agg('sum').reset_index()
         g.rename(index=str, columns={'AMT_CREDIT_SUM': 'bureau_total_customer_credit'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
+        # total overdue amount
         g = groupby['AMT_CREDIT_SUM_OVERDUE'].agg('sum').reset_index()
         g.rename(index=str, columns={'AMT_CREDIT_SUM_OVERDUE': 'bureau_total_customer_overdue'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
+        # total number of prolongs
         g = groupby['CNT_CREDIT_PROLONG'].agg('sum').reset_index()
         g.rename(index=str, columns={'CNT_CREDIT_PROLONG': 'bureau_average_creditdays_prolonged'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
+        # average end data per bureau
         g = groupby['bureau_credit_enddate_binary'].agg('mean').reset_index()
         g.rename(index=str, columns={'bureau_credit_enddate_binary': 'bureau_credit_enddate_percentage'}, inplace=True)
         features = features.merge(g, on=['SK_ID_CURR'], how='left')
 
+        # Add by Bowen Guo @2018-08-22
+        g = groupby['number_of_loans_bureau'].agg('sum').reset_index()
+        g.rename(index=str, columns={'number_of_loans_bureau': 'bureau_number_of_loans'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['number_of_loans_bureau'].agg('mean').reset_index()
+        g.rename(index=str, columns={'number_of_loans_bureau': 'bureau_average_number_of_loans'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['dpd_bureau'].agg('sum').reset_index()
+        g.rename(index=str, columns={'dpd_bureau': 'bureau_dpd_sum'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['dpd_bureau'].agg('mean').reset_index()
+        g.rename(index=str, columns={'dpd_bureau': 'bureau_dpd_mean'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+
+        g = groupby['closed_ratio_bureau'].agg('mean').reset_index()
+        g.rename(index=str, columns={'closed_ratio_bureau': 'bureau_closed_ratio'}, inplace=True)
+        features = features.merge(g, on=['SK_ID_CURR'], how='left')
+        ####
+
+        # Average types per loan
         features['bureau_average_of_past_loans_per_type'] = \
             features['bureau_number_of_past_loans'] / features['bureau_number_of_loan_types']
 
+        # ratio between debts and credits
         features['bureau_debt_credit_ratio'] = \
             features['bureau_total_customer_debt'] / features['bureau_total_customer_credit']
 
+        # ratio between overdue and total credits
         features['bureau_overdue_debt_ratio'] = \
             features['bureau_total_customer_overdue'] / features['bureau_total_customer_debt']
+        # change by Bowen Guo @2018-08-22
+        features['bureau_overdue_credit_ratio'] = \
+             features['bureau_total_customer_overdue'] / features['bureau_total_customer_credit']
+
+        #features = features.drop(columns=['bureau_total_customer_overdue', 'bureau_total_customer_credit', 'bureau_total_customer_debt'])
 
         self.features = features
         return self

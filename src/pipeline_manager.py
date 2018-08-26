@@ -1,5 +1,5 @@
 import os
-import shutil
+import shutil, random, time
 
 from attrdict import AttrDict
 import numpy as np
@@ -249,6 +249,7 @@ def train_evaluate_cv_second_level(pipeline_name):
         ctx.channel_send('Fold {} ROC_AUC'.format(fold_id), 0, score)
 
         fold_scores.append(score)
+        print(fold_id)
 
     score_mean, score_std = np.mean(fold_scores), np.std(fold_scores)
 
@@ -398,24 +399,32 @@ def _read_data(dev_mode, read_train=True, read_test=False):
 
     if read_train:
         logger.info('Reading application_train ...')
-        raw_data['application_train'] = pd.read_csv(params.train_filepath, nrows=nrows)
+        raw_data['application_train'] = pd.read_csv(params.train_filepath)
+        
+        if dev_mode:
+            indx_rand = list(range(raw_data['application_train'].shape[0]))
+            random.seed((int(time.time()*1000))%10000)
+            random.shuffle(indx_rand)
+            raw_data['application_train'] = raw_data['application_train'].iloc[indx_rand[0:nrows],:]  
 
     if read_test:
         logger.info("Reading application_test ...")
         raw_data['application_test'] = pd.read_csv(params.test_filepath, nrows=nrows)
-    
+
     logger.info("Reading bureau ...")
-    raw_data['bureau'] = pd.read_csv(params.bureau_filepath, nrows=nrows)
-    logger.info("Reading credit_card_balance ...")
-    raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows)
-    logger.info("Reading pos_cash_balance ...")
-    raw_data['pos_cash_balance'] = pd.read_csv(params.POS_CASH_balance_filepath, nrows=nrows)
-    logger.info("Reading previous_application ...")
-    raw_data['previous_application'] = pd.read_csv(params.previous_application_filepath, nrows=nrows)
+    raw_data['bureau'] = pd.read_csv(params.bureau_filepath)
     logger.info("Reading bureau_balance ...")
-    raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath, nrows=nrows)
+    raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath)
+    logger.info("Reading credit_card_balance ...")
+    raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath)
+    logger.info("Reading pos_cash_balance ...")
+    raw_data['pos_cash_balance'] = pd.read_csv(params.POS_CASH_balance_filepath)
+    logger.info("Reading previous_application ...")
+    raw_data['previous_application'] = pd.read_csv(params.previous_application_filepath)
+    logger.info("Reading bureau_balance ...")
+    raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath)
     logger.info("Reading installments_payments ...")
-    raw_data['installments_payments'] = pd.read_csv(params.installments_payments_filepath, nrows=nrows)
+    raw_data['installments_payments'] = pd.read_csv(params.installments_payments_filepath)
     logger.info("Reading Done!!")
 
     return AttrDict(raw_data)
@@ -517,6 +526,16 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
                       }
     else:
         raise NotImplementedError
+    # DEBUG
+    #print ("HOHO, I am in the _fold_fit_evaluate_loop!!")
+    #train_data['bureau']['X'].to_csv("bureau_before.csv", index=False)
+
+    #print ("HOHO, I am in the _fold_fit_evaluate_loop!!")
+    #train_data['installments_payments']['X'].to_csv("installments_payments.csv", index=False)
+    #exit()
+
+    #train_data['application']['X'].to_csv("application_before.csv", index=False)
+    #print ("application_before.csv has been outputted !!")
 
     pipeline = PIPELINES[pipeline_name](config=cfg.SOLUTION_CONFIG, train_mode=True,
                                         suffix='_fold_{}'.format(fold_id))
@@ -524,6 +543,15 @@ def _fold_fit_evaluate_loop(train_data_split, valid_data_split, tables, fold_id,
     logger.info('Start pipeline fit and transform on train')
     pipeline.clean_cache()
     pipeline.fit_transform(train_data)
+
+    # DEBUG
+    #train_data['bureau']['X'].to_csv("bureau_after.csv", index=False)
+    #print ("bureau_after.csv has been outputted !!")
+
+    #train_data['application']['X'].to_csv("application_after.csv", index=False)
+    #print ("application_after.csv has been outputted !!")
+    #exit()
+
     pipeline.clean_cache()
 
     pipeline = PIPELINES[pipeline_name](config=cfg.SOLUTION_CONFIG, train_mode=False,

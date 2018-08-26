@@ -1,3 +1,5 @@
+# 1percent
+### seisinv
 import click
 
 from src.pipeline_manager import PipelineManager
@@ -75,6 +77,9 @@ def train_evaluate_cv(pipeline_name, model_level, dev_mode):
 @click.option('-s', '--submit_predictions', help='submit predictions if true', is_flag=True, required=False)
 @click.option('-d', '--dev_mode', help='if true only a small sample of data will be used', is_flag=True, required=False)
 def train_evaluate_predict_cv(pipeline_name, model_level, dev_mode, submit_predictions):
+    #print ("dev_mode = ", dev_mode)
+    dev_mode = True
+#    pipeline_manager.train_evaluate_predict_cv(pipeline_name, model_level, dev_mode, submit_predictions)
     pipeline_manager.train_evaluate_predict_cv(pipeline_name, model_level, dev_mode, submit_predictions)
 
 
