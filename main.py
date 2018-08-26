@@ -79,8 +79,8 @@ def train_evaluate_cv(pipeline_name, model_level, dev_mode):
 def train_evaluate_predict_cv(pipeline_name, model_level, dev_mode, submit_predictions):
     #print ("dev_mode = ", dev_mode)
     dev_mode = False
-    pipeline_manager.train_evaluate_predict_cv(pipeline_name, model_level, dev_mode, submit_predictions)
 #    pipeline_manager.train_evaluate_predict_cv(pipeline_name, model_level, dev_mode, submit_predictions)
+    pipeline_manager.train_evaluate_predict_cv(pipeline_name, model_level, dev_mode, submit_predictions)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,8 @@ from .utils import read_params, parameter_eval
 ctx = neptune.Context()
 #params = read_params(ctx, fallback_file='./configs/neptune.yaml')
 #params = read_params(ctx, fallback_file='./configs/neptune_random_search.yaml')
-params = read_params(ctx, fallback_file='./configs/neptune_2.yaml')
+#params = read_params(ctx, fallback_file='./configs/neptune_2.yaml')
+params = read_params(ctx, fallback_file='./configs/neptune.yaml')
 
 RANDOM_SEED = 90210
 DEV_SAMPLE_SIZE = 5000

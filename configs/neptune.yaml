@@ -44,7 +44,7 @@ parameters:
   shuffle: 1
 
 # Execution
-  clean_experiment_directory_before_training: 1
+  clean_experiment_directory_before_training: 0
   num_workers: 25
   verbose: 1
 

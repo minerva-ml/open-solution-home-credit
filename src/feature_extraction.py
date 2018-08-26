@@ -56,10 +56,12 @@ class FeaturePolynomial(BaseTransformer):
             for j in feature_name:
                 if (i!=j):
                     name = i + "_div_" + j
-                    feature_new[name] = feature[i]/feature[j]
+                    feature_new[name] = feature[i]/(feature[j]+1e-5)
         return feature_new
 
     def transform(self, feature_combiner, column_corr, categorical_feature_list):
+        feature_combiner.replace(np.inf, 0.0 , inplace=True)
+        feature_combiner.replace(-np.inf, 0.0 , inplace=True)
         feature_corr = feature_combiner[column_corr]
         #feature_corr.fillna(feature_corr.median(), inplace=True)
         feature_corr.fillna(0.0, inplace=True)

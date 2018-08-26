@@ -14,9 +14,9 @@ def lightGBM(config, train_mode, suffix=''):
         features, features_valid = blocks.feature_extraction(config,
                                                              train_mode,
                                                              suffix,
-                                                             persist_output=True, #DEBUG
+                                                             persist_output=False, #DEBUG
                                                              cache_output=False,
-                                                             load_persisted_output=False) # DEBUG
+                                                             load_persisted_output=True) # DEBUG
                                                              
         light_gbm = blocks.classifier_light_gbm((features, features_valid),
                                                 config,
