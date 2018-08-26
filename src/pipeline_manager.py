@@ -1,5 +1,5 @@
 import os
-import shutil
+import shutil, random, time
 
 from attrdict import AttrDict
 import numpy as np
@@ -399,26 +399,32 @@ def _read_data(dev_mode, read_train=True, read_test=False):
 
     if read_train:
         logger.info('Reading application_train ...')
-        raw_data['application_train'] = pd.read_csv(params.train_filepath, nrows=nrows)
+        raw_data['application_train'] = pd.read_csv(params.train_filepath)
+        
+        if dev_mode:
+            indx_rand = list(range(raw_data['application_train'].shape[0]))
+            random.seed((int(time.time()*1000))%10000)
+            random.shuffle(indx_rand)
+            raw_data['application_train'] = raw_data['application_train'].iloc[indx_rand[0:nrows],:]  
 
     if read_test:
         logger.info("Reading application_test ...")
         raw_data['application_test'] = pd.read_csv(params.test_filepath, nrows=nrows)
 
     logger.info("Reading bureau ...")
-    raw_data['bureau'] = pd.read_csv(params.bureau_filepath, nrows=nrows)
+    raw_data['bureau'] = pd.read_csv(params.bureau_filepath)
     logger.info("Reading bureau_balance ...")
-    raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath, nrows=nrows)
+    raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath)
     logger.info("Reading credit_card_balance ...")
-    raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows)
+    raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath)
     logger.info("Reading pos_cash_balance ...")
-    raw_data['pos_cash_balance'] = pd.read_csv(params.POS_CASH_balance_filepath, nrows=nrows)
+    raw_data['pos_cash_balance'] = pd.read_csv(params.POS_CASH_balance_filepath)
     logger.info("Reading previous_application ...")
-    raw_data['previous_application'] = pd.read_csv(params.previous_application_filepath, nrows=nrows)
+    raw_data['previous_application'] = pd.read_csv(params.previous_application_filepath)
     logger.info("Reading bureau_balance ...")
-    raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath, nrows=nrows)
+    raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath)
     logger.info("Reading installments_payments ...")
-    raw_data['installments_payments'] = pd.read_csv(params.installments_payments_filepath, nrows=nrows)
+    raw_data['installments_payments'] = pd.read_csv(params.installments_payments_filepath)
     logger.info("Reading Done!!")
 
     return AttrDict(raw_data)

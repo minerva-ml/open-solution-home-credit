@@ -24,8 +24,8 @@ class FeatureCorr(BaseTransformer):
         self.max_corr_num = kwargs['max_corr_num']
 
     def transform(self, Target, feature_combiner, suffix):
-        #if Target is not None:
-        if False:
+        if Target is not None:
+#        if False:
             nullexmine = feature_combiner.isnull().sum()/feature_combiner.shape[0]
             nn_columns = [nullexmine.index[i] for i in range(len(nullexmine)) if nullexmine[i]<0.5]
             feature_combiner = feature_combiner[nn_columns]
@@ -39,8 +39,8 @@ class FeatureCorr(BaseTransformer):
             outputs = {'column_corr': column_corr}
 
         else:
-            #outputs = joblib.load('./working/outputs/feature_corr{}'.format(suffix))
-            outputs = joblib.load('./feature_importance')
+            outputs = joblib.load('./working/outputs/feature_corr{}'.format(suffix))
+#            outputs = joblib.load('./feature_importance')
 
 
         return outputs
