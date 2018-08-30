@@ -1,7 +1,7 @@
-project: ORGANIZATION/home-credit
+project: neptune-ml/Home-Credit-Default-Risk
 
 name: home-credit-default-risk
-tags: [solution-6, stacking]
+tags: [solution-6, test]
 
 metric:
   channel: 'ROC_AUC'
@@ -34,39 +34,38 @@ parameters:
 # Kaggle
   kaggle_api: 0
   kaggle_message: 'solution-6'
-
-# Data preparation
+  # Data preparation
   n_cv_splits: 5
   validation_size: 0.2
   stratified_cv: True
   shuffle: 1
-  hyperparameter_search__method: None
-  hyperparameter_search__runs: 0
+  hyperparameter_search__method: random
+  hyperparameter_search__runs: 100
 
   # Execution
   clean_experiment_directory_before_training: 1
   num_workers: 8
   verbose: 1
-  callbacks_on: 1
+  callbacks_on: 0
 
 # Preprocessing
   fill_missing: False
   fill_value: 0
 
 # Feature Extraction
-  installments__last_k_trend_periods: '[]'
-  installments__last_k_agg_periods: '[]'
-  installments__last_k_agg_period_fractions: '[]'
-  pos_cash__last_k_trend_periods: '[]'
-  pos_cash__last_k_agg_periods: '[]'
-  pos_cash__last_k_agg_period_fractions: '[]'
-  bureau__last_k_agg_periods: '[]'
-  bureau__last_k_agg_period_fractions:  '[]'
-  bureau_balance__last_k_trend_periods: '[]'
-  bureau_balance__last_k_agg_periods: '[]'
-  bureau_balance__last_k_agg_period_fractions: '[]'
-  previous_applications__last_k_credits: '[1]'
-  application_previous_application__last_k_credits: '[1]'
+  installments__last_k_trend_periods: '[7, 30, 60, 120, 180, 360, 720]'
+  installments__last_k_agg_periods: '[7, 30, 60, 180, 360, 720, 1500]'
+  installments__last_k_agg_period_fractions: '[(7, 30), (30, 60), (60,180),(60,360),(180,1500),(360,1500)]'
+  pos_cash__last_k_trend_periods: '[6, 12, 60]'
+  pos_cash__last_k_agg_periods: '[6, 12, 24, 60]'
+  pos_cash__last_k_agg_period_fractions: '[(6,24), (12, 60)]'
+  bureau__last_k_agg_periods: '[7, 30, 60, 180, 360, 720, 1500]'
+  bureau__last_k_agg_period_fractions:  '[(7, 30), (30, 60), (60,180), (60,360), (180,1500), (360, 1500)]'
+  bureau_balance__last_k_trend_periods: '[6, 12, 60]'
+  bureau_balance__last_k_agg_periods: '[6, 12, 24, 60]'
+  bureau_balance__last_k_agg_period_fractions: '[(6,24), (12, 60)]'
+  previous_applications__last_k_credits: '[1, 3, 5, 10]'
+  application_previous_application__last_k_credits: '[1, 3, 5, 10]'
   application_aggregation__use_diffs_only: True
   use_nan_count: True
 
@@ -78,18 +77,18 @@ parameters:
   use_installments_payments: True
   use_pos_cash_balance: True
   use_previous_applications: True
-  use_application_previous_applications: False
+  use_application_previous_applications: True
 
-  use_application_aggregations: False
-  use_bureau_aggregations: False
-  use_credit_card_balance_aggregations: False
-  use_installments_payments_aggregations: False
-  use_pos_cash_balance_aggregations: False
-  use_previous_applications_aggregations: False
+  use_application_aggregations: True
+  use_bureau_aggregations: True
+  use_credit_card_balance_aggregations: True
+  use_installments_payments_aggregations: True
+  use_pos_cash_balance_aggregations: True
+  use_previous_applications_aggregations: True
 
-  use_application_categorical_features: False
-  use_previous_application_categorical_features: False
-  use_application_previous_application_categorical_features: False
+  use_application_categorical_features: True
+  use_previous_application_categorical_features: True
+  use_application_previous_application_categorical_features: True
 
 # Light GBM
   lgbm__device: cpu # gpu cpu
@@ -100,15 +99,15 @@ parameters:
   lgbm__early_stopping_rounds: 50
   lgbm__learning_rate: 0.1
   lgbm__max_bin: 300
-  lgbm__max_depth: 4
-  lgbm__num_leaves: 644
-  lgbm__min_child_samples: 330
-  lgbm__subsample: 1.0
+  lgbm__max_depth: 3
+  lgbm__num_leaves: 4
+  lgbm__min_child_samples: 19
+  lgbm__subsample: 0.8
   lgbm__subsample_freq: 1
-  lgbm__colsample_bytree: 0.377
-  lgbm__min_gain_to_split: 3.405
+  lgbm__colsample_bytree: 1.0
+  lgbm__min_gain_to_split: 0.0
   lgbm__reg_lambda: 0.0
-  lgbm__reg_alpha: 0.0
+  lgbm__reg_alpha: 8
   lgbm__is_unbalance: False
   lgbm__scale_pos_weight: 1.
 
@@ -133,16 +132,16 @@ parameters:
   xgb__eval_metric: auc
   xgb__nrounds: 5000
   xgb__early_stopping_rounds: 50
-  xgb__eta: 0.1
-  xgb__max_leaves: 4
-  xgb__max_depth: 2
+  xgb__eta: 0.02
+  xgb__max_leaves: 30
+  xgb__max_depth: 15
   xgb__max_bin: 300
-  xgb__subsample: 0.8
-  xgb__colsample_bytree: 0.3
+  xgb__subsample: 0.5
+  xgb__colsample_bytree: 0.5
   xgb__colsample_bylevel: 1
-  xgb__min_child_weight: 9
-  xgb__lambda: 0
-  xgb__alpha: 100
+  xgb__min_child_weight: 4
+  xgb__lambda: 100
+  xgb__alpha: 0.0
   xgb__scale_pos_weight: 1
 
 # Neural Network
@@ -171,12 +170,16 @@ parameters:
 
 # Logistic regression
   lr__penalty: l1
-  lr__tol: 0.00001
-  lr__C: 0.1
-  lr__fit_intercept: 1
+  lr__tol: 1e-8
+  lr__C: 1000
+  lr__fit_intercept: True
   lr__class_weight: balanced
   lr__solver: liblinear
-  lr__max_iter: 10000
+  lr__max_iter: 100
+
+# NaiveBayes - Bernoulli
+  nb__alpha: 1.
+  nb__binarize: 0.
 
 # SVC
   svc__kernel: rbf

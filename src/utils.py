@@ -11,6 +11,9 @@ import pandas as pd
 from tqdm import tqdm
 import yaml
 from attrdict import AttrDict
+from steppy.base import BaseTransformer
+from sklearn.externals import joblib
+import sklearn.preprocessing as prep
 
 
 def create_submission(meta, predictions):
@@ -133,26 +136,75 @@ def read_oof_predictions(prediction_dir, train_filepath, id_column, target_colum
     for filepath in filepaths_train:
         train_dfs.append(pd.read_csv(filepath))
     train_dfs = reduce(lambda df1, df2: pd.merge(df1, df2, on=[id_column, 'fold_id']), train_dfs)
-    train_dfs.columns = _clean_columns(train_dfs, keep_colnames=[id_column, 'fold_id'])
+    train_dfs.columns = _clean_columns(train_dfs, keep_colnames=[id_column, 'fold_id'], filepaths=filepaths_train)
     train_dfs = pd.merge(train_dfs, labels, on=[id_column])
 
     test_dfs = []
     for filepath in filepaths_test:
         test_dfs.append(pd.read_csv(filepath))
     test_dfs = reduce(lambda df1, df2: pd.merge(df1, df2, on=[id_column, 'fold_id']), test_dfs)
-    test_dfs.columns = _clean_columns(test_dfs, keep_colnames=[id_column, 'fold_id'])
+    test_dfs.columns = _clean_columns(test_dfs, keep_colnames=[id_column, 'fold_id'], filepaths=filepaths_test)
+
     return train_dfs, test_dfs
 
 
-def _clean_columns(df, keep_colnames):
+def _clean_columns(df, keep_colnames, filepaths):
     new_colnames = keep_colnames
     feature_colnames = df.drop(keep_colnames, axis=1).columns
     for i, colname in enumerate(feature_colnames):
-        new_colnames.append('model_{}'.format(i))
+        model_name = filepaths[i].split('/')[-1].split('.')[0].replace('_oof_train', '').replace('_oof_test', '')
+        new_colnames.append(model_name)
     return new_colnames
+
 
 def safe_div(a, b):
     try:
         return float(a) / float(b)
     except:
         return 0.0
+
+
+def flatten_list(l):
+    return [item for sublist in l for item in sublist]
+
+
+class Normalizer(BaseTransformer):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.estimator = prep.Normalizer()
+
+    def fit(self, X, **kwargs):
+        self.estimator.fit(X)
+        return self
+
+    def transform(self, X, **kwargs):
+        X_ = self.estimator.transform(X)
+        return {'X': X_}
+
+    def persist(self, filepath):
+        joblib.dump(self.estimator, filepath)
+
+    def load(self, filepath):
+        self.estimator = joblib.load(filepath)
+        return self
+
+
+class MinMaxScaler(BaseTransformer):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.estimator = prep.MinMaxScaler()
+
+    def fit(self, X, **kwargs):
+        self.estimator.fit(X)
+        return self
+
+    def transform(self, X, **kwargs):
+        X_ = self.estimator.transform(X)
+        return {'X': X_}
+
+    def persist(self, filepath):
+        joblib.dump(self.estimator, filepath)
+
+    def load(self, filepath):
+        self.estimator = joblib.load(filepath)
+        return self
