@@ -18,7 +18,7 @@ from .utils import init_logger, read_params, set_seed, create_submission, verify
 set_seed(cfg.RANDOM_SEED)
 logger = init_logger()
 ctx = neptune.Context()
-params = read_params(ctx, fallback_file='../configs/neptune.yaml')
+params = read_params(ctx, fallback_file='./configs/neptune.yaml')
 
 
 class PipelineManager:
@@ -394,24 +394,32 @@ def _read_data(dev_mode):
 
     raw_data = {}
 
+    logger.info('Reading application_train ...')
     application_train = pd.read_csv(params.train_filepath, nrows=nrows)
+    logger.info("Reading application_test ...")
     application_test = pd.read_csv(params.test_filepath, nrows=nrows)
     raw_data['application'] = pd.concat([application_train, application_test],
                                         sort=False).drop(cfg.TARGET_COLUMNS, axis='columns')
     raw_data['train_set'] = pd.DataFrame(application_train[cfg.ID_COLUMNS + cfg.TARGET_COLUMNS])
     raw_data['test_set'] = pd.DataFrame(application_test[cfg.ID_COLUMNS])
 
+    logger.info("Reading bureau ...")
     raw_data['bureau'] = pd.read_csv(params.bureau_filepath, nrows=nrows_bureau)
+    logger.info("Reading credit_card_balance ...")
     raw_data['credit_card_balance'] = pd.read_csv(params.credit_card_balance_filepath, nrows=nrows_credit_card_balance)
+    logger.info("Reading pos_cash_balance ...")
     raw_data['pos_cash_balance'] = pd.read_csv(params.POS_CASH_balance_filepath, nrows=nrows_pos_cash_balance)
+    logger.info("Reading previous_application ...")
     raw_data['previous_application'] = pd.read_csv(params.previous_application_filepath,
                                                    nrows=nrows_previous_applications)
+    logger.info("Reading bureau_balance ...")
     raw_data['bureau_balance'] = pd.read_csv(params.bureau_balance_filepath, nrows=nrows_bureau_balance)
     raw_data['bureau_balance'] = raw_data['bureau_balance'].merge(raw_data['bureau'][['SK_ID_CURR', 'SK_ID_BUREAU']],
                                                                   on='SK_ID_BUREAU', how='right')
+    logger.info("Reading installments_payments ...")
     raw_data['installments_payments'] = pd.read_csv(params.installments_payments_filepath,
                                                     nrows=nrows_installments_payments)
-
+    logger.info("Reading Done!!")
     return AttrDict(raw_data)
 
 
