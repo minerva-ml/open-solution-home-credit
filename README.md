@@ -59,6 +59,30 @@ python main.py -- train_evaluate_predict_cv --pipeline_name lightGBM
 ### Installation *(step by step)*
 [Step by step installation :desktop_computer:](https://github.com/neptune-ml/open-solution-home-credit/wiki/Step-by-step-installation)
 
+### Hyperparameter Tuning
+Various options of hyperparameter tuning are available
+
+1. Random Search
+
+    `configs/neptune.yaml`
+    ```yaml
+      hyperparameter_search__method: random
+      hyperparameter_search__runs: 100
+    ```
+    
+    `src/pipeline_config.py`
+    ```python
+        'tuner': {'light_gbm': {'max_depth': ([2, 4, 6], "list"),
+                                'num_leaves': ([2, 100], "choice"),
+                                'min_child_samples': ([5, 10, 15 25, 50], "list"),
+                                'subsample': ([0.95, 1.0], "uniform"),
+                                'colsample_bytree': ([0.3, 1.0], "uniform"),
+                                'min_gain_to_split': ([0.0, 1.0], "uniform"),
+                                'reg_lambda': ([1e-8, 1000.0], "log-uniform"),
+                                },
+                  }
+    ```
+
 ## Get involved
 You are welcome to contribute your code and ideas to this open solution. To get started:
 1. Check [competition project](https://github.com/minerva-ml/open-solution-home-credit/projects/1) on GitHub to see what we are working on right now.
