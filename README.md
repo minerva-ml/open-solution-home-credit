@@ -4,8 +4,8 @@
 
 This is an open solution to the [Home Credit Default Risk challenge](https://www.kaggle.com/c/home-credit-default-risk) :house_with_garden:.
 
-## More competitions
-Check collection of [public projects :computer:](https://app.neptune.ml/-/explore), where you can find multiple Kaggle competitions with code, experiments and outputs.
+## More competitions :sparkler:
+Check collection of [public projects :gift:](https://app.neptune.ml/-/explore), where you can find multiple Kaggle competitions with code, experiments and outputs.
 
 ## Our goals
 We are building entirely open solution to this competition. Specifically:
