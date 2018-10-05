@@ -4,6 +4,9 @@
 
 This is an open solution to the [Home Credit Default Risk challenge](https://www.kaggle.com/c/home-credit-default-risk) :house_with_garden:.
 
+## More competitions
+Check collection of [public projects :computer:](https://app.neptune.ml/-/explore), where you can find multiple Kaggle competitions with code, experiments and outputs.
+
 ## Our goals
 We are building entirely open solution to this competition. Specifically:
 1. **Learning from the process** - updates about new ideas, code and experiments is the best way to learn data science. Our activity is especially useful for people who wants to enter the competition, but lack appropriate experience.
