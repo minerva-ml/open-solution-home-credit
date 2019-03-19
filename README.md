@@ -45,7 +45,7 @@ You can jump start your participation in the competition by using our starter pa
 pip3 install -r requirements.txt
 ```
 
-2. Register to the [neptune.ml](https://neptune.ml) _(if you wish to use it)_
+2. Register to the [neptune.ml](http://bit.ly/2HHbSEy) _(if you wish to use it)_
 3. Run experiment based on [LightGBM](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-with-smarter-features):
 
 :trident:
@@ -96,5 +96,5 @@ You are welcome to contribute your code and ideas to this open solution. To get 
 ## User support
 There are several ways to seek help:
 1. Kaggle [discussion](https://www.kaggle.com/c/home-credit-default-risk/discussion/57175) is our primary way of communication.
-1. Read project's [Wiki](https://github.com/minerva-ml/open-solution-home-credit/wiki), where we publish descriptions about the code, pipelines and supporting tools such as [neptune.ml](https://neptune.ml).
+1. Read project's [Wiki](https://github.com/minerva-ml/open-solution-home-credit/wiki), where we publish descriptions about the code, pipelines and supporting tools such as [neptune.ml](http://bit.ly/2HHbSEy).
 1. Submit an [issue]((https://github.com/minerva-ml/open-solution-home-credit/issues)) directly in this repo.
