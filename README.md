@@ -19,7 +19,7 @@ We are building entirely open solution to this competition. Specifically:
 |[![train-validation-results-on-folds](https://gist.githubusercontent.com/kamil-kaczmarek/b3b939797fb39752c45fdadfedba3ed9/raw/fbc925f683853fa8af5a95426fcd37fcb3afcf38/hc-1.png)](https://app.neptune.ml/-/dashboard/experiment/bb8d7113-d944-4718-87b5-6aeca4ff85c5)|[![LightGBM-learning-curves](https://gist.githubusercontent.com/kamil-kaczmarek/b3b939797fb39752c45fdadfedba3ed9/raw/fbc925f683853fa8af5a95426fcd37fcb3afcf38/hc-2.png)](https://app.neptune.ml/-/dashboard/experiment/bb8d7113-d944-4718-87b5-6aeca4ff85c5)|
 
 ## Disclaimer
-In this open source solution you will find references to the [neptune.ml](https://neptune.ml). It is free platform for community Users, which we use daily to keep track of our experiments. Please note that using neptune.ml is not necessary to proceed with this solution. You may run it as plain Python script :snake:.
+In this open source solution you will find references to the [neptune.ml](http://bit.ly/2TkoL9G). It is free platform for community Users, which we use daily to keep track of our experiments. Please note that using neptune.ml is not necessary to proceed with this solution. You may run it as plain Python script :snake:.
 
 # How to start?
 ## Learn about our solutions
@@ -45,7 +45,7 @@ You can jump start your participation in the competition by using our starter pa
 pip3 install -r requirements.txt
 ```
 
-2. Register to the [neptune.ml](http://bit.ly/2HHbSEy) _(if you wish to use it)_
+2. Register to the [neptune.ml](http://bit.ly/2TkoL9G) _(if you wish to use it)_
 3. Run experiment based on [LightGBM](https://github.com/neptune-ml/open-solution-home-credit/wiki/LightGBM-with-smarter-features):
 
 :trident:
@@ -96,5 +96,5 @@ You are welcome to contribute your code and ideas to this open solution. To get 
 ## User support
 There are several ways to seek help:
 1. Kaggle [discussion](https://www.kaggle.com/c/home-credit-default-risk/discussion/57175) is our primary way of communication.
-1. Read project's [Wiki](https://github.com/minerva-ml/open-solution-home-credit/wiki), where we publish descriptions about the code, pipelines and supporting tools such as [neptune.ml](http://bit.ly/2HHbSEy).
+1. Read project's [Wiki](https://github.com/minerva-ml/open-solution-home-credit/wiki), where we publish descriptions about the code, pipelines and supporting tools such as [neptune.ml](http://bit.ly/2TkoL9G).
 1. Submit an [issue]((https://github.com/minerva-ml/open-solution-home-credit/issues)) directly in this repo.
