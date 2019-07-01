@@ -22,7 +22,9 @@ We are building entirely open solution to this competition. Specifically:
 In this open source solution you will find references to the [neptune.ml](http://bit.ly/2TkoL9G). It is free platform for community Users, which we use daily to keep track of our experiments. Please note that using neptune.ml is not necessary to proceed with this solution. You may run it as plain Python script :snake:.
 
 ## Note
-As of 1.07.2019 we officially discontinued neptune-cli client project making neptune-client the only supported way to communicate with Neptune. That means you should run your experiments in this repo via `python ...` command or update loggers to neptune-client. For more information about the new client go to [neptune-client read-the-docs page](https://neptune-client.readthedocs.io/en/latest/).
+As of **1.07.2019** we officially discontinued `neptune-cli` client project making `neptune-client` the only supported way to communicate with Neptune. 
+That means you should run experiments via `python ...` command or update loggers to `neptune-client`. 
+For more information about the new client go to [neptune-client read-the-docs page](https://neptune-client.readthedocs.io/en/latest/).
 
 # How to start?
 ## Learn about our solutions
